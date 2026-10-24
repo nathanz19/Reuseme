@@ -18,7 +18,7 @@ test("remove, undo, redo, and re-add blocks on the canvas", async ({
   page,
 }) => {
   const clinicForms = canvasBlock(page, "proj-4");
-  await hoverClick(clinicForms, "Remove");
+  await hoverClick(clinicForms, "Remove from resume");
   await expect(clinicForms).toHaveCount(0);
   await expect(page.getByText("Suggested to cut for space")).toHaveCount(0);
 
@@ -27,7 +27,7 @@ test("remove, undo, redo, and re-add blocks on the canvas", async ({
   await page.getByRole("button", { name: "Redo" }).click();
   await expect(clinicForms).toHaveCount(0);
 
-  await hoverClick(canvasBlock(page, "lead-4"), "Remove");
+  await hoverClick(canvasBlock(page, "lead-4"), "Remove from resume");
   const card = vaultCard(page, "Clinic Forms Kit");
   await card.getByRole("button", { name: "Add to Resume" }).click();
   await expect(clinicForms).toBeVisible();
@@ -35,7 +35,7 @@ test("remove, undo, redo, and re-add blocks on the canvas", async ({
 });
 
 test("canvas edits persist across a reload", async ({ page }) => {
-  await hoverClick(canvasBlock(page, "proj-4"), "Remove");
+  await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
   await expect(spaceMeter(page)).not.toHaveText("Space 46/45");
   const meterAfterRemove = await spaceMeter(page).textContent();
 
@@ -65,9 +65,9 @@ test("presets, templates, and new versions switch the canvas", async ({
 
 test("header edits update the resume", async ({ page }) => {
   // Any canvas change is refused while the seed preset is over budget.
-  await hoverClick(canvasBlock(page, "proj-4"), "Remove");
+  await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
   const root = page.locator("#resume-print-root");
-  await root.getByRole("button", { name: "Edit header" }).click({ force: true });
+  await root.getByRole("button", { name: "Edit Contact Information" }).click({ force: true });
   await page.getByLabel("Full name").fill("Ada Lovelace");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(root.getByRole("heading", { level: 1 })).toHaveText(
