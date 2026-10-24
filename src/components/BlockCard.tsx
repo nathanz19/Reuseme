@@ -40,7 +40,7 @@ export function BlockCard({
         isDragging ? "opacity-60" : ""
       }`}
     >
-      <div className="flex items-start gap-2 p-3 pt-10">
+      <div className="flex items-start gap-2 p-3">
         <button
           type="button"
           className="mt-0.5 shrink-0 cursor-grab text-slate-400 disabled:cursor-default disabled:opacity-30"
@@ -86,6 +86,7 @@ export function BlockCard({
             </p>
           )}
         </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
         <button
           type="button"
           disabled={onResume || !canAdd}
@@ -99,8 +100,9 @@ export function BlockCard({
         >
           {onResume ? "On resume" : canAdd ? "Add to Resume" : "Cannot fit"}
         </button>
+        <div className="resume-hover-control print:hidden"><BlockActions block={block} /></div>
+        </div>
       </div>
-      <div className="resume-hover-control absolute right-2 top-1 print:hidden"><BlockActions block={block} /></div>
       {open && (
         <div className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-xs">
           <p className="whitespace-pre-wrap text-slate-700">{block.sourceContext}</p>

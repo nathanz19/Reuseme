@@ -56,46 +56,52 @@ body.resume-drop-blocked * {
   }
 }
 
+#resume-print-copy {
+  display: none;
+}
+
 @media print {
   @page {
     size: Letter;
     margin: 0;
   }
 
+  html,
   body {
+    display: block !important;
+    width: 816px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
     background: white;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
-  body * {
-    visibility: hidden;
-  }
-
-  #resume-print-root,
-  #resume-print-root * {
-    visibility: visible;
-  }
-
-  #resume-print-root {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 816px;
-    height: 1056px;
-    overflow: hidden;
-    box-shadow: none !important;
-    padding: 0.5in;
-    box-sizing: border-box;
-  }
-
-  .resume-hover-control,
-  .drag-handle,
-  .overflow-flag,
-  .overflow-label,
-  .resume-drop-placeholder {
+  /* The print copy is a direct child of body, outside all editor containers. */
+  body > :not(#resume-print-copy) {
     display: none !important;
   }
 
-  #resume-print-root .overflow-flag {
+  #resume-print-copy {
+    position: relative;
+    display: block !important;
+    width: 816px;
+    height: 1056px;
+    margin: 0 !important;
+    overflow: hidden;
+    box-shadow: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+    padding: 0.5in;
+    box-sizing: border-box;
+    break-inside: avoid;
+  }
+
+  #resume-print-copy .overflow-flag {
     border-color: transparent !important;
+    background: white !important;
   }
 }

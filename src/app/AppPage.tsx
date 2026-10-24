@@ -28,6 +28,7 @@ import { DEMO_JD_TEXT } from "@/data/demo-jd";
 import { matchVault, tailorBullet } from "@/data/fixtures";
 import { computeCoverage } from "@/lib/coverage";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
+import { prepareResumePrint, clearResumePrint } from "@/lib/printResume";
 import { collectAllTags, searchBlocks } from "@/lib/search";
 import {
   type CanvasPlaceholder,
@@ -137,6 +138,16 @@ function highlightedVaultSection(
 }
 
 export function AppPage() {
+  useEffect(() => {
+    window.addEventListener("beforeprint", prepareResumePrint);
+    window.addEventListener("afterprint", clearResumePrint);
+    return () => {
+      window.removeEventListener("beforeprint", prepareResumePrint);
+      window.removeEventListener("afterprint", clearResumePrint);
+      clearResumePrint();
+    };
+  }, []);
+
   const vaultBlocks = useResumeStore((s) => s.vaultBlocks);
   const presets = useResumeStore((s) => s.presets);
   const activePresetId = useResumeStore((s) => s.activePresetId);

@@ -83,6 +83,7 @@ export function Navbar({
         type="button"
         className="ml-auto rounded border border-slate-800 bg-slate-900 px-3 py-1 text-white hover:bg-slate-800"
         onClick={onExportPdf}
+        title="Open the print dialog, then choose Save as PDF"
       >
         Export PDF
       </button>
