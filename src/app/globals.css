@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Ensure classes in lib/theme.ts and all app sources are scanned after merges. */
+@source "../**/*.{ts,tsx}";
+
 @custom-variant wide-two-pane (@media (min-width: 1320px));
 
 :root {
@@ -16,32 +19,36 @@
   --accent: #526141;
   --accent-hover: #455237;
   --accent-vivid: #748a5a;
-  --primary: var(--accent);
-  --primary-hover: var(--accent-hover);
+  --primary: #526141;
+  --primary-hover: #455237;
   --accent-subtle: #e9efe4;
   --accent-border: #c5d4be;
   --accent-text: #47523c;
   --focus-ring: #526141;
 }
 
+/*
+ * Literal hex in @theme — Tailwind v4 + Turbopack can drop utilities when
+ * --color-* only references other custom properties (var chains).
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-ink: var(--ink);
-  --color-ink-muted: var(--ink-muted);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-vivid: var(--accent-vivid);
-  --color-accent-subtle: var(--accent-subtle);
-  --color-accent-border: var(--accent-border);
-  --color-accent-text: var(--accent-text);
-  --color-focus-ring: var(--focus-ring);
+  --color-background: #f5f4f0;
+  --color-foreground: #1a1a1a;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eceae4;
+  --color-border: #e3e1da;
+  --color-border-strong: #d4d1c8;
+  --color-ink: #141414;
+  --color-ink-muted: #5c5a54;
+  --color-primary: #526141;
+  --color-primary-hover: #455237;
+  --color-accent: #526141;
+  --color-accent-hover: #455237;
+  --color-accent-vivid: #748a5a;
+  --color-accent-subtle: #e9efe4;
+  --color-accent-border: #c5d4be;
+  --color-accent-text: #47523c;
+  --color-focus-ring: #526141;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --shadow-soft: 0 1px 2px rgb(20 20 20 / 0.04), 0 8px 24px rgb(20 20 20 / 0.06);
@@ -53,19 +60,108 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-@utility btn-primary {
-  border-radius: 0.5rem;
-  background-color: var(--primary);
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: white;
-  transition-property: color, background-color, border-color;
-  transition-duration: 150ms;
-}
+/* Chrome buttons — CSS classes so colors work even if Tailwind color utilities fail. */
+@layer components {
+  .btn-primary,
+  .btn-primary-sm,
+  .btn-export {
+    border: 1px solid var(--accent);
+    background-color: var(--accent);
+    color: #fff;
+    font-weight: 500;
+    transition:
+      color 150ms,
+      background-color 150ms,
+      border-color 150ms;
+  }
 
-@utility btn-primary-hover {
-  background-color: var(--primary-hover);
+  .btn-primary {
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-primary-sm {
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-export {
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .btn-primary:hover:not(:disabled),
+  .btn-primary-sm:hover:not(:disabled),
+  .btn-export:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .btn-primary:disabled,
+  .btn-primary-sm:disabled,
+  .btn-export:disabled {
+    border-color: transparent;
+    background-color: var(--surface-muted);
+    color: var(--ink-muted);
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  .btn-primary-sm:disabled {
+    opacity: 0.7;
+    pointer-events: auto;
+    cursor: default;
+  }
+
+  .btn-secondary {
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-strong);
+    background-color: var(--surface);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+    transition:
+      color 150ms,
+      background-color 150ms,
+      border-color 150ms;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent-border);
+    background-color: var(--accent-subtle);
+    color: var(--accent-text);
+  }
+
+  .btn-outline-sm {
+    border-radius: 0.25rem;
+    border: 1px solid var(--accent-border);
+    background-color: var(--surface);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: var(--accent-text);
+    transition:
+      color 150ms,
+      background-color 150ms,
+      border-color 150ms;
+  }
+
+  .btn-outline-sm:hover:not(:disabled) {
+    background-color: var(--accent-subtle);
+  }
+
+  .btn-outline-sm:disabled {
+    border-color: var(--border);
+    background-color: var(--surface-muted);
+    color: var(--ink-muted);
+    cursor: default;
+  }
 }
 
 .no-scrollbar {
