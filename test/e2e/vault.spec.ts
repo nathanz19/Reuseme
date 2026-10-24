@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test("loads the seeded vault and default preset", async ({ page }) => {
   await expect(page).toHaveTitle(/Reuseme/);
-  await expect(page.getByLabel("Resume preset")).toHaveValue("frontend-swe");
+  await expect(page.getByRole("tab", { name: "Frontend SWE", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByLabel("Template")).toHaveValue("classic-ats");
   await expect(spaceMeter(page)).toHaveText("Space 46/45");
   await expect(

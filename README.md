@@ -14,7 +14,7 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 - Use the compact Filters panel and + Add filter to combine tags, active date ranges, and sections. Include Archived and Clear all are inside the panel; the button shows the active filter count. Date ranges match entries whose start/end dates overlap the selected months.
 - Search and filter a persisted vault of accomplishment blocks by text and tags, with an option to include archived blocks. Each card expands to show the raw source notes.
 - Add, remove, and reorder blocks on a live resume canvas. Blocks land in a fixed section for their category (Education, Experience, Projects, Leadership, Certifications, Skills). Drag-and-drop runs between the vault and the canvas on wide layouts; Add to Resume and Remove work at any width.
-- Switch presets, duplicate the active preset as a new version, and switch between two ATS-style templates (font, accent, and header layout only). Undo and redo apply to canvas changes, including accepted rewrites. Vault blocks stay immutable, so a rewrite for one role does not change another preset.
+- Switch documents using browser-style tabs, create a blank document with the plus icon, and switch between two ATS-style templates (font, accent, and header layout only). Undo and redo apply to canvas changes, including accepted rewrites. Vault blocks stay immutable, so a rewrite for one role does not change another preset.
 - Paste a job description and rank every vault block. The app shows a match score and a one-sentence explanation, a coverage bar for required skills, and a “forgotten experience” list of archived blocks at or above the match threshold.
 - Request a bullet rewrite in three tones (technical IC, leadership, concise). The dialog shows a word diff, highlights the source quote in the notes, lists job-description keywords left out for lack of evidence, and shows non-blocking grounding warnings. Accept stores the new text only on the active preset.
 
@@ -26,7 +26,7 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 4. Open the JD tab. A demo job description is filled in if the field is empty. Edit the text and choose Analyze & Rank Vault.
 5. Review coverage and forgotten experience, and add matching blocks to the resume. Rankings stay put if a match request fails.
 6. From a vault card or a canvas bullet, open Tailor bullet, pick a tone, and Accept or Reject. Accept updates that preset only and can be undone. Reject leaves no change.
-7. Choose Export PDF. The print view is the resume only: selectable text, one column, US Letter.
+7. Choose Export PDF once the space count is within the one-page budget. If it is over budget, remove or shorten content first. The print view is the resume only: selectable text, one column, US Letter.
 
 ### Current Scope & Limitations
 

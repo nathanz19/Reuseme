@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { inflateSync } from "node:zlib";
-import { openApp } from "./helpers";
+import { canvasBlock, hoverClick, openApp } from "./helpers";
 
 function pdfTextCommands(pdf: Buffer): string {
   const contents = pdf.toString("latin1");
@@ -18,6 +18,15 @@ test("export opens the browser print dialog", async ({ page }) => {
   await page.evaluate(() => {
     window.print = () => document.body.setAttribute("data-print-requested", "true");
   });
+  await expect(page.getByRole("button", { name: "Export PDF" })).toBeDisabled();
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await page.locator("[data-export-control]").hover();
+  await expect(page.getByRole("tooltip")).toContainText("before exporting");
+  await page.mouse.move(0, 0);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveAttribute("data-print-requested", "true");
+  await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
+  await expect(page.getByRole("button", { name: "Export PDF" })).toBeEnabled();
   await page.getByRole("button", { name: "Export PDF" }).click();
   await expect(page.locator("body")).toHaveAttribute("data-print-requested", "true");
 });
