@@ -4,7 +4,7 @@ A local-first web app. Users keep career achievements as tagged **blocks** (with
 
 **For agents:** build in phase order (§9); don't start phase N+1 until phase N's checklist is ticked. Follow §2. **Tunable** values (§5) are starting points. Vitest covers pure functions in `src/lib` only: `getEffectiveBullets`, line-count math, coverage, search.
 
-**Non-goals:** add/edit blocks in the UI, accounts or sync, multi-page resumes (overflow is flagged, not paginated), DOCX export, dragging from vault to canvas.
+**Non-goals:** add/edit blocks in the UI, accounts or sync, multi-page resumes (overflow is flagged, not paginated), DOCX export.
 
 ---
 
@@ -29,7 +29,7 @@ Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib
 | Sections | Fixed order: Education, Experience, Projects, Leadership, Certifications, Skills. A block's section follows its `category`. |
 | Templates | Both single-column, ATS-safe; differ in font, accent color, header layout only. |
 | Scoring | One `generateObject` call receives the JD plus all vault blocks and returns `parsedJD` plus a `semanticScore` and `matchExplanation` per block. Final score is combined in code (§4.1). |
-| Drag and drop | Canvas-only: `@dnd-kit` reorders blocks within their section. Blocks are added from the vault with an "Add to Resume" button. One completed drag = one undo step. |
+| Drag and drop | One shared `@dnd-kit` context: drag vault cards (grip) onto the resume to add/insert by section; drag canvas blocks to the sidebar to remove; reorder within a section on canvas. "Add to Resume" / Remove buttons remain. Cross-pane drag only at ≥1320px (two-pane layout). One completed drop = one undo step; Esc or no-op drop adds no history. |
 | AI trust | Unverified claims show as non-blocking warning badges; the user approves every change in a diff. |
 | Demo safety | `MOCK_AI=1` makes both routes return deterministic fixtures. |
 
@@ -185,16 +185,17 @@ Style: dense, utilitarian, like a document editor, not a marketing page. Plain T
 
 **Navbar:** preset switcher (+ "New version" duplicates the active preset), undo/redo, template switcher, space meter (neutral → amber near full → red over), Export PDF.
 
-**Vault tab:** search, tag filters, "Include Archived" toggle. Cards show title, org, tags, archived badge, match score and explanation (when a JD is active), and an "Add to Resume" button (disabled as "On resume" when present). Cards expand to show `sourceContext` and tailor controls.
+**Vault tab:** search, tag filters, "Include Archived" toggle. Cards show title, org, tags, archived badge, match score and explanation (when a JD is active), a grip to drag onto the resume (disabled when already on canvas), and an "Add to Resume" button (disabled as "On resume" when present). Cards expand to show `sourceContext` and tailor controls.
 
-**JD tab:** paste + "Analyze & Rank Vault"; live coverage bar (covered vs missing required skills, updates as the canvas changes); "Forgotten experience" list of archived blocks with `matchScore ≥ FORGOTTEN_THRESHOLD`, shown even when "Include Archived" is off, each with an "Add to Resume" button.
+**JD tab:** paste + "Analyze & Rank Vault"; live coverage bar (covered vs missing required skills, updates as the canvas changes); "Forgotten experience" list of archived blocks with `matchScore ≥ FORGOTTEN_THRESHOLD`, shown even when "Include Archived" is off, each with vault-style drag (grip) and an "Add to Resume" button.
 
 **Tailoring:** pick a bullet (from the card, or the hover button on the canvas), request a proposal, switch between three tones, see a diff against `originalText`, with `sourceQuote` highlighted in `sourceContext`, a "not in your notes" badge per `unsupportedFlag`, and amber badges for `warnings`. Accept writes a bullet override to the active preset (undoable); Reject leaves no trace.
 
 **Canvas:**
-- `#resume-print-root`, 816 px wide; one sortable list per non-empty section (`SortableContext` each), so reordering across sections is impossible by construction.
-- Hover reveals drag handle, per-bullet tailor, Remove. Pointer + keyboard sensors (Space to pick up, arrows to move, Space to drop); a live gap shows the landing position.
-- A drag creates one history entry, on drop only; a cancelled drag (Esc) creates none.
+- `#resume-print-root`, 816 px wide; one sortable list per non-empty section (`SortableContext` each). Dropping a vault block always lands in the section for its `category` (insert before a same-section block when dropped on it, otherwise append). Reordering across sections is not supported.
+- While dragging a vault block, an empty target section shows a dashed drop slot (hidden in print). Compatible targets highlight during drag.
+- Hover reveals drag handle, per-bullet tailor, Remove. Canvas reorder uses pointer + keyboard (Space to pick up, arrows to move, Space to drop); vault-to-canvas drags are pointer-only.
+- A completed drop creates one history entry; a cancelled drag (Esc) or no-op drop creates none.
 - Header editable via a small popover.
 - Overflow flag per §4.1: amber outline + "Suggested to cut for space".
 
@@ -235,6 +236,7 @@ Typecheck and lint pass; the phase checklist is ticked; Vitest passes for the pu
 
 ### Phase 2: Visual composer
 - [ ] "Add to Resume" and Remove work; blocks land in their category's section
+- [ ] Vault cards and forgotten-experience rows drag onto the resume; canvas blocks drag to the sidebar to remove (wide layout)
 - [ ] Blocks reorder within a section via drag and via keyboard
 - [ ] A completed drag is one undo step; a cancelled drag adds none
 - [ ] Undo/redo restore canvas changes only; search text and filters are unaffected
@@ -261,4 +263,4 @@ Typecheck and lint pass; the phase checklist is ticked; Vitest passes for the pu
 
 ## 10. Later
 
-Block add/edit UI and resume import · vault-to-canvas dragging · embedding-based ranking for large vaults · preset import/export · Supabase `pgvector` or MongoDB Atlas persistence.
+Block add/edit UI and resume import · embedding-based ranking for large vaults · preset import/export · Supabase `pgvector` or MongoDB Atlas persistence.
