@@ -27,7 +27,7 @@ export async function hoverClick(block: Locator, name: string, nth = 0) {
 }
 
 export async function analyzeDemoJd(page: Page) {
-  await page.getByRole("button", { name: "Job Description" }).click();
+  await page.getByRole("button", { name: "Job Description", exact: true }).click();
   await expect(page.getByPlaceholder("Paste job description…")).toHaveValue(
     /Nimbus Analytics/,
   );
