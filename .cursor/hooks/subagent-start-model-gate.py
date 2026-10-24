@@ -26,7 +26,7 @@ def main() -> None:
         {
             "permission": "deny",
             "user_message": (
-                "Subagents must use composer-2.5 by default. "
+                "Subagents must use composer-2.5 (not composer-2.5-fast). "
                 "Use ESCALATE_SONNET / ESCALATE_OPUS in the Task prompt for tiered models."
             ),
         },
