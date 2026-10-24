@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "subagentStart": [
+      {
+        "command": ".cursor/hooks/allowlist-subagent-model.sh",
+        "failClosed": true
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/allowlist-subagent-model.sh",
+        "matcher": "Task",
+        "failClosed": true
+      }
+    ]
+  }
+}
