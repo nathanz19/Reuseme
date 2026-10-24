@@ -21,7 +21,7 @@ export function SpaceMeter({ preset, vaultBlocks }: SpaceMeterProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium ${color}`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-[11px] leading-tight font-medium ${color}`}
       title="Estimated lines vs one-page budget"
     >
       Space {display}/{MAX_LINES}

@@ -102,15 +102,15 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         </div>
       </nav>
       </DndContext>
-      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-ink">
-        <div className="flex items-center gap-1 border-r border-border pr-4">
-          <IconAction label="Undo" onClick={onUndo} disabled={!canUndo}><Undo2 size={18} aria-hidden="true" /></IconAction>
-          <IconAction label="Redo" onClick={onRedo} disabled={!canRedo}><Redo2 size={18} aria-hidden="true" /></IconAction>
+      <div role="toolbar" aria-label="Document editing" className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1 text-ink">
+        <div className="flex items-center gap-0.5 border-r border-border pr-3">
+          <IconAction label="Undo" onClick={onUndo} disabled={!canUndo} className="h-6! w-6!"><Undo2 size={16} aria-hidden="true" /></IconAction>
+          <IconAction label="Redo" onClick={onRedo} disabled={!canRedo} className="h-6! w-6!"><Redo2 size={16} aria-hidden="true" /></IconAction>
         </div>
-        <label className="flex items-center gap-2 text-xs text-accent-text">
+        <label className="flex items-center gap-1.5 text-xs text-accent-text">
           Template
           <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
-            aria-label="Template" className={`px-3 py-1.5 transition-colors hover:border-accent-border ${fieldBorder} ${focusRing}`}>
+            aria-label="Template" className={`px-2 py-0.5 text-xs transition-colors hover:border-accent-border ${fieldBorder} ${focusRing}`}>
             <option value="classic-ats">Classic ATS</option>
             <option value="modern-tech">Modern Tech</option>
           </select>
@@ -232,8 +232,8 @@ function ExportControl({ canExport, onExportPdf, onExportDocx }: {
         aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={EXPORT_MENU_ID}
         aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
         onClick={() => { if (canExport) placeMenu(); }}
-        className={btnExport}>
-        <Download size={15} aria-hidden="true" />Export<ChevronDown size={14} aria-hidden="true" />
+        className={`${btnExport} gap-1! px-2.5! py-1! text-xs! shadow-none!`}>
+        <Download size={14} aria-hidden="true" />Export<ChevronDown size={12} aria-hidden="true" />
       </button>
       <div ref={menuRef} id={EXPORT_MENU_ID} popover="auto" role="menu" aria-label="Export format"
         onToggle={(event) => {
