@@ -2,7 +2,8 @@
 
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type Modifier } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
@@ -35,6 +36,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
   const tabSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [showExportHelp, setShowExportHelp] = useState(false);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [closingDocument, setClosingDocument] = useState<ResumePreset | null>(null);
   const cancelRename = useRef(false);
   const startRename = (preset: ResumePreset) => {
     cancelRename.current = false;
@@ -90,7 +92,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                 </button>
               )}
               <IconAction label={`Rename ${preset.name}`} onClick={() => startRename(preset)} className="bg-transparent!"><Pencil size={13} aria-hidden="true" /></IconAction>
-              <IconAction label={`Close ${preset.name}`} onClick={() => onCloseDocument(preset.id)} className="bg-transparent!"><X size={15} aria-hidden="true" /></IconAction>
+              <IconAction label={`Close ${preset.name}`} onClick={() => setClosingDocument(preset)} className="bg-transparent!"><X size={15} aria-hidden="true" /></IconAction>
             </SortableDocumentTab>;
           })}
           </SortableContext>
@@ -129,7 +131,35 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           </button>
         </div>
       </div>
+      {closingDocument && <DeleteDocumentDialog name={closingDocument.name}
+        onCancel={() => setClosingDocument(null)}
+        onConfirm={() => { onCloseDocument(closingDocument.id); setClosingDocument(null); }} />}
     </header>
+  );
+}
+
+function DeleteDocumentDialog({ name, onCancel, onConfirm }: {
+  name: string; onCancel: () => void; onConfirm: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
+  return createPortal(
+    <dialog ref={dialogRef} aria-labelledby="delete-document-title" aria-describedby="delete-document-description"
+      onCancel={onCancel}
+      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-white p-6 text-slate-900 shadow-xl backdrop:bg-black/40 print:hidden">
+      <h2 id="delete-document-title" className="text-lg font-semibold">Delete document?</h2>
+      <p id="delete-document-description" className="mt-3 text-sm text-slate-600">
+        Are you sure you want to delete “{name}”? You can undo this using Undo in the editing toolbar.
+      </p>
+      <div className="mt-6 flex justify-end gap-3">
+        <button type="button" autoFocus onClick={onCancel} className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50">Cancel</button>
+        <button type="button" onClick={onConfirm} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Delete document</button>
+      </div>
+    </dialog>, document.body,
   );
 }
 

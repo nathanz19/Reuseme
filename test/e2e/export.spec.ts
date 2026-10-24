@@ -34,7 +34,7 @@ test("export opens the browser print dialog", async ({ page }) => {
 for (const width of [900, 1440]) {
   test(`PDF contains printed text at viewport width ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await page.goto("/editor");
     const resume = page.locator("#resume-print-root");
     await expect(resume).toBeAttached();
     const name = await resume.locator("h1").innerText();
