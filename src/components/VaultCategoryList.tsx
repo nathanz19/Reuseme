@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
+import { IconAction } from "@/components/IconAction";
 import { SectionActions } from "@/components/SectionActions";
 import { AddEntryDialog } from "@/components/AddEntryDialog";
 import { useResumeStore } from "@/store/resumeStore";
@@ -233,14 +234,15 @@ function VaultCategorySection({
           </span>
         )}
       </button>
-      <button type="button" onClick={onCreate} aria-label={`Add to ${category.label}`}
-        className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">+ Add</button>
-      </div>
       {category.kind !== "blocks" && (category.kind === "contact" || skills.length > 0 || content) && (
-        <div className="section-action-row flex justify-end px-3 pb-2 print:hidden">
+        <div className="mr-1 flex shrink-0 items-center print:hidden">
           <SectionActions category={category} />
         </div>
       )}
+      <IconAction label={`Add to ${category.label}`} onClick={onCreate}>
+        <Plus size={16} aria-hidden="true" />
+      </IconAction>
+      </div>
       {open && (
         <div id={panelId} className="space-y-2 px-3 pb-3">
           {category.kind === "blocks" &&

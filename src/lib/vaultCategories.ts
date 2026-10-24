@@ -47,7 +47,7 @@ export const VAULT_CATEGORIES: VaultCategory[] = [
     kind: "blocks",
     blockCategory: "certification",
   },
-  { id: "awards", label: "Awards & Scholarships", kind: "placeholder" },
+  { id: "awards", label: "Awards & Scholarships", kind: "blocks", blockCategory: "awards" },
   {
     id: "project",
     label: "Projects",
@@ -60,7 +60,7 @@ export const VAULT_CATEGORIES: VaultCategory[] = [
     kind: "blocks",
     blockCategory: "leadership",
   },
-  { id: "publications", label: "Publications", kind: "placeholder" },
+  { id: "publications", label: "Publications", kind: "blocks", blockCategory: "publications" },
 ];
 
 /** Populated categories start open so existing cards stay reachable. */

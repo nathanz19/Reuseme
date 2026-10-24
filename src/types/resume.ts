@@ -3,7 +3,9 @@ export type BlockCategory =
   | "project"
   | "education"
   | "leadership"
-  | "certification";
+  | "certification"
+  | "awards"
+  | "publications";
 
 export type TemplateId = "classic-ats" | "modern-tech";
 
@@ -87,6 +89,8 @@ export const SECTION_ORDER: BlockCategory[] = [
   "project",
   "leadership",
   "certification",
+  "awards",
+  "publications",
 ];
 
 export const SECTION_LABELS: Record<BlockCategory, string> = {
@@ -95,4 +99,6 @@ export const SECTION_LABELS: Record<BlockCategory, string> = {
   project: "Projects",
   leadership: "Leadership",
   certification: "Certifications",
+  awards: "Awards & Scholarships",
+  publications: "Publications",
 };

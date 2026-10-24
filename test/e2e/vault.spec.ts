@@ -50,3 +50,21 @@ test("expanding a card reveals the raw source notes", async ({ page }) => {
   await card.getByRole("button", { expanded: false }).last().click();
   await expect(card.getByText(/Cutover used dual-write 72h/)).toBeVisible();
 });
+
+for (const category of ["Publications", "Awards & Scholarships"]) {
+  test(`saves ${category} to the vault even when the resume is full`, async ({ page }) => {
+    const before = await spaceMeter(page).textContent();
+    await page.getByRole("button", { name: `Add to ${category}`, exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: `Add ${category}` });
+    await dialog.getByLabel("Title", { exact: true }).fill(`My ${category} entry`);
+    await dialog.getByLabel("Company or organization").fill("Example Organization");
+    await dialog.getByLabel("Description", { exact: false }).fill("A detailed achievement saved for a future resume.");
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    const card = vaultCard(page, `My ${category} entry`);
+    await expect(card).toBeVisible();
+    await expect(card.getByRole("button", { name: "Cannot fit", exact: true })).toBeDisabled();
+    await expect(page.locator("#resume-print-root")).not.toContainText(`My ${category} entry`);
+    await expect(spaceMeter(page)).toHaveText(before!);
+  });
+}

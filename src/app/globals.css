@@ -34,23 +34,19 @@ body.resume-drop-blocked * {
   cursor: not-allowed !important;
 }
 
-.group .resume-hover-control,
-.section-action-row {
+.group .resume-hover-control {
   opacity: 0;
   pointer-events: none;
 }
 
 .group:hover .resume-hover-control,
-.group:focus-within .resume-hover-control,
-.vault-section:hover > .section-action-row,
-.vault-section:focus-within > .section-action-row {
+.group:focus-within .resume-hover-control {
   opacity: 1;
   pointer-events: auto;
 }
 
 @media (hover: none) {
-  .group .resume-hover-control,
-  .section-action-row {
+  .group .resume-hover-control {
     opacity: 1;
     pointer-events: auto;
   }
@@ -95,7 +91,8 @@ body.resume-drop-blocked * {
     box-shadow: none !important;
     border: 0 !important;
     outline: 0 !important;
-    padding: 0.5in;
+    /* Match the canvas p-8 padding; larger print margins can clip Skills. */
+    padding: 32px;
     box-sizing: border-box;
     break-inside: avoid;
   }

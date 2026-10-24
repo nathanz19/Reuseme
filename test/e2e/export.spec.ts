@@ -52,3 +52,49 @@ for (const width of [900, 1440]) {
     await expect(page.getByRole("button", { name: "Export PDF" })).toBeVisible();
   });
 }
+
+test("printing preserves canvas margins and does not push Skills lower", async ({ page }) => {
+  await openApp(page);
+  const original = page.locator("#resume-print-root");
+  const measure = (element: HTMLElement | SVGElement) => {
+    const root = element.getBoundingClientRect();
+    const skills = element.querySelector("section:last-child p")!.getBoundingClientRect();
+    return {
+      padding: getComputedStyle(element).padding,
+      skillsBottom: skills.bottom - root.top,
+    };
+  };
+  const screen = await original.evaluate(measure);
+  await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+  await page.emulateMedia({ media: "print" });
+  const printed = await page.locator("#resume-print-copy").evaluate(measure);
+  expect(printed.padding).toBe(screen.padding);
+  expect(printed.skillsBottom).toBeLessThanOrEqual(screen.skillsBottom + 1);
+});
+
+test("print fits the entire Skills section inside the page instead of clipping", async ({ page }) => {
+  await openApp(page);
+  // Reproduce a document with more physical content than the line estimate predicts.
+  await page.locator("#resume-print-root section:last-child p").evaluate((skills) => {
+    skills.textContent += ", " + "Additional skill ".repeat(100);
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+  await page.emulateMedia({ media: "print" });
+  const layout = await page.locator("#resume-print-copy").evaluate((copy) => {
+    const page = copy.getBoundingClientRect();
+    const skills = copy.querySelector("section:last-child p")!.getBoundingClientRect();
+    const padding = parseFloat(getComputedStyle(copy).paddingBottom);
+    return { bottom: skills.bottom, pageBottom: page.bottom - padding };
+  });
+  expect(layout.bottom).toBeLessThanOrEqual(layout.pageBottom + 1);
+});
+
+test("normal export retains readable scale when prepared in the screen layout", async ({ page }) => {
+  await openApp(page);
+  await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+  const scale = await page.locator("#resume-print-copy .resume-print-content").evaluate((content) =>
+    new DOMMatrix(getComputedStyle(content).transform).a,
+  );
+  expect(scale).toBeGreaterThan(0.85);
+  expect(scale).toBeLessThanOrEqual(1);
+});
