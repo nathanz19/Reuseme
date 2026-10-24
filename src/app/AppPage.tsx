@@ -663,11 +663,11 @@ export function AppPage() {
 
   const leftPane = (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="vault-tabbar flex shrink-0 border-b border-slate-200 text-sm">
+      <div className="vault-tabbar flex shrink-0 border-b border-border bg-surface text-sm">
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
-            leftTab === "vault" ? "border-b-2 border-emerald-950 font-medium text-emerald-950" : ""
+            leftTab === "vault" ? "border-b-2 border-ink font-medium text-ink" : ""
           }`}
           onClick={() => setLeftTab("vault")}
         >
@@ -676,7 +676,7 @@ export function AppPage() {
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
-            leftTab === "jd" ? "border-b-2 border-emerald-950 font-medium text-emerald-950" : ""
+            leftTab === "jd" ? "border-b-2 border-ink font-medium text-ink" : ""
           }`}
           onClick={() => setLeftTab("jd")}
         >

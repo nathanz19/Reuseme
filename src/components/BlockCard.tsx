@@ -61,7 +61,7 @@ export function BlockCard({
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h3 className="font-semibold text-emerald-950">{block.title}</h3>
+            <h3 className="font-semibold text-ink">{block.title}</h3>
             <span className="text-slate-500">{block.organization}</span>
             {block.isArchived && (
               <span className="rounded bg-slate-100 px-1.5 text-xs text-slate-600">

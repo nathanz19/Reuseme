@@ -6,6 +6,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
+import { btnPrimary, fieldBorder, focusRing } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
@@ -41,18 +42,18 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
   };
   const canExport = isWithinLineBudget(activePreset, vaultBlocks);
   return (
-    <header className="z-10 shrink-0 border-b border-slate-200 bg-white text-sm print:hidden">
+    <header className="z-10 shrink-0 border-b border-border bg-surface text-sm shadow-[var(--shadow-soft)] print:hidden">
       <DndContext id="document-tabs" sensors={tabSensors} collisionDetection={closestCenter}
         modifiers={[horizontalOnly]} onDragEnd={({ active, over }) => {
           if (over && active.id !== over.id) onReorderDocuments(String(active.id), String(over.id));
         }}>
-      <nav aria-label="Documents" className="flex items-end gap-2 border-b border-slate-200 bg-slate-100 px-4 pt-3">
+      <nav aria-label="Documents" className="flex items-end gap-2 border-b border-border bg-background px-4 pt-3">
         <div role="tablist" aria-label="Resume documents" className="no-scrollbar flex min-w-0 gap-1 overflow-x-auto">
           <SortableContext items={presets.map((preset) => preset.id)} strategy={horizontalListSortingStrategy}>
           {presets.map((preset, index) => {
             const selected = preset.id === activePresetId;
             return <SortableDocumentTab key={preset.id} id={preset.id} disabled={renaming?.id === preset.id}
-              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-slate-200 border-b-white bg-white text-emerald-950 hover:bg-emerald-50" : "border-slate-200/70 bg-slate-200/50 text-slate-600 hover:bg-slate-200/90 hover:text-slate-800"}`}>
+              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-border border-b-surface bg-surface text-ink hover:bg-accent-subtle/60" : "border-border/70 bg-surface-muted/80 text-ink-muted hover:bg-surface-muted hover:text-ink"}`}>
               <FileText size={15} aria-hidden="true" className="shrink-0" />
               {renaming?.id === preset.id ? (
                 <input aria-label="Document name" value={renaming.name} autoFocus maxLength={120}
@@ -67,7 +68,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
                     if (event.key === "Escape") { cancelRename.current = true; setRenaming(null); }
                   }}
-                  className="my-2 w-36 min-w-0 rounded border border-sky-400 bg-white px-1 py-1 outline-none" />
+                  className={`my-2 w-36 min-w-0 border px-1 py-1 outline-none ${fieldBorder} ${focusRing}`} />
               ) : (
                 <button type="button" role="tab" aria-label={preset.name} aria-selected={selected}
                   tabIndex={selected ? 0 : -1} onClick={() => onPresetChange(preset.id)}
@@ -84,7 +85,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                     onPresetChange(presets[next].id);
                     event.currentTarget.closest('[role="tablist"]')?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
                   }}
-                  className={`min-w-0 flex-1 truncate px-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-sky-600 ${selected ? "font-medium" : ""}`}>
+                  className={`min-w-0 flex-1 truncate px-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-focus-ring ${selected ? "font-medium" : ""}`}>
                   {preset.name}
                 </button>
               )}
@@ -99,15 +100,15 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         </div>
       </nav>
       </DndContext>
-      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-emerald-950">
-        <div className="flex items-center gap-1 border-r border-emerald-200 pr-4">
+      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-ink">
+        <div className="flex items-center gap-1 border-r border-border pr-4">
           <IconAction label="Undo" onClick={onUndo} disabled={!canUndo}><Undo2 size={18} aria-hidden="true" /></IconAction>
           <IconAction label="Redo" onClick={onRedo} disabled={!canRedo}><Redo2 size={18} aria-hidden="true" /></IconAction>
         </div>
-        <label className="flex items-center gap-2 text-xs text-emerald-700">
+        <label className="flex items-center gap-2 text-xs text-accent-text">
           Template
           <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
-            aria-label="Template" className="rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-sm text-emerald-950 transition-colors hover:border-emerald-300 focus-visible:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+            aria-label="Template" className={`px-3 py-1.5 transition-colors hover:border-accent-border ${fieldBorder} ${focusRing}`}>
             <option value="classic-ats">Classic ATS</option>
             <option value="modern-tech">Modern Tech</option>
           </select>
@@ -123,7 +124,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           <button type="button" disabled={!canExport} aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
             onClick={() => { if (canExport) onExportPdf(); }}
             title={canExport ? "Open the print dialog, then choose Save as PDF" : undefined}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-800 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+            className={`inline-flex items-center gap-2 ${btnPrimary}`}>
             <Download size={15} aria-hidden="true" />Export PDF
           </button>
         </div>

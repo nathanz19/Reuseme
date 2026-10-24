@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import { RankedVaultList, type RankedEntry } from "@/components/RankedVaultList";
 import { RequiredSkills } from "@/components/RequiredSkills";
 import type { CoverageResult } from "@/lib/coverage";
+import { btnPrimarySm } from "@/lib/theme";
 import type {
   ParsedJobDescription,
   ResumePreset,
@@ -41,7 +42,7 @@ export function JDPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 space-y-2 border-b border-slate-200 p-3">
+      <div className="shrink-0 space-y-2 border-b border-border p-3">
         <textarea
           rows={5}
           className="w-full resize-none rounded border border-slate-300 p-2 text-sm"
@@ -53,7 +54,7 @@ export function JDPanel({
           type="button"
           onClick={onAnalyze}
           disabled={matchLoading}
-          className="inline-flex w-full items-center justify-center gap-2 rounded bg-emerald-900 px-3 py-2 text-sm text-white transition-colors hover:bg-emerald-800 disabled:cursor-default disabled:opacity-70"
+          className={`inline-flex w-full items-center justify-center gap-2 ${btnPrimarySm}`}
         >
           {matchLoading && (
             <Loader2 size={14} className="animate-spin" aria-hidden="true" />

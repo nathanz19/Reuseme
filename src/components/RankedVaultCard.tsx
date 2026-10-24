@@ -28,8 +28,8 @@ const TIER_STYLES: Record<
 > = {
   strong: {
     label: "STRONG",
-    badge: "bg-emerald-100 text-emerald-800",
-    bar: "bg-emerald-500",
+    badge: "bg-accent-subtle text-accent-text",
+    bar: "bg-accent",
   },
   partial: {
     label: "PARTIAL",
@@ -86,7 +86,7 @@ export function RankedVaultCard({
           {rank}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-semibold text-emerald-950">{block.title}</h3>
+          <h3 className="truncate font-semibold text-ink">{block.title}</h3>
           <p className="truncate text-xs text-slate-500">
             {block.organization} · {dateRange(block)}
           </p>
@@ -127,7 +127,7 @@ export function RankedVaultCard({
                       ? `Matches: ${requirements.join(", ")}`
                       : undefined
                   }
-                  className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800"
+                  className="inline-flex items-center gap-1 rounded-full bg-accent-subtle px-2 py-0.5 text-xs text-accent-text"
                 >
                   <Check size={11} aria-hidden="true" />
                   {tag}
