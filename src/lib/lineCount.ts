@@ -173,6 +173,14 @@ export function canApplyHeaderAndSkills(
   );
 }
 
+/**
+ * An edit is allowed if the result fits the page, or if it does not make an
+ * already over-budget resume any longer (so users can still fix overflow).
+ */
+export function editFitsBudget(before: number, after: number): boolean {
+  return after <= MAX_LINES || after <= before;
+}
+
 export function estimateLineCount(
   preset: ResumePreset,
   vaultBlocks: AccomplishmentBlock[],
