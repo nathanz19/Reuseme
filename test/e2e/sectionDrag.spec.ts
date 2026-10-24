@@ -23,7 +23,10 @@ test("dragging a section's grip moves the whole section, and undo restores it", 
   await expect(grip).toBeVisible();
   const gripBox = (await grip.boundingBox())!;
   const targetBox = (await experience.boundingBox())!;
-  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
+  // Approach the grip gradually across the margin, as a person would.
+  await page.mouse.move(gripBox.x + 120, gripBox.y + gripBox.height / 2);
+  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2, { steps: 15 });
+  await expect(grip).toHaveCSS("opacity", "1");
   await page.mouse.down();
   await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y - 10, { steps: 4 });
   await page.mouse.move(gripBox.x + gripBox.width / 2, targetBox.y + 4, { steps: 20 });

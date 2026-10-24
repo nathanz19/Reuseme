@@ -56,7 +56,7 @@ export function SortableSection({ sectionId, label, children }: SortableSectionP
         {...listeners}
         aria-label={`Drag ${label} section`}
         title={`Drag to move the ${label} section`}
-        className="resume-section-handle absolute -left-6 top-0 cursor-grab touch-none rounded text-slate-400 hover:text-slate-600 focus-visible:outline-2 focus-visible:outline-focus-ring print:hidden"
+        className="resume-section-handle absolute -left-7 top-0 flex h-5 w-7 cursor-grab touch-none items-center justify-center rounded text-slate-400 hover:text-slate-600 focus-visible:outline-2 focus-visible:outline-focus-ring print:hidden"
       >
         <GripVertical size={16} aria-hidden="true" />
       </button>
