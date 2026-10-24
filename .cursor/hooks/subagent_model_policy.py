@@ -28,6 +28,33 @@ def is_composer_slug(model: str) -> bool:
     return m == COMPOSER_SLUG or m.startswith("composer-2.5[")
 
 
+def is_sonnet_5_5_slug(model: str) -> bool:
+    m = normalize(model)
+    return m.startswith("claude-sonnet-5-5") or "sonnet-5-5" in m
+
+
+def is_legacy_sonnet_slug(model: str) -> bool:
+    """Sonnet 4.x and other pre-5.5 slugs the agent may still pick."""
+    m = normalize(model)
+    if not m.startswith("claude-sonnet"):
+        return False
+    if is_sonnet_5_5_slug(model):
+        return False
+    return True
+
+
+def is_opus_5_5_slug(model: str) -> bool:
+    m = normalize(model)
+    return m.startswith("claude-opus-5-5")
+
+
+def is_legacy_opus_slug(model: str) -> bool:
+    m = normalize(model)
+    if not m.startswith("claude-opus"):
+        return False
+    return not is_opus_5_5_slug(model)
+
+
 def classify_model(model: str) -> str:
     m = normalize(model)
     if not m:
@@ -36,10 +63,14 @@ def classify_model(model: str) -> str:
         return "composer_fast"
     if m.startswith("composer-2.5"):
         return "composer"
-    if m.startswith("claude-sonnet-5-5") or "sonnet-5-5" in m:
+    if is_sonnet_5_5_slug(model):
         return "sonnet"
-    if m.startswith("claude-opus-5-5"):
+    if is_legacy_sonnet_slug(model):
+        return "sonnet_legacy"
+    if is_opus_5_5_slug(model):
         return "opus"
+    if is_legacy_opus_slug(model):
+        return "opus_legacy"
     return "unknown"
 
 
@@ -70,8 +101,12 @@ def resolve_task_model(requested: str, text: str) -> str:
         return COMPOSER_SLUG
     if tier == "sonnet" and has_marker(text, SONNET_MARKERS):
         return normalize(requested) or SONNET_SLUG
+    if tier == "sonnet_legacy" and has_marker(text, SONNET_MARKERS):
+        return SONNET_SLUG
     if tier == "opus" and has_marker(text, OPUS_MARKERS):
         return normalize(requested) or OPUS_SLUG
+    if tier == "opus_legacy" and has_marker(text, OPUS_MARKERS):
+        return OPUS_SLUG
     return COMPOSER_SLUG
 
 
@@ -79,18 +114,19 @@ def spawn_allowed(subagent_model: str, text: str) -> bool:
     """subagentStart backstop: allow only resolved policy models."""
     actual = normalize(subagent_model)
     if not actual:
-        # Unset model inherits the parent run (e.g. Grok); preToolUse must set composer-2.5.
         return False
     if is_composer_fast_slug(subagent_model):
+        return False
+    if is_legacy_sonnet_slug(subagent_model) or is_legacy_opus_slug(subagent_model):
         return False
     resolved = resolve_task_model(subagent_model, text)
     if is_composer_slug(subagent_model):
         return resolved == COMPOSER_SLUG
-    if classify_model(subagent_model) == "sonnet":
+    if is_sonnet_5_5_slug(subagent_model):
         return resolved.startswith("claude-sonnet-5-5") and has_marker(
             text, SONNET_MARKERS
         )
-    if classify_model(subagent_model) == "opus":
+    if is_opus_5_5_slug(subagent_model):
         return resolved.startswith("claude-opus-5-5") and has_marker(
             text, OPUS_MARKERS
         )
