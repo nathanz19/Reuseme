@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 export async function openApp(page: Page) {
-  await page.goto("/");
+  await page.goto("/editor");
   await expect(page.locator("#resume-print-root")).toBeVisible();
 }
 
