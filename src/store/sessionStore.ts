@@ -15,6 +15,9 @@ export interface SessionState {
   searchQuery: string;
   selectedTags: string[];
   includeArchived: boolean;
+  selectedSections: string[];
+  dateFrom: string;
+  dateTo: string;
   leftTab: "vault" | "jd";
   mobilePane: "vault" | "canvas";
   jdText: string;
@@ -25,6 +28,10 @@ export interface SessionState {
   tailorProposal: TailoredProposal | null;
   tailorLoading: boolean;
   tailorDialog: TailorDialogState;
+  toggleSection: (section: string) => void;
+  setDateFrom: (value: string) => void;
+  setDateTo: (value: string) => void;
+  clearFilters: () => void;
   setSearchQuery: (q: string) => void;
   toggleTag: (tag: string) => void;
   setIncludeArchived: (v: boolean) => void;
@@ -48,6 +55,9 @@ export const useSessionStore = create<SessionState>((set) => ({
   searchQuery: "",
   selectedTags: [],
   includeArchived: false,
+  selectedSections: [],
+  dateFrom: "",
+  dateTo: "",
   leftTab: "vault",
   mobilePane: "vault",
   jdText: "",
@@ -59,6 +69,13 @@ export const useSessionStore = create<SessionState>((set) => ({
   tailorLoading: false,
   tailorDialog: null,
 
+  toggleSection: (section) => set((state) => ({
+    selectedSections: state.selectedSections.includes(section)
+      ? state.selectedSections.filter((entry) => entry !== section) : [...state.selectedSections, section],
+  })),
+  setDateFrom: (dateFrom) => set({ dateFrom }),
+  setDateTo: (dateTo) => set({ dateTo }),
+  clearFilters: () => set({ selectedTags: [], selectedSections: [], dateFrom: "", dateTo: "", includeArchived: false }),
   setSearchQuery: (q) => set({ searchQuery: q }),
   toggleTag: (tag) =>
     set((s) => ({

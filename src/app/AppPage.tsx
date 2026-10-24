@@ -168,6 +168,9 @@ export function AppPage() {
   const acceptTailorOverride = useResumeStore((s) => s.acceptTailorOverride);
 
   const searchQuery = useSessionStore((s) => s.searchQuery);
+  const selectedSections = useSessionStore((s) => s.selectedSections);
+  const dateFrom = useSessionStore((s) => s.dateFrom);
+  const dateTo = useSessionStore((s) => s.dateTo);
   const selectedTags = useSessionStore((s) => s.selectedTags);
   const includeArchived = useSessionStore((s) => s.includeArchived);
   const leftTab = useSessionStore((s) => s.leftTab);
@@ -216,9 +219,12 @@ export function AppPage() {
       searchBlocks(vaultBlocks, {
         query: searchQuery,
         selectedTags,
+        selectedSections,
+        dateFrom,
+        dateTo,
         includeArchived,
       }),
-    [vaultBlocks, searchQuery, selectedTags, includeArchived],
+    [vaultBlocks, searchQuery, selectedTags, selectedSections, dateFrom, dateTo, includeArchived],
   );
 
   const coverage = useMemo(
@@ -569,6 +575,8 @@ export function AppPage() {
             skills={activePreset.customSkillsSection}
             searchQuery={searchQuery}
             selectedTags={selectedTags}
+            selectedSections={selectedSections}
+            dateFilterActive={Boolean(dateFrom || dateTo)}
             activeBlockIds={activePreset.activeBlockIds}
             rankings={rankings}
             canAddBlock={canAddBlock}

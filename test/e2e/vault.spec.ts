@@ -23,7 +23,9 @@ test("search hides archived blocks until they are included", async ({
   await search.fill("raft");
   await expect(vaultCard(page, "Distributed Systems Engineer")).toHaveCount(0);
 
+  await page.getByRole("button", { name: "Filters", exact: true }).click();
   await page.getByLabel("Include Archived").check();
+  await page.getByRole("button", { name: "Close filters", exact: true }).click();
   const archived = vaultCard(page, "Distributed Systems Engineer");
   await expect(archived).toBeVisible();
   await expect(archived).toContainText("Archived");
@@ -32,10 +34,11 @@ test("search hides archived blocks until they are included", async ({
 test("tag filters narrow the vault and collapse empty categories", async ({
   page,
 }) => {
-  await page
-    .getByRole("list", { name: "Filter by tag" })
-    .getByRole("button", { name: "kafka", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Filters", exact: true }).click();
+  await page.getByRole("button", { name: "Add filter", exact: true }).click();
+  await page.getByRole("button", { name: "Tags", exact: true }).click();
+  await page.getByLabel("Add tag filter", { exact: true }).selectOption("kafka");
+  await page.getByRole("button", { name: "Close filters", exact: true }).click();
 
   await expect(vaultCard(page, "Backend Engineer")).toBeVisible();
   await expect(vaultCard(page, "Software Engineer")).toHaveCount(0);
@@ -68,3 +71,26 @@ for (const category of ["Publications", "Awards & Scholarships"]) {
     await expect(spaceMeter(page)).toHaveText(before!);
   });
 }
+
+
+test("compact filters combine section and date and can be cleared", async ({ page }) => {
+  await expect(page.getByRole("dialog", { name: "Vault filters" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Filters", exact: true }).click();
+  await page.getByRole("button", { name: "Add filter", exact: true }).click();
+  await page.getByRole("button", { name: "Sections", exact: true }).click();
+  await page.getByLabel("Add section filter", { exact: true }).selectOption("project");
+  await page.getByRole("button", { name: "Add filter", exact: true }).click();
+  await page.getByRole("button", { name: "Date", exact: true }).click();
+  await page.getByLabel("Date from", { exact: true }).fill("2024-01");
+  await page.getByLabel("Date to", { exact: true }).fill("2024-12");
+  await page.getByRole("button", { name: "Close filters", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Filters/ })).toBeVisible();
+  await expect(vaultCard(page, "Open Transit Map")).toBeVisible();
+  await expect(vaultCard(page, "Backend Engineer")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Contact Information/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /^Filters/ }).click();
+  await page.getByRole("button", { name: "Clear all", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Filters", exact: true })).toBeVisible();
+  await expect(vaultCard(page, "Backend Engineer")).toBeVisible();
+});

@@ -43,3 +43,26 @@ describe("searchBlocks", () => {
     expect(shown.some((b) => b.id === "exp-6")).toBe(true);
   });
 });
+
+
+describe("section and date filters", () => {
+  const base = { query: "", selectedTags: [], includeArchived: true };
+  const block = { ...SEED_BLOCKS[0], category: "experience" as const, startDate: "May 2020", endDate: "Jun 2022", tags: ["go"] };
+  it("matches overlapping dates including range boundaries", () => {
+    expect(searchBlocks([block], { ...base, dateFrom: "2022-06", dateTo: "2023-01" })).toHaveLength(1);
+    expect(searchBlocks([block], { ...base, dateFrom: "2022-07" })).toHaveLength(0);
+    expect(searchBlocks([block], { ...base, dateTo: "2020-04" })).toHaveLength(0);
+  });
+  it("handles year-only, ongoing, unknown, and reversed dates", () => {
+    expect(searchBlocks([{ ...block, startDate: "2020", endDate: "2021" }], { ...base, dateFrom: "2021-12" })).toHaveLength(1);
+    expect(searchBlocks([{ ...block, endDate: "Present" }], { ...base, dateFrom: "2026-01" })).toHaveLength(1);
+    expect(searchBlocks([{ ...block, startDate: "", endDate: "" }], { ...base, dateFrom: "2020-01" })).toHaveLength(0);
+    expect(searchBlocks([block], { ...base, dateFrom: "2023-01", dateTo: "2020-01" })).toHaveLength(0);
+  });
+  it("combines sections with tags and date filters", () => {
+    const filters = { ...base, selectedSections: ["experience"], selectedTags: ["go"], dateFrom: "2021-01" };
+    expect(searchBlocks([block], filters)).toHaveLength(1);
+    expect(searchBlocks([block], { ...filters, selectedSections: ["project"] })).toHaveLength(0);
+    expect(searchBlocks([block], { ...filters, selectedTags: ["python"] })).toHaveLength(0);
+  });
+});

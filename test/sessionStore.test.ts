@@ -11,6 +11,17 @@ beforeEach(() => {
 });
 
 describe("session store", () => {
+  it("clears filter values while keeping the search query", () => {
+    store.getState().setSearchQuery("engineer");
+    store.getState().toggleSection("project");
+    store.getState().setDateFrom("2020-01");
+    store.getState().setDateTo("2024-12");
+    store.getState().toggleTag("go");
+    store.getState().setIncludeArchived(true);
+    store.getState().clearFilters();
+    expect(store.getState()).toMatchObject({ searchQuery: "engineer", selectedSections: [], selectedTags: [], dateFrom: "", dateTo: "", includeArchived: false });
+  });
+
   it("toggles tag filters on and off", () => {
     store.getState().toggleTag("go");
     store.getState().toggleTag("react");
