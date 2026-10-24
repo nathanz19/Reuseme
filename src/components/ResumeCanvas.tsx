@@ -156,11 +156,16 @@ export function ResumeCanvas({
         </section>
       ))}
       {preset.customSkillsSection.length > 0 && (
-        <section className="mb-4">
+        <section className="group mb-4" aria-label="Resume skills">
           <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">
             Skills
           </h2>
-          <p className="text-sm">{preset.customSkillsSection.join(", ")}</p>
+          <div className="relative">
+            <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>
+            <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+              <SectionActions category={{ id: "skills", label: "Skills & Interests", kind: "skills" }} />
+            </div>
+          </div>
         </section>
       )}
     </div>

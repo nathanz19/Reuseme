@@ -80,3 +80,19 @@ test("header edits update the resume", async ({ page }) => {
     "Ada Lovelace",
   );
 });
+
+
+test("skills can be edited from the canvas hover controls and undone", async ({ page }) => {
+  const skills = page.getByRole("region", { name: "Resume skills", exact: true });
+  await skills.hover();
+  await skills.getByRole("button", { name: "Edit Skills & Interests", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit Skills & Interests", exact: true });
+  const field = dialog.getByRole("textbox");
+  await expect(field).toHaveValue(/React/);
+  await field.fill("Python, SQL");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(skills.locator("p")).toHaveText("Python, SQL");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(skills.locator("p")).toContainText("React");
+});

@@ -245,6 +245,10 @@ export function AppPage() {
   const [dropBlocked, setDropBlocked] = useState(false);
   const placeholderRef = useRef<CanvasPlaceholder | null>(null);
   const dropBlockedRef = useRef(false);
+  const dragLayoutRef = useRef<{
+    top: number;
+    blocks: ReturnType<typeof readBlockRects>;
+  } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -279,6 +283,7 @@ export function AppPage() {
   }, []);
 
   const clearDragState = useCallback(() => {
+    dragLayoutRef.current = null;
     setActiveDrag(null);
     setOverTargetId(null);
     assignPlaceholder(null);
@@ -317,9 +322,14 @@ export function AppPage() {
       assignPlaceholder(null);
       assignDropBlocked(false);
       const data = event.active.data.current as DragItemData | undefined;
+      const page = document.getElementById("resume-print-root");
+      dragLayoutRef.current = data?.origin === "vault" && page ? {
+        top: page.getBoundingClientRect().top,
+        blocks: readBlockRects(activePreset.activeBlockIds),
+      } : null;
       if (data) setActiveDrag(data);
     },
-    [assignPlaceholder, assignDropBlocked],
+    [assignPlaceholder, assignDropBlocked, activePreset.activeBlockIds],
   );
 
   const handleDragOver = useCallback(
@@ -366,12 +376,20 @@ export function AppPage() {
         );
       });
       const pointerY = dragPointerY(event);
+      const layout = dragLayoutRef.current;
+      const pageTop = document.getElementById("resume-print-root")?.getBoundingClientRect().top;
+      const scrollOffset = layout && pageTop !== undefined ? pageTop - layout.top : 0;
+      // Placeholder insertion and layout animation must not move the hit-test geometry.
+      // Translate the initial geometry only when the resume scrolls.
+      const stableRects = layout ? layout.blocks
+        .filter((rect) => sectionIds.includes(rect.id))
+        .map((rect) => ({ ...rect, top: rect.top + scrollOffset })) : readBlockRects(sectionIds);
       const beforeBlockId =
         pointerY == null
           ? overId && sectionIds.includes(overId)
             ? overId
             : null
-          : insertionBeforeBlockId(pointerY, readBlockRects(sectionIds));
+          : insertionBeforeBlockId(pointerY, stableRects);
 
       assignPlaceholder({
         id: placeholderId(block.id),
