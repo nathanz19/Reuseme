@@ -39,7 +39,7 @@ function CanvasBlockBody({
 }: CanvasBlockBodyProps) {
   const bullets = getEffectiveBullets(block, preset);
   const dateLine = [block.startDate, block.endDate].filter(Boolean).join(" – ");
-  const meta = [block.organization, block.location, dateLine]
+  const subtitle = [block.organization, block.location]
     .filter(Boolean)
     .join(" · ");
 
@@ -53,12 +53,19 @@ function CanvasBlockBody({
       <div className="flex items-start gap-1">
         {handle}
         <div className="min-w-0 flex-1">
-          <p className="pr-16 font-semibold text-sm print:pr-0">
-            {block.title}
-            {meta && (
-              <span className="font-normal text-slate-700"> — {meta}</span>
-            )}
-          </p>
+          <div className="pr-16 print:pr-0">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="min-w-0 font-semibold text-sm">{block.title}</p>
+              {dateLine ? (
+                <p className="shrink-0 text-right text-sm text-slate-700 tabular-nums">
+                  {dateLine}
+                </p>
+              ) : null}
+            </div>
+            {subtitle ? (
+              <p className="text-sm text-slate-700">{subtitle}</p>
+            ) : null}
+          </div>
           <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
             {bullets.map((bullet, index) => (
               <li key={index} className="group/bullet relative pr-8 print:pr-0">
