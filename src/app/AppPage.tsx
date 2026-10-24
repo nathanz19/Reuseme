@@ -27,7 +27,7 @@ import { TailorDialog } from "@/components/TailorDialog";
 import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
-import { matchVault, tailorBullet } from "@/data/fixtures";
+import { tailorBullet } from "@/data/fixtures";
 import { computeCoverage } from "@/lib/coverage";
 import { resumeDropAnimation } from "@/lib/dropAnimation";
 import { CANVAS_BLOCK_TRANSITION } from "@/lib/sortableLayout";
@@ -50,7 +50,9 @@ import {
   resumeDropCollision,
   DND_CONTEXT_ID,
 } from "@/lib/dnd";
-import { FORGOTTEN_THRESHOLD } from "@/lib/tunables";
+import { RELEVANT_TOP_N } from "@/lib/tunables";
+import { requestJdMatch } from "@/lib/jdMatchClient";
+import { selectRankedCards } from "@/lib/relevance";
 import type {
   AccomplishmentBlock,
   BlockCategory,
@@ -163,6 +165,9 @@ export function AppPage() {
   const jdText = useSessionStore((s) => s.jdText);
   const parsedJD = useSessionStore((s) => s.parsedJD);
   const rankings = useSessionStore((s) => s.rankings);
+  const rankingsList = useSessionStore((s) => s.rankingsList);
+  const tagMatches = useSessionStore((s) => s.tagMatches);
+  const matchLoading = useSessionStore((s) => s.matchLoading);
   const lastMatchError = useSessionStore((s) => s.lastMatchError);
   const tailorDialog = useSessionStore((s) => s.tailorDialog);
   const tailorProposal = useSessionStore((s) => s.tailorProposal);
@@ -176,6 +181,8 @@ export function AppPage() {
   const setJdText = useSessionStore((s) => s.setJdText);
   const setMatchResult = useSessionStore((s) => s.setMatchResult);
   const setMatchError = useSessionStore((s) => s.setMatchError);
+  const clearMatchError = useSessionStore((s) => s.clearMatchError);
+  const setMatchLoading = useSessionStore((s) => s.setMatchLoading);
   const openTailorDialog = useSessionStore((s) => s.openTailorDialog);
   const closeTailorDialog = useSessionStore((s) => s.closeTailorDialog);
   const setTailorProposal = useSessionStore((s) => s.setTailorProposal);
@@ -217,14 +224,10 @@ export function AppPage() {
     [parsedJD, vaultBlocks, activePreset],
   );
 
-  const forgottenBlocks = useMemo(() => {
-    if (!parsedJD) return [];
-    return vaultBlocks.filter(
-      (b) =>
-        b.isArchived &&
-        (rankings[b.id]?.matchScore ?? 0) >= FORGOTTEN_THRESHOLD,
-    );
-  }, [vaultBlocks, parsedJD, rankings]);
+  const rankedCards = useMemo(
+    () => selectRankedCards(rankingsList, vaultBlocks, RELEVANT_TOP_N),
+    [rankingsList, vaultBlocks],
+  );
 
   const tailorBlock = tailorDialog
     ? vaultBlocks.find((b) => b.id === tailorDialog.blockId)
@@ -535,14 +538,28 @@ export function AppPage() {
     ],
   );
 
-  const runAnalyze = useCallback(() => {
-    const result = matchVault(jdText, vaultBlocks);
-    if ("error" in result) {
-      setMatchError(result.error);
-      return;
+  const runAnalyze = useCallback(async () => {
+    if (useSessionStore.getState().matchLoading) return;
+    setMatchLoading(true);
+    clearMatchError();
+    try {
+      const result = await requestJdMatch(jdText, vaultBlocks);
+      if ("error" in result) {
+        setMatchError(result.error);
+        return;
+      }
+      setMatchResult(result.parsedJD, result.rankings, result.tagMatches);
+    } finally {
+      setMatchLoading(false);
     }
-    setMatchResult(result.parsedJD, result.rankings);
-  }, [jdText, vaultBlocks, setMatchError, setMatchResult]);
+  }, [
+    jdText,
+    vaultBlocks,
+    setMatchLoading,
+    clearMatchError,
+    setMatchError,
+    setMatchResult,
+  ]);
 
   const startTailor = useCallback(
     async (blockId: string, bulletIndex: number) => {
@@ -654,14 +671,15 @@ export function AppPage() {
       ) : (
         <JDPanel
           jdText={jdText}
+          matchLoading={matchLoading}
           lastMatchError={lastMatchError}
           parsedJD={parsedJD}
           coverage={coverage}
-          forgottenBlocks={forgottenBlocks}
-          rankings={rankings}
-          activeBlockIds={activePreset.activeBlockIds}
+          ranked={rankedCards}
+          tagMatches={tagMatches}
+          preset={activePreset}
           onJdTextChange={setJdText}
-          onAnalyze={runAnalyze}
+          onAnalyze={() => void runAnalyze()}
           canAddBlock={canAddBlock}
           onAddBlock={tryAddBlock}
         />
