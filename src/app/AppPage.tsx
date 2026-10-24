@@ -27,10 +27,11 @@ import { TailorDialog } from "@/components/TailorDialog";
 import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
-import { matchVault, tailorBullet } from "@/data/fixtures";
+import { matchVault } from "@/data/fixtures";
 import { computeCoverage } from "@/lib/coverage";
 import { resumeDropAnimation } from "@/lib/dropAnimation";
 import { CANVAS_BLOCK_TRANSITION } from "@/lib/sortableLayout";
+import { TailorResponseSchema } from "@/schemas/tailor";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import { prepareResumePrint, clearResumePrint } from "@/lib/printResume";
 import { collectAllTags, searchBlocks } from "@/lib/search";
@@ -228,6 +229,13 @@ export function AppPage() {
 
   const tailorBlock = tailorDialog
     ? vaultBlocks.find((b) => b.id === tailorDialog.blockId)
+    : undefined;
+  const [tailorConfirmation, setTailorConfirmation] = useState<{
+    blockId: string;
+    bulletIndex: number;
+  } | null>(null);
+  const tailorConfirmationBlock = tailorConfirmation
+    ? vaultBlocks.find((b) => b.id === tailorConfirmation.blockId)
     : undefined;
 
   const [activeDrag, setActiveDrag] = useState<DragItemData | null>(null);
@@ -544,36 +552,77 @@ export function AppPage() {
     setMatchResult(result.parsedJD, result.rankings);
   }, [jdText, vaultBlocks, setMatchError, setMatchResult]);
 
+  const [tailorError, setTailorError] = useState<string | null>(null);
+  const [mockTailoring, setMockTailoring] = useState(false);
+  const tailorRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => tailorRequest.current?.abort(), []);
+
+  const closeTailoring = useCallback(() => {
+    tailorRequest.current?.abort();
+    tailorRequest.current = null;
+    setTailorError(null);
+    closeTailorDialog();
+  }, [closeTailorDialog]);
+
   const startTailor = useCallback(
     async (blockId: string, bulletIndex: number) => {
       const block = vaultBlocks.find((b) => b.id === blockId);
-      if (!block || !parsedJD) return;
+      if (!block) return;
+      const bulletText = getEffectiveBullets(block, activePreset)[bulletIndex];
+      if (bulletText === undefined) return;
+      tailorRequest.current?.abort();
+      const controller = new AbortController();
+      tailorRequest.current = controller;
       openTailorDialog(blockId, bulletIndex);
+      setTailorError(null);
       setTailorProposal(null);
       setTailorLoading(true);
-      const bulletText = getEffectiveBullets(block, activePreset)[bulletIndex];
       try {
-        const proposal = await tailorBullet({
-          block,
-          bulletIndex,
-          bulletText,
-          parsedJD,
-          presetId: activePreset.id,
+        const response = await fetch("/api/blocks/tailor", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ block, bulletIndex, bulletText, jdText, parsedJD }),
+          signal: controller.signal,
         });
-        setTailorProposal(proposal);
+        const data: unknown = await response.json();
+        if (!response.ok) {
+          const message = typeof data === "object" && data !== null && "error" in data && typeof data.error === "string" ? data.error : "Could not generate rewrites. Please retry.";
+          throw new Error(message);
+        }
+        const result = TailorResponseSchema.parse(data);
+        if (controller.signal.aborted || tailorRequest.current !== controller) return;
+        const current = useResumeStore.getState();
+        const currentBlock = current.vaultBlocks.find((entry) => entry.id === blockId);
+        if (current.activePresetId !== activePreset.id || !currentBlock || JSON.stringify(currentBlock) !== JSON.stringify(block) || getEffectiveBullets(currentBlock, current.getActivePreset())[bulletIndex] !== bulletText) {
+          closeTailoring();
+          return;
+        }
+        setMockTailoring(result.mock);
+        setTailorProposal(result.proposal);
+      } catch (error) {
+        if (controller.signal.aborted || tailorRequest.current !== controller) return;
+        setTailorError(error instanceof Error ? error.message : "Unable to connect. Please retry.");
       } finally {
-        setTailorLoading(false);
+        if (!controller.signal.aborted && tailorRequest.current === controller) setTailorLoading(false);
       }
     },
-    [
-      vaultBlocks,
-      parsedJD,
-      activePreset,
-      openTailorDialog,
-      setTailorProposal,
-      setTailorLoading,
-    ],
+    [vaultBlocks, parsedJD, jdText, activePreset, openTailorDialog, setTailorProposal, setTailorLoading, closeTailoring],
   );
+
+  const requestTailorConfirmation = useCallback(
+    (blockId: string, bulletIndex: number) => {
+      const block = vaultBlocks.find((b) => b.id === blockId);
+      if (!block || getEffectiveBullets(block, activePreset)[bulletIndex] === undefined) return;
+      setTailorConfirmation({ blockId, bulletIndex });
+    },
+    [activePreset, vaultBlocks],
+  );
+
+  const confirmTailor = useCallback(() => {
+    if (!tailorConfirmation) return;
+    const { blockId, bulletIndex } = tailorConfirmation;
+    setTailorConfirmation(null);
+    void startTailor(blockId, bulletIndex);
+  }, [startTailor, tailorConfirmation]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -605,7 +654,7 @@ export function AppPage() {
 
   const leftPane = (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 border-b border-slate-200 text-sm">
+      <div className="vault-tabbar flex shrink-0 border-b border-slate-200 text-sm">
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
@@ -648,7 +697,7 @@ export function AppPage() {
             rankings={rankings}
             canAddBlock={canAddBlock}
             onAdd={tryAddBlock}
-            onTailorBullet={(blockId, index) => void startTailor(blockId, index)}
+            onTailorBullet={requestTailorConfirmation}
           />
         </div>
       ) : (
@@ -681,7 +730,7 @@ export function AppPage() {
       placeholder={activeDrag?.origin === "vault" ? placeholder : null}
       dropBlocked={dropBlocked}
       onRemove={removeBlockFromResume}
-      onTailorBullet={(blockId, index) => void startTailor(blockId, index)}
+      onTailorBullet={requestTailorConfirmation}
     />
   ) : (
     <p className="text-sm text-slate-500">Loading resume…</p>
@@ -754,11 +803,23 @@ export function AppPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
-      {tailorBlock && (tailorProposal || tailorLoading) && (
+      {(tailorConfirmationBlock || (tailorBlock && tailorDialog && (tailorProposal || tailorLoading || tailorError))) && (
         <TailorDialog
-          block={tailorBlock}
+          block={tailorConfirmationBlock ?? tailorBlock!}
           proposal={tailorProposal}
           loading={tailorLoading}
+          error={tailorError}
+          mock={mockTailoring}
+          originalText={
+            getEffectiveBullets(tailorConfirmationBlock ?? tailorBlock!, activePreset)[
+              tailorConfirmation?.bulletIndex ?? tailorDialog!.bulletIndex
+            ] ?? ""
+          }
+          confirmation={Boolean(tailorConfirmation)}
+          onConfirm={confirmTailor}
+          onRetry={() => {
+            if (tailorDialog) void startTailor(tailorDialog.blockId, tailorDialog.bulletIndex);
+          }}
           onToneChange={setTailorTone}
           onAccept={() => {
             if (!tailorProposal || !tailorDialog) return;
@@ -773,9 +834,15 @@ export function AppPage() {
               flashSpaceWarning();
               return;
             }
-            closeTailorDialog();
+            closeTailoring();
           }}
-          onReject={closeTailorDialog}
+          onReject={() => {
+            if (tailorConfirmation) {
+              setTailorConfirmation(null);
+            } else {
+              closeTailoring();
+            }
+          }}
         />
       )}
     </div>

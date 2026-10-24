@@ -103,6 +103,8 @@ test("vault placeholder stays stable near a block midpoint without crashing", as
   await expect(page.locator(".resume-drop-placeholder")).toHaveCount(1);
   await page.mouse.up();
   await expect(page.locator("[data-canvas-block-id]")).toHaveCount(2);
+  // Wait for the landing overlay to release the card before clicking toolbar controls.
+  await expect(canvasBlock(page, "exp-2")).toHaveCSS("opacity", "1");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator("[data-canvas-block-id]")).toHaveCount(1);
   expect(errors).toEqual([]);

@@ -34,3 +34,9 @@ export async function analyzeDemoJd(page: Page) {
   await page.getByRole("button", { name: "Analyze & Rank Vault" }).click();
   await expect(page.getByText("Required skill coverage")).toBeVisible();
 }
+
+export async function confirmTailor(page: Page) {
+  await page.getByRole("dialog", { name: "Tailor bullet", exact: true })
+    .getByRole("button", { name: "Continue", exact: true })
+    .click();
+}
