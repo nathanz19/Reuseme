@@ -25,6 +25,8 @@ interface VaultCategoryListProps {
   skills: string[];
   searchQuery: string;
   selectedTags: string[];
+  selectedSections: string[];
+  dateFilterActive: boolean;
   activeBlockIds: string[];
   rankings: Record<string, SemanticRanking>;
   canAddBlock: (blockId: string) => boolean;
@@ -61,6 +63,8 @@ export function VaultCategoryList({
   skills,
   searchQuery,
   selectedTags,
+  selectedSections,
+  dateFilterActive,
   activeBlockIds,
   rankings,
   canAddBlock,
@@ -103,7 +107,7 @@ export function VaultCategoryList({
       : [];
 
   const filterActive =
-    searchQuery.trim().length > 0 || selectedTags.length > 0;
+    searchQuery.trim().length > 0 || selectedTags.length > 0 || selectedSections.length > 0 || dateFilterActive;
 
   const isOpen = (category: VaultCategory, count: number) => {
     if (filterActive) {
@@ -120,7 +124,7 @@ export function VaultCategoryList({
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      {categories.map((category) => {
+      {categories.filter((category) => (!selectedSections.length || selectedSections.includes(category.id)) && (!dateFilterActive || category.kind === "blocks")).map((category) => {
         const sectionBlocks = category.blockCategory
           ? (blocksByCategory.get(category.blockCategory) ?? [])
           : [];

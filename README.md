@@ -11,6 +11,7 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 ### Key Features
 
 - Add your own entries from the Add button beside each vault section. Forms support titles, organizations, dates, descriptions, source notes, tags, and extra fields. Contact details, target title, summary, skills, awards, publications, and custom sections can also be entered. New career blocks are saved to the vault; choose Add to Resume to place them on the canvas. Other details belong to the active resume version.
+- Use the compact Filters panel and + Add filter to combine tags, active date ranges, and sections. Include Archived and Clear all are inside the panel; the button shows the active filter count. Date ranges match entries whose start/end dates overlap the selected months.
 - Search and filter a persisted vault of accomplishment blocks by text and tags, with an option to include archived blocks. Each card expands to show the raw source notes.
 - Add, remove, and reorder blocks on a live resume canvas. Blocks land in a fixed section for their category (Education, Experience, Projects, Leadership, Certifications, Skills). Drag-and-drop runs between the vault and the canvas on wide layouts; Add to Resume and Remove work at any width.
 - Switch presets, duplicate the active preset as a new version, and switch between two ATS-style templates (font, accent, and header layout only). Undo and redo apply to canvas changes, including accepted rewrites. Vault blocks stay immutable, so a rewrite for one role does not change another preset.
