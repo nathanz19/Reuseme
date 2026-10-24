@@ -30,6 +30,7 @@ import { DEMO_JD_TEXT } from "@/data/demo-jd";
 import { matchVault, tailorBullet } from "@/data/fixtures";
 import { computeCoverage } from "@/lib/coverage";
 import { resumeDropAnimation } from "@/lib/dropAnimation";
+import { CANVAS_BLOCK_TRANSITION } from "@/lib/sortableLayout";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import { prepareResumePrint, clearResumePrint } from "@/lib/printResume";
 import { collectAllTags, searchBlocks } from "@/lib/search";
@@ -244,6 +245,17 @@ export function AppPage() {
     if (!activeDrag || activeDrag.origin !== "vault") return null;
     return vaultBlocks.find((b) => b.id === activeDrag.blockId)?.category ?? null;
   }, [activeDrag, vaultBlocks]);
+
+  // Set on drop over the vault; the block stays hidden in place while the
+  // overlay fades, then is removed so siblings glide up.
+  const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
+  const removingBlockId =
+    pendingRemovalId ??
+    (activeDrag?.origin === "canvas" &&
+    overTargetId &&
+    (overTargetId === VAULT_DROP_ID || parseVaultDraggableId(overTargetId))
+      ? activeDrag.blockId
+      : null);
 
   const vaultDropTarget = useMemo(() => {
     if (!activeDrag || activeDrag.origin !== "vault" || !vaultDragCategory) {
@@ -484,7 +496,13 @@ export function AppPage() {
 
       if (activeData.origin === "canvas") {
         if (overId === VAULT_DROP_ID || parseVaultDraggableId(overId)) {
-          removeBlockFromResume(activeData.blockId);
+          const blockId = activeData.blockId;
+          setPendingRemovalId(blockId);
+          // The collapse starts a frame after this; let it finish before removal.
+          window.setTimeout(() => {
+            removeBlockFromResume(blockId);
+            setPendingRemovalId((current) => (current === blockId ? null : current));
+          }, CANVAS_BLOCK_TRANSITION.duration + 50);
           return;
         }
         const overBlock = vaultBlocks.find((b) => b.id === overId);
@@ -648,6 +666,7 @@ export function AppPage() {
       vaultDragCategory={vaultDragCategory}
       highlightedSection={highlightedSection}
       dropTargetSection={vaultDropTarget}
+      removingBlockId={removingBlockId}
       placeholder={placeholder}
       dropBlocked={dropBlocked}
       onRemove={removeBlockFromResume}

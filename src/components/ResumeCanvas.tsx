@@ -54,6 +54,8 @@ interface ResumeCanvasProps {
   highlightedSection: BlockCategory | null;
   /** Section a vault block being dragged can be dropped into. */
   dropTargetSection: BlockCategory | null;
+  /** Canvas block being dragged over the vault, which would remove it. */
+  removingBlockId: string | null;
   placeholder: CanvasPlaceholder | null;
   dropBlocked: boolean;
   onRemove: (blockId: string) => void;
@@ -67,6 +69,7 @@ export function ResumeCanvas({
   vaultDragCategory,
   highlightedSection,
   dropTargetSection,
+  removingBlockId,
   placeholder,
   dropBlocked,
   onRemove,
@@ -145,6 +148,7 @@ export function ResumeCanvas({
           showEmptyDropSlot={vaultDragCategory === category}
           highlighted={highlightedSection === category}
           dropTarget={dropTargetSection === category}
+          removingBlockId={removingBlockId}
           dropBlocked={dropBlocked}
           onRemove={onRemove}
           onTailorBullet={onTailorBullet}

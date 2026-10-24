@@ -24,6 +24,7 @@ interface ResumeSectionProps {
   highlighted: boolean;
   /** The dragged vault block fits here; outline the section as a valid drop area. */
   dropTarget: boolean;
+  removingBlockId: string | null;
   dropBlocked: boolean;
   onRemove: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
@@ -37,6 +38,7 @@ export function ResumeSection({
   showEmptyDropSlot,
   highlighted,
   dropTarget,
+  removingBlockId,
   dropBlocked,
   onRemove,
   onTailorBullet,
@@ -97,7 +99,7 @@ export function ResumeSection({
               preset={preset}
               sortableId={item.id}
               placeholder={item.placeholder}
-              leaving={item.leaving}
+              leaving={item.leaving || (!item.placeholder && item.block.id === removingBlockId)}
               overflow={!item.placeholder && overflowBlockId === item.block.id}
               onRemove={() => onRemove(item.block.id)}
               onTailorBullet={(index) => onTailorBullet(item.block.id, index)}

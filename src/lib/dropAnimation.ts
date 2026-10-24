@@ -14,6 +14,28 @@ function landedCanvasBlock(args: DropArgs): HTMLElement | null {
   return el instanceof HTMLElement ? el : null;
 }
 
+/** A canvas block dropped on the vault stays hidden in place until this fade ends. */
+function removedFromCanvas(args: DropArgs): boolean {
+  const data = args.active.data.current as DragItemData | undefined;
+  return data?.origin === "canvas" && args.active.node.dataset.removing === "true";
+}
+
+/** Fade the overlay out where it was released. */
+function fadeOverlayOut({ transform, dragOverlay }: DropArgs): Promise<void> {
+  dragOverlay.node.style.pointerEvents = "none";
+  const at = CSS.Transform.toString(transform);
+  const animation = dragOverlay.node.animate(
+    [
+      { transform: at, opacity: 1 },
+      { transform: `${at} scale(0.96)`, opacity: 0 },
+    ],
+    { ...CANVAS_BLOCK_TRANSITION, fill: "forwards" },
+  );
+  return new Promise((resolve) => {
+    animation.onfinish = () => resolve();
+  });
+}
+
 /** Fly the overlay onto `target`, hiding it until the overlay arrives. */
 function flyOverlayTo(
   args: DropArgs,
@@ -52,6 +74,7 @@ function flyOverlayTo(
  * Land on the new canvas block instead; otherwise return to the active node.
  */
 export const resumeDropAnimation: DropAnimationFunction = (args) => {
+  if (removedFromCanvas(args)) return fadeOverlayOut(args);
   const landed = landedCanvasBlock(args);
   if (landed) return flyOverlayTo(args, landed, landed.getBoundingClientRect());
   return flyOverlayTo(args, args.active.node, args.active.rect);
