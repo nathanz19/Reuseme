@@ -22,6 +22,11 @@ import { CanvasBlockOverlay } from "@/components/CanvasBlock";
 import { JDPanel } from "@/components/JDPanel";
 import { Navbar } from "@/components/Navbar";
 import { ResumeCanvas } from "@/components/ResumeCanvas";
+import {
+  SectionOverlay,
+  snapshotSection,
+  type SectionSnapshot,
+} from "@/components/SortableSection";
 import { TailorDialog } from "@/components/TailorDialog";
 import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
@@ -238,6 +243,7 @@ export function AppPage() {
     : undefined;
 
   const [activeDrag, setActiveDrag] = useState<DragItemData | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionSnapshot | null>(null);
   const [spaceWarning, setSpaceWarning] = useState<string | null>(null);
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
   const [placeholder, setPlaceholder] = useState<CanvasPlaceholder | null>(null);
@@ -342,6 +348,7 @@ export function AppPage() {
     dragLayoutRef.current = null;
     pointerYRef.current = null;
     setActiveDrag(null);
+    setActiveSection(null);
     setOverTargetId(null);
     assignPlaceholder(null);
     assignDropBlocked(false);
@@ -378,9 +385,18 @@ export function AppPage() {
       setSpaceWarning(null);
       assignPlaceholder(null);
       assignDropBlocked(false);
-      if (isSectionDragData(event.active.data.current)) {
+      const sectionData = event.active.data.current;
+      if (isSectionDragData(sectionData)) {
         dragLayoutRef.current = null;
         setOverlayWidth(undefined);
+        setActiveSection(
+          snapshotSection(
+            sectionData.sectionId,
+            document.querySelector<HTMLElement>(
+              `[data-resume-section="${CSS.escape(sectionData.sectionId)}"]`,
+            ),
+          ),
+        );
         return;
       }
       const data = event.active.data.current as DragItemData | undefined;
@@ -824,7 +840,9 @@ export function AppPage() {
           className={dropBlocked ? "cursor-not-allowed" : undefined}
           dropAnimation={resumeDropAnimation}
         >
-          {overlayBlock && activeDrag ? (
+          {activeSection ? (
+            <SectionOverlay snapshot={activeSection} />
+          ) : overlayBlock && activeDrag ? (
             <CanvasBlockOverlay
               block={overlayBlock}
               preset={activePreset}
