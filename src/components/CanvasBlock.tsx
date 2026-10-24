@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { BlockActions } from "@/components/BlockActions";
 import { useSortable } from "@dnd-kit/sortable";
 import {
@@ -11,6 +11,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { IconAction } from "@/components/IconAction";
 import { GripVertical, RefreshCw } from "lucide-react";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
+import { PLACEHOLDER_FADE_OUT_MS } from "@/lib/dnd";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
 export function resumeTemplateClass(templateId: TemplateId): string {
@@ -87,6 +88,8 @@ interface CanvasBlockProps {
   sortableId?: string;
   /** Gray stand-in inserted while a sidebar block is over the canvas. */
   placeholder?: boolean;
+  /** Skeleton is fading out: a vault drag left the canvas, or this block is over the vault. */
+  leaving?: boolean;
 }
 
 export function CanvasBlock({
@@ -97,6 +100,7 @@ export function CanvasBlock({
   onTailorBullet,
   sortableId,
   placeholder = false,
+  leaving = false,
 }: CanvasBlockProps) {
   const {
     attributes,
@@ -114,24 +118,64 @@ export function CanvasBlock({
     transition: CANVAS_BLOCK_TRANSITION,
   });
 
+  // A canvas block over the vault fades its skeleton (restored on return) and
+  // stays hidden after the drop until it is removed.
+  const fadingOut = leaving && !placeholder;
   const style: CSSProperties = {
     transform: CSS.Translate.toString(transform),
     // Stays active while dragging so the skeleton slides into its new slot.
-    transition,
+    transition:
+      isDragging || fadingOut
+        ? [transition, `opacity ${PLACEHOLDER_FADE_OUT_MS}ms ${CANVAS_BLOCK_TRANSITION.easing}`]
+            .filter(Boolean)
+            .join(", ")
+        : transition,
+    opacity: fadingOut ? 0 : undefined,
     position: "relative",
     zIndex: isDragging ? 10 : "auto",
   };
 
   const skeleton = placeholder || isDragging;
 
+  // Dropped on the vault: collapse the hidden slot so blocks below, including
+  // other sections, glide up before the block is removed.
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const collapsing = fadingOut && !isDragging;
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!collapsing || !node) return;
+    const { height } = node.getBoundingClientRect();
+    const { marginBottom } = getComputedStyle(node);
+    const animation = node.animate(
+      [
+        { height: `${height}px`, marginBottom, overflow: "hidden" },
+        { height: "0px", marginBottom: "0px", paddingTop: "0px", paddingBottom: "0px", borderWidth: "0px", overflow: "hidden" },
+      ],
+      { ...CANVAS_BLOCK_TRANSITION, fill: "forwards" },
+    );
+    return () => animation.cancel();
+  }, [collapsing]);
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      nodeRef.current = node;
+      setNodeRef(node);
+    },
+    [setNodeRef],
+  );
+
   return (
     <div
-      ref={setNodeRef}
+      ref={setRefs}
       style={style}
       data-canvas-block-id={placeholder ? undefined : block.id}
+      data-removing={fadingOut ? "true" : undefined}
       aria-hidden={placeholder ? true : undefined}
       className={`group mb-3 w-full rounded border p-2 ${
-        placeholder ? "resume-drop-placeholder print:hidden" : ""
+        placeholder
+          ? `resume-drop-placeholder print:hidden ${
+              leaving ? "resume-drop-placeholder-leaving" : ""
+            }`
+          : ""
       } ${
         skeleton
           ? "border-slate-300 bg-slate-200"
@@ -173,16 +217,27 @@ export function CanvasBlock({
 export function CanvasBlockOverlay({
   block,
   preset,
+  width,
+  blocked = false,
 }: {
   block: AccomplishmentBlock;
   preset: ResumePreset;
+  /** Canvas block width in px; defaults to the dragged node's width. */
+  width?: number;
+  blocked?: boolean;
 }) {
   return (
     <div
-      className={`w-full cursor-grabbing rounded border border-slate-300 bg-white p-2 shadow-xl ring-1 ring-slate-900/5 ${resumeTemplateClass(
-        preset.templateId,
-      )}`}
+      style={width ? { width } : undefined}
+      className={`w-full rounded border bg-white p-2 shadow-xl ring-1 ring-slate-900/5 ${
+        blocked ? "cursor-not-allowed border-red-500" : "cursor-grabbing border-slate-300"
+      } ${resumeTemplateClass(preset.templateId)}`}
     >
+      {blocked && (
+        <p className="mb-1 text-xs font-medium text-red-700">
+          Not enough space on the page
+        </p>
+      )}
       <CanvasBlockBody
         block={block}
         preset={preset}

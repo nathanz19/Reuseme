@@ -36,6 +36,7 @@ function sectionItems(
     id: placeholder.id,
     block,
     placeholder: true,
+    leaving: placeholder.leaving,
   };
   const index = placeholder.beforeBlockId
     ? items.findIndex((item) => item.id === placeholder.beforeBlockId)
@@ -51,6 +52,10 @@ interface ResumeCanvasProps {
   rankings: Record<string, SemanticRanking>;
   vaultDragCategory: BlockCategory | null;
   highlightedSection: BlockCategory | null;
+  /** Section a vault block being dragged can be dropped into. */
+  dropTargetSection: BlockCategory | null;
+  /** Canvas block being dragged over the vault, which would remove it. */
+  removingBlockId: string | null;
   placeholder: CanvasPlaceholder | null;
   dropBlocked: boolean;
   onRemove: (blockId: string) => void;
@@ -63,6 +68,8 @@ export function ResumeCanvas({
   rankings,
   vaultDragCategory,
   highlightedSection,
+  dropTargetSection,
+  removingBlockId,
   placeholder,
   dropBlocked,
   onRemove,
@@ -140,6 +147,8 @@ export function ResumeCanvas({
           overflowBlockId={overflowBlockId}
           showEmptyDropSlot={vaultDragCategory === category}
           highlighted={highlightedSection === category}
+          dropTarget={dropTargetSection === category}
+          removingBlockId={removingBlockId}
           dropBlocked={dropBlocked}
           onRemove={onRemove}
           onTailorBullet={onTailorBullet}

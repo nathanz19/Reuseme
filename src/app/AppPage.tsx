@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragMoveEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -28,12 +29,15 @@ import { VaultToolbar } from "@/components/VaultToolbar";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
 import { matchVault, tailorBullet } from "@/data/fixtures";
 import { computeCoverage } from "@/lib/coverage";
+import { resumeDropAnimation } from "@/lib/dropAnimation";
+import { CANVAS_BLOCK_TRANSITION } from "@/lib/sortableLayout";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import { prepareResumePrint, clearResumePrint } from "@/lib/printResume";
 import { collectAllTags, searchBlocks } from "@/lib/search";
 import {
   type CanvasPlaceholder,
   type DragItemData,
+  PLACEHOLDER_FADE_OUT_MS,
   RESUME_DROP_ID,
   VAULT_DROP_ID,
   dragPointerY,
@@ -50,7 +54,6 @@ import { FORGOTTEN_THRESHOLD } from "@/lib/tunables";
 import type {
   AccomplishmentBlock,
   BlockCategory,
-  ResumePreset,
 } from "@/types/resume";
 import { useResumeStore } from "@/store/resumeStore";
 import { useSessionStore } from "@/store/sessionStore";
@@ -68,7 +71,8 @@ function placeholdersEqual(
     a.id === b.id &&
     a.blockId === b.blockId &&
     a.category === b.category &&
-    a.beforeBlockId === b.beforeBlockId
+    a.beforeBlockId === b.beforeBlockId &&
+    Boolean(a.leaving) === Boolean(b.leaving)
   );
 }
 
@@ -85,37 +89,15 @@ function readBlockRects(ids: readonly string[]) {
   return rects;
 }
 
-function DragPreview({
-  block,
-  preset,
-  blocked,
-}: {
-  block: AccomplishmentBlock;
-  preset: ResumePreset;
-  blocked: boolean;
-}) {
-  const bullets = getEffectiveBullets(block, preset).slice(0, 3);
-  return (
-    <div
-      className={`w-[min(360px,70vw)] rounded border bg-white p-2 text-sm shadow-lg ${
-        blocked ? "cursor-not-allowed border-red-500" : "border-slate-400"
-      }`}
-    >
-      <p className="font-semibold">{block.title}</p>
-      <p className="text-xs text-slate-600">{block.organization}</p>
-      {blocked ? (
-        <p className="mt-1 text-xs font-medium text-red-700">
-          Not enough space on the page
-        </p>
-      ) : (
-        <ul className="mt-1 list-disc pl-4 text-xs text-slate-800">
-          {bullets.map((bullet, index) => (
-            <li key={index}>{bullet}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+/** Content width of a block on the resume page, or undefined when the canvas is hidden. */
+function canvasBlockWidth(page: HTMLElement | null): number | undefined {
+  if (!page) return undefined;
+  const style = getComputedStyle(page);
+  const width =
+    page.clientWidth -
+    parseFloat(style.paddingLeft) -
+    parseFloat(style.paddingRight);
+  return width > 0 ? width : undefined;
 }
 
 function highlightedVaultSection(
@@ -244,6 +226,7 @@ export function AppPage() {
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
   const [placeholder, setPlaceholder] = useState<CanvasPlaceholder | null>(null);
   const [dropBlocked, setDropBlocked] = useState(false);
+  const [overlayWidth, setOverlayWidth] = useState<number | undefined>();
   const placeholderRef = useRef<CanvasPlaceholder | null>(null);
   const dropBlockedRef = useRef(false);
   const dragLayoutRef = useRef<{
@@ -263,6 +246,26 @@ export function AppPage() {
     return vaultBlocks.find((b) => b.id === activeDrag.blockId)?.category ?? null;
   }, [activeDrag, vaultBlocks]);
 
+  // Set on drop over the vault; the block stays hidden in place while the
+  // overlay fades, then is removed so siblings glide up.
+  const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
+  const removingBlockId =
+    pendingRemovalId ??
+    (activeDrag?.origin === "canvas" &&
+    overTargetId &&
+    (overTargetId === VAULT_DROP_ID || parseVaultDraggableId(overTargetId))
+      ? activeDrag.blockId
+      : null);
+
+  const vaultDropTarget = useMemo(() => {
+    if (!activeDrag || activeDrag.origin !== "vault" || !vaultDragCategory) {
+      return null;
+    }
+    return canInsertBlockOnResume(activePreset, vaultBlocks, activeDrag.blockId)
+      ? vaultDragCategory
+      : null;
+  }, [activeDrag, activePreset, vaultBlocks, vaultDragCategory]);
+
   const highlightedSection = useMemo(
     () => highlightedVaultSection(activeDrag, overTargetId, vaultBlocks),
     [activeDrag, overTargetId, vaultBlocks],
@@ -273,18 +276,55 @@ export function AppPage() {
     return vaultBlocks.find((b) => b.id === activeDrag.blockId);
   }, [activeDrag, vaultBlocks]);
 
+  const fadeOutTimerRef = useRef<number | null>(null);
+
   const assignPlaceholder = useCallback((next: CanvasPlaceholder | null) => {
+    if (fadeOutTimerRef.current !== null) {
+      window.clearTimeout(fadeOutTimerRef.current);
+      fadeOutTimerRef.current = null;
+    }
     placeholderRef.current = next;
     setPlaceholder((prev) => (placeholdersEqual(prev, next) ? prev : next));
   }, []);
+
+  /** Fade the vault skeleton out in place before removing it from the section. */
+  const dismissPlaceholder = useCallback(() => {
+    const current = placeholderRef.current;
+    if (!current || current.leaving) return;
+    assignPlaceholder({ ...current, leaving: true });
+    fadeOutTimerRef.current = window.setTimeout(() => {
+      fadeOutTimerRef.current = null;
+      if (placeholderRef.current?.leaving) assignPlaceholder(null);
+    }, PLACEHOLDER_FADE_OUT_MS);
+  }, [assignPlaceholder]);
+
+  useEffect(
+    () => () => {
+      if (fadeOutTimerRef.current !== null) window.clearTimeout(fadeOutTimerRef.current);
+    },
+    [],
+  );
 
   const assignDropBlocked = useCallback((next: boolean) => {
     dropBlockedRef.current = next;
     setDropBlocked((prev) => (prev === next ? prev : next));
   }, []);
 
+  // dnd-kit's drag delta folds in the vault list's scroll offset, so
+  // activator + delta drifts from the real pointer once the vault is scrolled.
+  const pointerYRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (activeDrag?.origin !== "vault") return;
+    const onPointerMove = (event: PointerEvent) => {
+      pointerYRef.current = event.clientY;
+    };
+    document.addEventListener("pointermove", onPointerMove, true);
+    return () => document.removeEventListener("pointermove", onPointerMove, true);
+  }, [activeDrag?.origin]);
+
   const clearDragState = useCallback(() => {
     dragLayoutRef.current = null;
+    pointerYRef.current = null;
     setActiveDrag(null);
     setOverTargetId(null);
     assignPlaceholder(null);
@@ -328,6 +368,9 @@ export function AppPage() {
         top: page.getBoundingClientRect().top,
         blocks: readBlockRects(activePreset.activeBlockIds),
       } : null;
+      setOverlayWidth(
+        data?.origin === "vault" ? canvasBlockWidth(page) : undefined,
+      );
       if (data) setActiveDrag(data);
     },
     [assignPlaceholder, assignDropBlocked, activePreset.activeBlockIds],
@@ -347,7 +390,7 @@ export function AppPage() {
 
       const blockIds = vaultBlocks.map((block) => block.id);
       if (!isResumeDropTarget(overId, blockIds)) {
-        assignPlaceholder(null);
+        dismissPlaceholder();
         assignDropBlocked(false);
         return;
       }
@@ -376,7 +419,7 @@ export function AppPage() {
           vaultBlocks.find((item) => item.id === id)?.category === block.category
         );
       });
-      const pointerY = dragPointerY(event);
+      const pointerY = pointerYRef.current ?? dragPointerY(event);
       const layout = dragLayoutRef.current;
       const pageTop = document.getElementById("resume-print-root")?.getBoundingClientRect().top;
       const scrollOffset = layout && pageTop !== undefined ? pageTop - layout.top : 0;
@@ -399,7 +442,20 @@ export function AppPage() {
         beforeBlockId,
       });
     },
-    [activePreset, assignDropBlocked, assignPlaceholder, vaultBlocks],
+    [activePreset, assignDropBlocked, assignPlaceholder, dismissPlaceholder, vaultBlocks],
+  );
+
+  // onDragOver only fires when the hovered droppable changes; the vault skeleton
+  // also has to follow the pointer within one block or across the gaps. Entering
+  // and leaving the canvas stay with onDragOver so moves never start a fade-out.
+  const handleDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      const data = event.active.data.current as DragItemData | undefined;
+      if (data?.origin !== "vault" || !event.over) return;
+      const blockIds = vaultBlocks.map((block) => block.id);
+      if (isResumeDropTarget(String(event.over.id), blockIds)) handleDragOver(event);
+    },
+    [handleDragOver, vaultBlocks],
   );
 
   const handleDragEnd = useCallback(
@@ -418,7 +474,9 @@ export function AppPage() {
         if (!isResumeDropTarget(overId, blockIds)) return;
 
         const beforeBlockId =
-          pendingPlaceholder && pendingPlaceholder.blockId === activeData.blockId
+          pendingPlaceholder &&
+          !pendingPlaceholder.leaving &&
+          pendingPlaceholder.blockId === activeData.blockId
             ? pendingPlaceholder.beforeBlockId
             : null;
         const height = measureCanvasInsertion(
@@ -438,7 +496,13 @@ export function AppPage() {
 
       if (activeData.origin === "canvas") {
         if (overId === VAULT_DROP_ID || parseVaultDraggableId(overId)) {
-          removeBlockFromResume(activeData.blockId);
+          const blockId = activeData.blockId;
+          setPendingRemovalId(blockId);
+          // The collapse starts a frame after this; let it finish before removal.
+          window.setTimeout(() => {
+            removeBlockFromResume(blockId);
+            setPendingRemovalId((current) => (current === blockId ? null : current));
+          }, CANVAS_BLOCK_TRANSITION.duration + 50);
           return;
         }
         const overBlock = vaultBlocks.find((b) => b.id === overId);
@@ -601,6 +665,8 @@ export function AppPage() {
       rankings={rankings}
       vaultDragCategory={vaultDragCategory}
       highlightedSection={highlightedSection}
+      dropTargetSection={vaultDropTarget}
+      removingBlockId={removingBlockId}
       placeholder={placeholder}
       dropBlocked={dropBlocked}
       onRemove={removeBlockFromResume}
@@ -630,6 +696,7 @@ export function AppPage() {
         collisionDetection={resumeDropCollision}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onDragCancel={clearDragState}
       >
@@ -659,15 +726,17 @@ export function AppPage() {
           vaultDropActive={activeDrag?.origin === "canvas"}
         />
         </div>
-        <DragOverlay className={dropBlocked ? "cursor-not-allowed" : undefined}>
-          {overlayBlock && activeDrag?.origin === "vault" ? (
-            <DragPreview
+        <DragOverlay
+          className={dropBlocked ? "cursor-not-allowed" : undefined}
+          dropAnimation={resumeDropAnimation}
+        >
+          {overlayBlock && activeDrag ? (
+            <CanvasBlockOverlay
               block={overlayBlock}
               preset={activePreset}
-              blocked={dropBlocked}
+              width={activeDrag.origin === "vault" ? overlayWidth : undefined}
+              blocked={activeDrag.origin === "vault" && dropBlocked}
             />
-          ) : overlayBlock && activeDrag?.origin === "canvas" ? (
-            <CanvasBlockOverlay block={overlayBlock} preset={activePreset} />
           ) : null}
         </DragOverlay>
       </DndContext>

@@ -55,7 +55,12 @@ export interface CanvasPlaceholder {
   blockId: string;
   category: BlockCategory;
   beforeBlockId: string | null;
+  /** Fading out after the pointer left the canvas; not a drop target. */
+  leaving?: boolean;
 }
+
+/** Matches the `.resume-drop-placeholder-leaving` fade in globals.css. */
+export const PLACEHOLDER_FADE_OUT_MS = 150;
 
 export function isResumeDropTarget(
   overId: string | null,

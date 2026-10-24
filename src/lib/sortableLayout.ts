@@ -28,6 +28,11 @@ export const CANVAS_BLOCK_TRANSITION = {
  * equal to `index`, so animate siblings when that skeleton moves up or down.
  */
 export const canvasBlockAnimateLayoutChanges: AnimateLayoutChanges = (args) => {
+  // A block dropped on the vault collapses its slot before removal; replaying
+  // a layout animation from pre-drag rects would bounce siblings back down.
+  if (!args.isSorting && args.items.length < args.previousItems.length) {
+    return false;
+  }
   if (defaultAnimateLayoutChanges({ ...args, wasDragging: true })) {
     return true;
   }
