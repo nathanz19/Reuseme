@@ -88,6 +88,10 @@ export interface ResumeState {
   setTemplate: (templateId: TemplateId) => void;
   switchPreset: (presetId: string) => void;
   duplicatePreset: () => void;
+  createDocument: () => void;
+  renameDocument: (id: string, name: string) => void;
+  closeDocument: (id: string) => void;
+  reorderDocuments: (activeId: string, overId: string) => void;
   acceptTailorOverride: (
     blockId: string,
     bulletIndex: number,
@@ -321,6 +325,64 @@ export const useResumeStore = create<ResumeState>()(
           if (draft.presets.some((p) => p.id === presetId)) {
             draft.activePresetId = presetId;
           }
+        });
+      },
+
+      reorderDocuments: (activeId, overId) => {
+        if (activeId === overId) return;
+        get().commit((draft) => {
+          const from = draft.presets.findIndex((preset) => preset.id === activeId);
+          const to = draft.presets.findIndex((preset) => preset.id === overId);
+          if (from < 0 || to < 0) return;
+          const [document] = draft.presets.splice(from, 1);
+          draft.presets.splice(to, 0, document);
+        });
+      },
+
+      renameDocument: (id, name) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        get().commit((draft) => {
+          const document = draft.presets.find((preset) => preset.id === id);
+          if (document) document.name = trimmed;
+        });
+      },
+
+      closeDocument: (id) => {
+        get().commit((draft) => {
+          const index = draft.presets.findIndex((preset) => preset.id === id);
+          if (index < 0) return;
+          const closed = draft.presets[index];
+          draft.presets.splice(index, 1);
+          if (!draft.presets.length) {
+            const blank: ResumePreset = {
+              ...clonePresets([closed])[0],
+              id: crypto.randomUUID(), name: "Untitled document",
+              activeBlockIds: [], bulletOverrides: {}, customSkillsSection: [], additionalSections: [],
+            };
+            draft.presets.push(blank);
+          }
+          if (draft.activePresetId === id) {
+            draft.activePresetId = draft.presets[Math.min(index, draft.presets.length - 1)].id;
+          }
+        });
+      },
+
+      createDocument: () => {
+        get().commit((draft) => {
+          const active = draft.presets.find((preset) => preset.id === draft.activePresetId);
+          if (!active) return;
+          const document: ResumePreset = {
+            ...clonePresets([active])[0],
+            id: crypto.randomUUID(),
+            name: `Untitled document ${draft.presets.length + 1}`,
+            activeBlockIds: [],
+            bulletOverrides: {},
+            customSkillsSection: [],
+            additionalSections: [],
+          };
+          draft.presets.push(document);
+          draft.activePresetId = document.id;
         });
       },
 

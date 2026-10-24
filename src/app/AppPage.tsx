@@ -164,7 +164,10 @@ export function AppPage() {
   const insertBlockOnResume = useResumeStore((s) => s.insertBlockOnResume);
   const setTemplate = useResumeStore((s) => s.setTemplate);
   const switchPreset = useResumeStore((s) => s.switchPreset);
-  const duplicatePreset = useResumeStore((s) => s.duplicatePreset);
+  const reorderDocuments = useResumeStore((s) => s.reorderDocuments);
+  const renameDocument = useResumeStore((s) => s.renameDocument);
+  const closeDocument = useResumeStore((s) => s.closeDocument);
+  const createDocument = useResumeStore((s) => s.createDocument);
   const acceptTailorOverride = useResumeStore((s) => s.acceptTailorOverride);
 
   const searchQuery = useSessionStore((s) => s.searchQuery);
@@ -645,7 +648,10 @@ export function AppPage() {
               canUndo={past.length > 0}
               canRedo={future.length > 0}
               onPresetChange={switchPreset}
-              onNewVersion={duplicatePreset}
+              onNewDocument={createDocument}
+              onRenameDocument={renameDocument}
+              onCloseDocument={closeDocument}
+              onReorderDocuments={reorderDocuments}
               onUndo={undo}
               onRedo={redo}
               onTemplateChange={setTemplate}

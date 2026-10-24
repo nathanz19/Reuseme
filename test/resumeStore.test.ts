@@ -24,6 +24,56 @@ beforeEach(() => {
 });
 
 describe("resume store", () => {
+  it("reorders document tabs without changing the active document and supports undo", () => {
+    const before = store.getState().presets.map((preset) => preset.id);
+    const activeId = store.getState().activePresetId;
+    store.getState().reorderDocuments(before[0], before[1]);
+    expect(store.getState().presets.map((preset) => preset.id)).toEqual([before[1], before[0]]);
+    expect(store.getState().activePresetId).toBe(activeId);
+    store.getState().undo();
+    expect(store.getState().presets.map((preset) => preset.id)).toEqual(before);
+  });
+
+  it("renames documents, rejects blank names, and supports undo", () => {
+    const original = active();
+    store.getState().renameDocument(original.id, "  Backend Resume  ");
+    expect(active().name).toBe("Backend Resume");
+    store.getState().renameDocument(original.id, "   ");
+    expect(active().name).toBe("Backend Resume");
+    store.getState().undo();
+    expect(active().name).toBe(original.name);
+  });
+
+  it("closes active tabs safely and keeps a blank document after closing the last", () => {
+    const source = structuredClone(active());
+    const vault = store.getState().vaultBlocks;
+    store.getState().closeDocument(source.id);
+    expect(active().id).toBe("systems-eng");
+    store.getState().undo();
+    expect(active()).toEqual(source);
+    store.getState().closeDocument("systems-eng");
+    expect(active()).toEqual(source);
+    store.getState().closeDocument(source.id);
+    expect(store.getState().presets).toHaveLength(1);
+    expect(active().id).not.toBe(source.id);
+    expect(active().activeBlockIds).toEqual([]);
+    expect(store.getState().vaultBlocks).toEqual(vault);
+  });
+
+  it("creates a separate empty document without changing the source or vault", () => {
+    const source = structuredClone(active());
+    const vault = store.getState().vaultBlocks;
+    store.getState().createDocument();
+    expect(active().id).not.toBe(source.id);
+    expect(active().activeBlockIds).toEqual([]);
+    expect(active().customSkillsSection).toEqual([]);
+    expect(active().bulletOverrides).toEqual({});
+    expect(store.getState().presets.find((preset) => preset.id === source.id)).toEqual(source);
+    expect(store.getState().vaultBlocks).toEqual(vault);
+    store.getState().undo();
+    expect(active()).toEqual(source);
+  });
+
   it("starts on the default preset with no history", () => {
     const state = store.getState();
     expect(state.activePresetId).toBe("frontend-swe");

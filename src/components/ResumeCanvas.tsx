@@ -104,9 +104,7 @@ export function ResumeCanvas({
       className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-md ${templateClass} print:shadow-none ${
         dropBlocked
           ? "ring-2 ring-red-500"
-          : withinBudget
-            ? "ring-1 ring-slate-200"
-            : "ring-2 ring-amber-400"
+          : "ring-1 ring-slate-200"
       }`}
       style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
       title={`US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), ~${MAX_LINES} estimated lines`}

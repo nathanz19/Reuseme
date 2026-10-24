@@ -46,20 +46,20 @@ test("canvas edits persist across a reload", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
 });
 
-test("presets, templates, and new versions switch the canvas", async ({
+test("document tabs, templates, and new documents switch the canvas", async ({
   page,
 }) => {
-  const preset = page.getByLabel("Resume preset");
-  await preset.selectOption("systems-eng");
+  await page.getByRole("tab", { name: "Systems Eng", exact: true }).click();
   await expect(page.getByLabel("Template")).toHaveValue("modern-tech");
   await expect(canvasBlock(page, "exp-2")).toBeVisible();
   await expect(canvasBlock(page, "exp-1")).toHaveCount(0);
 
   await page.getByLabel("Template").selectOption("classic-ats");
-  await page.getByRole("button", { name: "New version" }).click();
-  await expect(preset.locator("option:checked")).toHaveText(
-    "Systems Eng (copy)",
-  );
+  await page.getByRole("button", { name: "New document", exact: true }).click();
+  await expect(page.getByRole("tab", { selected: true })).toHaveText("Untitled document 3");
+  await expect(page.locator("[data-canvas-block-id]")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Systems Eng", exact: true }).click();
+  await expect(canvasBlock(page, "exp-2")).toBeVisible();
   await expect(page.getByLabel("Template")).toHaveValue("classic-ats");
 });
 
@@ -95,4 +95,48 @@ test("skills can be edited from the canvas hover controls and undone", async ({ 
   await expect(skills.locator("p")).toHaveText("Python, SQL");
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(skills.locator("p")).toContainText("React");
+});
+
+
+test("tabs support pencil and double-click renaming, closing, and undo", async ({ page }) => {
+  await page.getByRole("button", { name: "Rename Frontend SWE", exact: true }).click();
+  const name = page.getByRole("textbox", { name: "Document name", exact: true });
+  await name.fill("My frontend resume");
+  await name.press("Enter");
+  const tab = page.getByRole("tab", { name: "My frontend resume", exact: true });
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  await tab.dblclick();
+  await name.fill("Cancelled name");
+  await name.press("Escape");
+  await expect(tab).toBeVisible();
+  await tab.dblclick();
+  await name.fill("Final resume");
+  await name.press("Enter");
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "Final resume", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: "Close Final resume", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Final resume", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Systems Eng", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Final resume", exact: true })).toHaveAttribute("aria-selected", "true");
+});
+
+
+test("document tabs drag horizontally, preserve selection, and persist order", async ({ page }) => {
+  await page.getByRole("button", { name: "New document", exact: true }).click();
+  const first = page.getByRole("tab", { name: "Frontend SWE", exact: true });
+  const second = page.getByRole("tab", { name: "Systems Eng", exact: true });
+  const start = (await first.boundingBox())!;
+  const destination = (await second.boundingBox())!;
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(destination.x + destination.width / 2, start.y + start.height / 2 + 60, { steps: 20 });
+  const during = (await first.boundingBox())!;
+  expect(Math.abs(during.y - start.y)).toBeLessThan(1);
+  await page.mouse.up();
+  await expect(page.getByRole("tab")).toHaveText(["Systems Eng", "Frontend SWE", "Untitled document 3"]);
+  await expect(page.getByRole("tab", { selected: true })).toHaveText("Untitled document 3");
+  await page.reload();
+  await expect(page.getByRole("tab")).toHaveText(["Systems Eng", "Frontend SWE", "Untitled document 3"]);
+  await expect(page.getByRole("tab", { selected: true })).toHaveText("Untitled document 3");
 });
