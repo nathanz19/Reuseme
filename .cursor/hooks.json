@@ -1,16 +1,16 @@
 {
   "version": 1,
   "hooks": {
-    "subagentStart": [
+    "preToolUse": [
       {
-        "command": ".cursor/hooks/allowlist-subagent-model.sh",
+        "command": ".cursor/hooks/force-composer-subagent.py",
+        "matcher": "Task",
         "failClosed": true
       }
     ],
-    "preToolUse": [
+    "subagentStart": [
       {
-        "command": ".cursor/hooks/allowlist-subagent-model.sh",
-        "matcher": "Task",
+        "command": ".cursor/hooks/subagent-start-model-gate.py",
         "failClosed": true
       }
     ]
