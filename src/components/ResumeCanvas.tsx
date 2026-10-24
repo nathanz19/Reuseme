@@ -1,14 +1,17 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { useMemo } from "react";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo, type ReactNode } from "react";
 import { resumeTemplateClass } from "@/components/CanvasBlock";
 import { SectionActions } from "@/components/SectionActions";
+import { SortableSection } from "@/components/SortableSection";
 import { VAULT_CATEGORIES } from "@/lib/vaultCategories";
 import { ResumeHeader } from "@/components/ResumeHeader";
 import { ResumeSection, type SectionItem } from "@/components/ResumeSection";
-import { RESUME_DROP_ID, type CanvasPlaceholder } from "@/lib/dnd";
+import { RESUME_DROP_ID, sectionSortableId, type CanvasPlaceholder } from "@/lib/dnd";
 import { isWithinLineBudget, pickOverflowBlockId } from "@/lib/lineCount";
+import { isBlockSection, resolveSectionOrder, SKILLS_SECTION_ID } from "@/lib/sectionOrder";
 import { MAX_LINES, PAGE_HEIGHT, PAGE_WIDTH } from "@/lib/tunables";
 import type {
   AccomplishmentBlock,
@@ -16,7 +19,7 @@ import type {
   ResumePreset,
   SemanticRanking,
 } from "@/types/resume";
-import { SECTION_ORDER } from "@/types/resume";
+import { SECTION_LABELS, SECTION_ORDER } from "@/types/resume";
 
 function sectionItems(
   category: BlockCategory,
@@ -110,6 +113,85 @@ export function ResumeCanvas({
   const templateId = preset.templateId;
   const templateClass = resumeTemplateClass(templateId);
 
+  const additionalById = new Map(
+    (preset.additionalSections ?? []).map((section) => [section.id, section]),
+  );
+  const sections: { id: string; label: string; content: ReactNode }[] = [];
+  for (const id of resolveSectionOrder(preset)) {
+    if (isBlockSection(id)) {
+      const items = sectionItems(id, blocksBySection.get(id) ?? [], placeholder, byId);
+      // An empty section only appears while a vault block of its category is dragged.
+      if (items.length === 0 && vaultDragCategory !== id) continue;
+      sections.push({
+        id,
+        label: SECTION_LABELS[id],
+        content: (
+          <ResumeSection
+            category={id}
+            items={items}
+            preset={preset}
+            overflowBlockId={overflowBlockId}
+            showEmptyDropSlot={vaultDragCategory === id}
+            highlighted={highlightedSection === id}
+            dropTarget={dropTargetSection === id}
+            removingBlockId={removingBlockId}
+            dropBlocked={dropBlocked}
+            onRemove={onRemove}
+            onTailorBullet={onTailorBullet}
+          />
+        ),
+      });
+    } else if (id === SKILLS_SECTION_ID) {
+      if (preset.customSkillsSection.length === 0) continue;
+      sections.push({
+        id,
+        label: "Skills",
+        content: (
+          <section className="group mb-4" aria-label="Resume skills">
+            <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">
+              Skills
+            </h2>
+            <div className="relative">
+              <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>
+              <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+                <SectionActions category={{ id: "skills", label: "Skills & Interests", kind: "skills" }} />
+              </div>
+            </div>
+          </section>
+        ),
+      });
+    } else {
+      const section = additionalById.get(id);
+      if (!section) continue;
+      const vaultCategory = VAULT_CATEGORIES.find((category) => category.id === section.id);
+      sections.push({
+        id,
+        label: section.title || vaultCategory?.label || "Custom",
+        content: vaultCategory ? (
+          <section className="group relative my-3 pr-16 print:pr-0">
+            <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+              <SectionActions category={vaultCategory} />
+            </div>
+            {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">{section.title}</h2>}
+            <p className="whitespace-pre-wrap text-sm">{section.content}</p>
+          </section>
+        ) : (
+          <section className="mb-4">
+            <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">{section.title}</h2>
+            <p className="whitespace-pre-wrap text-sm">{section.content}</p>
+          </section>
+        ),
+      });
+    }
+  }
+
+  // SortableContext compares items by reference; keep the array stable across renders.
+  const sectionIdsKey = sections.map((section) => section.id).join("\n");
+  const sortableSectionIds = useMemo(
+    () => (sectionIdsKey ? sectionIdsKey.split("\n").map(sectionSortableId) : []),
+    [sectionIdsKey],
+  );
+
   return (
     <div
       ref={setNodeRef}
@@ -126,59 +208,13 @@ export function ResumeCanvas({
         header={preset.header}
         templateId={templateId}
       />
-      {(preset.additionalSections ?? []).filter((section) =>
-        section.id === "target-title" || section.id === "summary"
-      ).map((section) => (
-        <section key={section.id} className="group relative my-3 pr-16 print:pr-0">
-          <div className="resume-hover-control absolute right-0 top-0 print:hidden">
-            <SectionActions category={VAULT_CATEGORIES.find((category) => category.id === section.id)!} />
-          </div>
-          {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">{section.title}</h2>}
-          <p className="whitespace-pre-wrap text-sm">{section.content}</p>
-        </section>
-      ))}
-      {SECTION_ORDER.map((category) => (
-        <ResumeSection
-          key={category}
-          category={category}
-          items={sectionItems(
-            category,
-            blocksBySection.get(category) ?? [],
-            placeholder,
-            byId,
-          )}
-          preset={preset}
-          overflowBlockId={overflowBlockId}
-          showEmptyDropSlot={vaultDragCategory === category}
-          highlighted={highlightedSection === category}
-          dropTarget={dropTargetSection === category}
-          removingBlockId={removingBlockId}
-          dropBlocked={dropBlocked}
-          onRemove={onRemove}
-          onTailorBullet={onTailorBullet}
-        />
-      ))}
-      {(preset.additionalSections ?? []).filter((section) =>
-        section.id !== "target-title" && section.id !== "summary"
-      ).map((section) => (
-        <section key={section.id} className="mb-4">
-          <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">{section.title}</h2>
-          <p className="whitespace-pre-wrap text-sm">{section.content}</p>
-        </section>
-      ))}
-      {preset.customSkillsSection.length > 0 && (
-        <section className="group mb-4" aria-label="Resume skills">
-          <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">
-            Skills
-          </h2>
-          <div className="relative">
-            <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>
-            <div className="resume-hover-control absolute right-0 top-0 print:hidden">
-              <SectionActions category={{ id: "skills", label: "Skills & Interests", kind: "skills" }} />
-            </div>
-          </div>
-        </section>
-      )}
+      <SortableContext items={sortableSectionIds} strategy={verticalListSortingStrategy}>
+        {sections.map((section) => (
+          <SortableSection key={section.id} sectionId={section.id} label={section.label}>
+            {section.content}
+          </SortableSection>
+        ))}
+      </SortableContext>
     </div>
   );
 }

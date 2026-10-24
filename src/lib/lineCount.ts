@@ -1,4 +1,5 @@
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
+import { isBlockSection, resolveSectionOrder } from "@/lib/sectionOrder";
 import { CHARS_PER_LINE, MAX_LINES } from "@/lib/tunables";
 import {
   SECTION_ORDER,
@@ -13,7 +14,7 @@ export function orderedCanvasBlockIds(
 ): string[] {
   const byId = new Map(vaultBlocks.map((b) => [b.id, b]));
   const ordered: string[] = [];
-  for (const category of SECTION_ORDER) {
+  for (const category of resolveSectionOrder(preset).filter(isBlockSection)) {
     for (const id of preset.activeBlockIds) {
       const block = byId.get(id);
       if (block?.category === category) {

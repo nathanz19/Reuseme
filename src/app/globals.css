@@ -230,6 +230,27 @@ body.resume-drop-blocked * {
   }
 }
 
+/* Not a `.group`: hovering a section must not reveal every block control inside it. */
+.resume-section > .resume-section-handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+.resume-section:hover > .resume-section-handle,
+.resume-section[data-dragging="true"] > .resume-section-handle,
+.resume-section > .resume-section-handle:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .resume-section > .resume-section-handle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 #resume-print-copy {
   display: none;
 }

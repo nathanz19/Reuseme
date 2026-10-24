@@ -3,7 +3,11 @@ import {
   pointerWithin,
   rectIntersection,
   type CollisionDetection,
+  type DroppableContainer,
+  type KeyboardCoordinateGetter,
+  type UniqueIdentifier,
 } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { BlockCategory } from "@/types/resume";
 
 export const VAULT_DROP_ID = "vault-drop";
@@ -35,6 +39,36 @@ export interface DragItemData {
   origin: DragOrigin;
   blockId: string;
   category?: BlockCategory;
+}
+
+/** A whole canvas section below the header, dragged by its grip. */
+export interface SectionDragData {
+  origin: "section";
+  sectionId: string;
+}
+
+const SECTION_SORTABLE_PREFIX = "section-sort:";
+
+export function sectionSortableId(sectionId: string): string {
+  return `${SECTION_SORTABLE_PREFIX}${sectionId}`;
+}
+
+export function parseSectionSortableId(id: string): string | null {
+  return id.startsWith(SECTION_SORTABLE_PREFIX)
+    ? id.slice(SECTION_SORTABLE_PREFIX.length)
+    : null;
+}
+
+export function isSectionDragData(data: unknown): data is SectionDragData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as Partial<SectionDragData>).origin === "section"
+  );
+}
+
+function isSectionContainer(container: DroppableContainer): boolean {
+  return isSectionDragData(container.data.current);
 }
 
 const PLACEHOLDER_PREFIX = "placeholder:";
@@ -107,8 +141,21 @@ export function dragPointerY(event: {
  * gaps between blocks never fall through to the section droppable, which would
  * reset sibling transforms mid-drag. Raw pointer hits go stale once the canvas
  * auto-scrolls, so they only decide whether the block is being dropped on the vault.
+ * Section drags only see other sections, and block drags never see sections.
  */
-export const resumeDropCollision: CollisionDetection = (args) => {
+export const resumeDropCollision: CollisionDetection = (allArgs) => {
+  if (isSectionDragData(allArgs.active.data.current)) {
+    return closestCenter({
+      ...allArgs,
+      droppableContainers: allArgs.droppableContainers.filter(isSectionContainer),
+    });
+  }
+  const args = {
+    ...allArgs,
+    droppableContainers: allArgs.droppableContainers.filter(
+      (container) => !isSectionContainer(container),
+    ),
+  };
   const pointerCollisions = pointerWithin(args);
   const activeData = args.active.data.current as DragItemData | undefined;
   if (
@@ -127,4 +174,38 @@ export const resumeDropCollision: CollisionDetection = (args) => {
     return pointerCollisions;
   }
   return rectIntersection(args);
+};
+
+class FilteredDroppableContainers extends Map<UniqueIdentifier, DroppableContainer> {
+  getEnabled(): DroppableContainer[] {
+    return [...this.values()].filter((container) => !container.disabled);
+  }
+
+  toArray(): DroppableContainer[] {
+    return [...this.values()];
+  }
+
+  getNodeFor(id: UniqueIdentifier | null | undefined): HTMLElement | undefined {
+    if (id == null) return undefined;
+    return this.get(id)?.node.current ?? undefined;
+  }
+}
+
+/**
+ * Arrow keys step a picked-up section past whole neighbouring sections, and a
+ * picked-up block past blocks only, instead of landing on whatever droppable
+ * of the other kind happens to be nearest.
+ */
+export const resumeKeyboardCoordinates: KeyboardCoordinateGetter = (event, args) => {
+  const { droppableContainers, active } = args.context;
+  const sectionDrag = isSectionDragData(active?.data.current);
+  const containers = new FilteredDroppableContainers(
+    [...droppableContainers.entries()].filter(
+      ([, container]) => isSectionContainer(container) === sectionDrag,
+    ),
+  );
+  return sortableKeyboardCoordinates(event, {
+    ...args,
+    context: { ...args.context, droppableContainers: containers },
+  });
 };
