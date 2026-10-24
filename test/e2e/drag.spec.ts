@@ -34,6 +34,32 @@ test("vault drag outlines the valid section and the skeleton follows the pointer
     .locator('[data-canvas-block-id^="exp-"]')
     .evaluateAll((blocks) => blocks.map((block) => block.getAttribute("data-canvas-block-id")));
   expect(experienceIds).toEqual(["exp-1", "exp-3", "exp-2"]);
+  await page.waitForTimeout(600);
+  await expect(page.locator(".resume-drop-placeholder")).toHaveCount(0);
+  await expect(page.locator("section .bg-slate-200")).toHaveCount(0);
+});
+
+test("dropping into an emptied section leaves no skeleton behind", async ({ page }) => {
+  await openApp(page);
+  for (const id of ["exp-1", "exp-3", "cert-3"]) {
+    await hoverClick(canvasBlock(page, id), "Remove from resume");
+  }
+  const grip = vaultCard(page, "Backend Engineer").getByRole("button", { name: "Drag to resume" });
+  await grip.scrollIntoViewIfNeeded();
+  const gripBox = (await grip.boundingBox())!;
+  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(gripBox.x + 20, gripBox.y + 4, { steps: 4 });
+  const section = page.locator(".resume-drop-target");
+  await expect(section).toContainText("Experience");
+  const box = (await section.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 20 });
+  await page.waitForTimeout(300);
+  await page.mouse.up();
+  await expect(canvasBlock(page, "exp-2")).toBeVisible();
+  await page.waitForTimeout(600);
+  await expect(page.locator(".resume-drop-placeholder")).toHaveCount(0);
+  await expect(page.locator("section .bg-slate-200")).toHaveCount(0);
 });
 
 test("vault placeholder stays stable near a block midpoint without crashing", async ({ page }) => {
