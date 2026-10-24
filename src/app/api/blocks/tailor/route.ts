@@ -3,6 +3,7 @@ import { TailorModelSchema, TailorRequestSchema } from "@/schemas/tailor";
 import { generateTailoring, AIConfigurationError } from "@/lib/server/tailor";
 import { createTailorPreview } from "@/lib/tailorPreview";
 import { checkGrounding } from "@/lib/grounding";
+import { enforceAiRateLimit } from "@/lib/server/aiRateLimit";
 
 export const maxDuration = 60;
 const headers = { "Cache-Control": "no-store" };
@@ -19,6 +20,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return fail("Check the selected bullet and job description (maximum 15,000 characters).", 400);
   const input = parsed.data;
   const mock = process.env.MOCK_AI === "1";
+  const limited = await enforceAiRateLimit(request);
+  if (limited) return limited;
   try {
     const result = mock
       ? TailorModelSchema.parse(createTailorPreview(input.block.id, input.bulletIndex, input.bulletText, input.jdText.trim() && input.jdText === input.parsedJD?.rawText ? input.parsedJD.roleTitle : undefined))

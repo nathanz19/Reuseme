@@ -1,6 +1,7 @@
 import { generateText, NoObjectGeneratedError, Output } from "ai";
 import { matchVault } from "@/data/fixtures";
 import { aiConfigError, getModel, isMockAi } from "@/lib/ai";
+import { enforceAiRateLimit } from "@/lib/server/aiRateLimit";
 import {
   MATCH_SYSTEM_PROMPT,
   buildMatchPrompt,
@@ -46,10 +47,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const configError = aiConfigError();
   if (configError) return errorResponse(configError, 500);
+  const limited = await enforceAiRateLimit(request);
+  if (limited) return limited;
 
   try {
     const { output } = await generateText({
       model: getModel(),
+      maxRetries: 0,
       system: MATCH_SYSTEM_PROMPT,
       prompt: buildMatchPrompt(jdText, blocks),
       output: Output.object({

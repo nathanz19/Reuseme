@@ -3,6 +3,9 @@ import { APICallError } from "ai";
 import { SEED_BLOCKS } from "@/data/seed";
 import { POST } from "@/app/api/blocks/tailor/route";
 import { AIConfigurationError, generateTailoring } from "@/lib/server/tailor";
+import { enforceAiRateLimit } from "@/lib/server/aiRateLimit";
+
+vi.mock("@/lib/server/aiRateLimit", () => ({ enforceAiRateLimit: vi.fn(async () => null) }));
 
 vi.mock("@/lib/server/tailor", async (original) => {
   const actual = await original<typeof import("@/lib/server/tailor")>();
@@ -11,10 +14,16 @@ vi.mock("@/lib/server/tailor", async (original) => {
 const generate = vi.mocked(generateTailoring);
 const input = () => ({ block: SEED_BLOCKS[0], bulletIndex: 0, bulletText: "Used Go for reliable services.", jdText: "Go and Kubernetes required" });
 const request = (body: unknown) => new Request("http://localhost/api/blocks/tailor", { method: "POST", body: JSON.stringify(body) });
-beforeEach(() => { vi.stubEnv("MOCK_AI", "1"); generate.mockReset(); });
+beforeEach(() => { vi.stubEnv("MOCK_AI", "1"); generate.mockReset(); vi.mocked(enforceAiRateLimit).mockResolvedValue(null); });
 afterEach(() => vi.unstubAllEnvs());
 
 describe("tailor route", () => {
+  it("blocks AI generation when the shared allowance is exhausted", async () => {
+    vi.stubEnv("MOCK_AI", "0");
+    vi.mocked(enforceAiRateLimit).mockResolvedValue(Response.json({ error: "Daily limit reached" }, { status: 429 }));
+    expect((await POST(request(input()))).status).toBe(429);
+    expect(generate).not.toHaveBeenCalled();
+  });
   it("validates JSON, bullet indexes, and JD length before calling AI", async () => {
     expect((await POST(new Request("http://localhost", { method: "POST", body: "bad json" }))).status).toBe(400);
     expect((await POST(request({ ...input(), bulletIndex: -1 }))).status).toBe(400);

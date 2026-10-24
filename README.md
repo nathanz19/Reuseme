@@ -46,8 +46,18 @@ Copy `.env.example` to `.env.local` and set:
 GOOGLE_GENERATIVE_AI_API_KEY=your_private_key
 AI_MODEL=gemini-3.1-flash-lite
 MOCK_AI=0
+UPSTASH_REDIS_REST_URL=your_upstash_https_endpoint
+UPSTASH_REDIS_REST_TOKEN=your_private_upstash_write_token
 ```
 
 Use a Gemini text model available to your account. Restart `npm run dev` after changing environment variables. The key is used only on the server; `.env.local` is ignored by Git. Set `MOCK_AI=1` for deterministic tailoring samples without provider calls. Browser tests force mock mode so they do not use your key or quota.
+
+### Free AI request limit
+
+Live AI allows 10 attempts per IP address per 24-hour window, shared between bullet tailoring and job-description matching. The window starts with the first request. Failed AI attempts also count because the provider may have processed them. Invalid input and mock responses do not count. The next request after the allowance is used returns a friendly error with a retry time before contacting Gemini.
+
+For Vercel, create an Upstash Redis database (directly or through the Vercel Marketplace). Add its `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` as server-side environment variables in Vercel, then redeploy. Use the write token, not a read-only token. The shared Redis counter survives server restarts and works across instances; Production and Preview use separate counters. IP addresses are stored as keyed hashes, not raw addresses. Live AI returns 503 until Redis is configured, and also blocks calls if Redis fails. Mock mode still works without Redis.
+
+This identifies networks, not accounts: people on shared Wi-Fi share the allowance, and changing IPs can bypass it. It is not a global Google quota or spending cap. Hosting outside Vercel requires adapting the trusted client-IP source; local development uses one shared loopback identity.
 
 Paste the job description in the JD tab, then choose Tailor on a bullet. Analysis is optional: tailoring uses the current JD text directly. If no JD is supplied, it rewrites the bullet using its existing context. The modal shows loading, errors with retry, original text, evidence, and nonblocking warnings. Closing the dialog cancels the request. A 45-second timeout and explicit quota/configuration errors keep failures actionable. Grounding checks are heuristic warnings, not a guarantee that every claim is supported; review the proposed wording before accepting.
