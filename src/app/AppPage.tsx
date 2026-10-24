@@ -15,11 +15,11 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { canApplyHeaderAndSkills, canInsertBlockOnResume } from "@/lib/lineCount";
 import { AppShell } from "@/components/AppShell";
-import { BlockCard } from "@/components/BlockCard";
 import { JDPanel } from "@/components/JDPanel";
 import { Navbar } from "@/components/Navbar";
 import { ResumeCanvas } from "@/components/ResumeCanvas";
 import { TailorDialog } from "@/components/TailorDialog";
+import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
 import { matchVault, tailorBullet } from "@/data/fixtures";
@@ -363,19 +363,18 @@ export function AppPage() {
             onToggleTag={toggleTag}
             onIncludeArchivedChange={setIncludeArchived}
           />
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-            {filteredBlocks.map((block) => (
-              <BlockCard
-                key={block.id}
-                block={block}
-                onResume={activePreset.activeBlockIds.includes(block.id)}
-                ranking={rankings[block.id]}
-                canAdd={canAddBlock(block.id)}
-                onAdd={() => tryAddBlock(block.id)}
-                onTailorBullet={(index) => void startTailor(block.id, index)}
-              />
-            ))}
-          </div>
+          <VaultCategoryList
+            blocks={filteredBlocks}
+            header={activePreset.header}
+            skills={activePreset.customSkillsSection}
+            searchQuery={searchQuery}
+            selectedTags={selectedTags}
+            activeBlockIds={activePreset.activeBlockIds}
+            rankings={rankings}
+            canAddBlock={canAddBlock}
+            onAdd={tryAddBlock}
+            onTailorBullet={(blockId, index) => void startTailor(blockId, index)}
+          />
         </div>
       ) : (
         <JDPanel
