@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { inflateSync } from "node:zlib";
+import { docxPlainText, readZipText } from "../docxZip";
 import { canvasBlock, hoverClick, openApp } from "./helpers";
 
 function pdfTextCommands(pdf: Buffer): string {
@@ -18,7 +20,9 @@ test("export opens the browser print dialog", async ({ page }) => {
   await page.evaluate(() => {
     window.print = () => document.body.setAttribute("data-print-requested", "true");
   });
-  await expect(page.getByRole("button", { name: "Export PDF" })).toBeDisabled();
+  const exportButton = page.getByRole("button", { name: "Export", exact: true });
+  await expect(exportButton).toBeDisabled();
+  await expect(page.getByRole("menuitem")).toHaveCount(0);
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   await page.locator("[data-export-control]").hover();
   await expect(page.getByRole("tooltip")).toContainText("before exporting");
@@ -26,15 +30,44 @@ test("export opens the browser print dialog", async ({ page }) => {
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   await expect(page.locator("body")).not.toHaveAttribute("data-print-requested", "true");
   await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
-  await expect(page.getByRole("button", { name: "Export PDF" })).toBeEnabled();
-  await page.getByRole("button", { name: "Export PDF" }).click();
+  await expect(exportButton).toBeEnabled();
+  await exportButton.click();
+  await expect(page.getByRole("menu", { name: "Export format" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu", { name: "Export format" })).toBeHidden();
+  await exportButton.click();
+  await page.getByRole("menuitem", { name: /^PDF/ }).click();
   await expect(page.locator("body")).toHaveAttribute("data-print-requested", "true");
+  await expect(page.getByRole("menu", { name: "Export format" })).toBeHidden();
+});
+
+test("export downloads a docx of the active resume", async ({ page }) => {
+  await openApp(page);
+  await page.evaluate(() => {
+    window.print = () => document.body.setAttribute("data-print-requested", "true");
+  });
+  await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("menuitem", { name: /^Word/ }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("Frontend SWE.docx");
+  await expect(page.locator("body")).not.toHaveAttribute("data-print-requested", "true");
+  const filePath = await download.path();
+  if (!filePath) throw new Error("download missing");
+  const bytes = await readFile(filePath);
+  const text = docxPlainText(readZipText(bytes, "word/document.xml"));
+  expect(text).toContain("Alex Morgan");
+  expect(text).toContain("Lumen Cartography");
+  expect(text).toContain("Accessibility (WCAG)");
+  expect(text).not.toContain("Harbor Ledger");
 });
 
 for (const width of [900, 1440]) {
   test(`PDF contains printed text at viewport width ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await page.goto("/editor");
     const resume = page.locator("#resume-print-root");
     await expect(resume).toBeAttached();
     const name = await resume.locator("h1").innerText();
@@ -53,12 +86,12 @@ for (const width of [900, 1440]) {
     await expect(copy).toBeVisible();
     await expect(copy.locator("h1")).toHaveText(name);
     await expect(page.locator("aside")).toBeHidden();
-    await expect(page.getByRole("button", { name: "Export PDF" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Export", exact: true })).toBeHidden();
     await expect(copy.locator(".overflow-flag")).toBeVisible();
     await expect(copy.locator("button, .overflow-label")).toHaveCount(0);
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     await page.emulateMedia({ media: "screen" });
-    await expect(page.getByRole("button", { name: "Export PDF" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Export", exact: true })).toBeVisible();
   });
 }
 

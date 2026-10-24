@@ -5,7 +5,7 @@ test.use({ viewport: { width: 900, height: 900 } });
 test("narrow layouts toggle between the vault and the canvas", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/editor");
   const search = page.getByPlaceholder("Search vault…");
   const canvas = page.locator("#resume-print-root");
   await expect(search).toBeVisible();
@@ -18,7 +18,7 @@ test("narrow layouts toggle between the vault and the canvas", async ({
 
 test("wide sidebar slides closed and reopens without losing the job description", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto("/editor");
   await page.getByRole("button", { name: "Job Description", exact: true }).click();
   const jd = page.getByPlaceholder("Paste job description…");
   await jd.fill("My saved job description draft");
@@ -42,10 +42,23 @@ test("wide sidebar slides closed and reopens without losing the job description"
 });
 
 
+test("sidebar handle reveals when hovering the full-height edge column", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/editor");
+  const hitzone = page.locator(".workspace-sidebar-toggle-hitzone");
+  const handle = page.locator(".workspace-sidebar-toggle");
+  await page.mouse.move(1200, 200);
+  await expect(handle).toHaveCSS("opacity", "0");
+  const box = await hitzone.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await expect(handle).toHaveCSS("opacity", "1");
+});
+
 test("sidebar handle fades without moving on hover", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
+  await page.goto("/editor");
   const sidebar = page.locator("#vault-jd-sidebar");
   const handle = page.locator(".workspace-sidebar-toggle");
   await expect(sidebar).toHaveCSS("width", "480px");
@@ -73,7 +86,7 @@ test("sidebar handle fades without moving on hover", async ({ page }) => {
 
 test("handle fades after reopening with the mouse and leaving the sidebar", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto("/editor");
   const sidebar = page.locator("#vault-jd-sidebar");
   const handle = page.locator(".workspace-sidebar-toggle");
   await sidebar.hover({ position: { x: 20, y: 200 } });

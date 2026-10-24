@@ -84,11 +84,19 @@ export function AppShell({
         >
           <div style={{ width: wide ? "min(480px, 40vw)" : "100%" }} className="workspace-sidebar-content flex min-h-0 flex-1 flex-col overflow-hidden">{leftPane}</div>
         </aside>
-        <div data-collapsed={collapsed} data-visible={handleVisible || collapsed}
-          onPointerEnter={() => setHandleVisible(true)} onPointerLeave={() => setHandleVisible(false)}
-          onFocus={(event) => { if (event.target.matches(":focus-visible")) setHandleVisible(true); }}
-          onBlur={() => setHandleVisible(false)}
-          style={{ display: wide ? "flex" : "none", left: collapsed ? "0px" : "min(480px, 40vw)" }} className="workspace-sidebar-toggle absolute top-1/2 z-30 items-center justify-center print:hidden">
+        <div
+          onPointerEnter={() => setHandleVisible(true)}
+          onPointerLeave={() => setHandleVisible(false)}
+          style={{ display: wide ? "flex" : "none", left: collapsed ? "0px" : "min(480px, 40vw)" }}
+          className="workspace-sidebar-toggle-hitzone absolute top-0 bottom-0 z-30 w-7 items-center justify-center print:hidden"
+        >
+          <div
+            data-collapsed={collapsed}
+            data-visible={handleVisible || collapsed}
+            onFocus={(event) => { if (event.target.matches(":focus-visible")) setHandleVisible(true); }}
+            onBlur={() => setHandleVisible(false)}
+            className="workspace-sidebar-toggle flex items-center justify-center"
+          >
           <button type="button" aria-controls="vault-jd-sidebar" aria-expanded={!collapsed}
             aria-label={collapsed ? "Show Vault and job description" : "Hide Vault and job description"}
             title={collapsed ? "Show Vault and job description" : "Hide Vault and job description"}
@@ -101,6 +109,7 @@ export function AppShell({
             className="flex h-18 w-7 items-center justify-center rounded-r-lg border border-l-0 border-border-strong bg-surface text-ink-muted shadow-sm transition-colors hover:bg-accent-subtle hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">
             {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
           </button>
+          </div>
         </div>
         <main
           style={{ display: wide || mobilePane === "canvas" ? "block" : "none" }}
