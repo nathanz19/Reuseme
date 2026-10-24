@@ -5,6 +5,11 @@ import {
   SEED_BLOCKS,
   SEED_PRESETS,
 } from "@/data/seed";
+import {
+  activeBlockIdsAfterInsert,
+  canApplyTailorOverride,
+  canInsertBlockOnResume,
+} from "@/lib/lineCount";
 import { HISTORY_LIMIT, PERSIST_VERSION } from "@/lib/tunables";
 import type {
   AccomplishmentBlock,
@@ -47,8 +52,11 @@ export interface ResumeState {
   commit: (mutator: (draft: ResumeState) => void) => void;
   undo: () => void;
   redo: () => void;
-  addBlockToResume: (blockId: string) => void;
-  insertBlockOnResume: (blockId: string, beforeBlockId: string | null) => void;
+  addBlockToResume: (blockId: string) => boolean;
+  insertBlockOnResume: (
+    blockId: string,
+    beforeBlockId: string | null,
+  ) => boolean;
   removeBlockFromResume: (blockId: string) => void;
   reorderInSection: (
     category: AccomplishmentBlock["category"],
@@ -64,7 +72,7 @@ export interface ResumeState {
     blockId: string,
     bulletIndex: number,
     text: string,
-  ) => void;
+  ) => boolean;
   getActivePreset: () => ResumePreset;
 }
 
@@ -146,53 +154,39 @@ export const useResumeStore = create<ResumeState>()(
       },
 
       insertBlockOnResume: (blockId, beforeBlockId) => {
+        const state = get();
+        const preset = state.presets.find((p) => p.id === state.activePresetId);
+        if (
+          !preset ||
+          !canInsertBlockOnResume(
+            preset,
+            state.vaultBlocks,
+            blockId,
+            beforeBlockId,
+          )
+        ) {
+          return false;
+        }
+        const nextIds = activeBlockIdsAfterInsert(
+          preset,
+          state.vaultBlocks,
+          blockId,
+          beforeBlockId,
+        );
+        if (!nextIds) return false;
+
         get().commit((draft) => {
-          const preset = draft.presets.find(
+          const draftPreset = draft.presets.find(
             (p) => p.id === draft.activePresetId,
           );
-          if (!preset || preset.activeBlockIds.includes(blockId)) return;
-          const block = draft.vaultBlocks.find((b) => b.id === blockId);
-          if (!block) return;
-
-          const filtered = preset.activeBlockIds.filter((id) => id !== blockId);
-          let sectionIds = filtered.filter((id) => {
-            const b = draft.vaultBlocks.find((x) => x.id === id);
-            return b?.category === block.category;
-          });
-
-          if (
-            beforeBlockId &&
-            sectionIds.includes(beforeBlockId)
-          ) {
-            const insertAt = sectionIds.indexOf(beforeBlockId);
-            sectionIds = [
-              ...sectionIds.slice(0, insertAt),
-              blockId,
-              ...sectionIds.slice(insertAt),
-            ];
-          } else {
-            sectionIds = [...sectionIds, blockId];
-          }
-
-          const next: string[] = [];
-          for (const cat of SECTION_ORDER) {
-            if (cat === block.category) {
-              next.push(...sectionIds);
-            } else {
-              next.push(
-                ...filtered.filter((id) => {
-                  const b = draft.vaultBlocks.find((x) => x.id === id);
-                  return b?.category === cat;
-                }),
-              );
-            }
-          }
-          preset.activeBlockIds = next;
+          if (!draftPreset) return;
+          draftPreset.activeBlockIds = nextIds;
         });
+        return true;
       },
 
       addBlockToResume: (blockId) => {
-        get().insertBlockOnResume(blockId, null);
+        return get().insertBlockOnResume(blockId, null);
       },
 
       removeBlockFromResume: (blockId) => {
@@ -295,16 +289,31 @@ export const useResumeStore = create<ResumeState>()(
       },
 
       acceptTailorOverride: (blockId, bulletIndex, text) => {
+        const state = get();
+        const preset = state.presets.find((p) => p.id === state.activePresetId);
+        if (
+          !preset ||
+          !canApplyTailorOverride(
+            preset,
+            state.vaultBlocks,
+            blockId,
+            bulletIndex,
+            text,
+          )
+        ) {
+          return false;
+        }
         get().commit((draft) => {
-          const preset = draft.presets.find(
+          const draftPreset = draft.presets.find(
             (p) => p.id === draft.activePresetId,
           );
-          if (!preset) return;
-          if (!preset.bulletOverrides[blockId]) {
-            preset.bulletOverrides[blockId] = {};
+          if (!draftPreset) return;
+          if (!draftPreset.bulletOverrides[blockId]) {
+            draftPreset.bulletOverrides[blockId] = {};
           }
-          preset.bulletOverrides[blockId][bulletIndex] = text;
+          draftPreset.bulletOverrides[blockId][bulletIndex] = text;
         });
+        return true;
       },
     }),
     {

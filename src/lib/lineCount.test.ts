@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canInsertBlockOnResume,
   estimateLineCount,
   pickOverflowBlockId,
 } from "@/lib/lineCount";
@@ -46,5 +47,18 @@ describe("line count", () => {
     expect(estimateLineCount(preset, SEED_BLOCKS)).toBeGreaterThan(MAX_LINES);
     const overflow = pickOverflowBlockId(preset, SEED_BLOCKS, rankings);
     expect(overflow).toBe("proj-1");
+  });
+
+  it("blocks insert when the block would exceed the line budget", () => {
+    const preset = {
+      ...SEED_PRESETS[0],
+      activeBlockIds: ["exp-1"],
+      customSkillsSection: Array.from({ length: 400 }, (_, i) =>
+        `Skill category ${i} with extended label text for line budget`,
+      ),
+    };
+    expect(canInsertBlockOnResume(preset, SEED_BLOCKS, "proj-1", null)).toBe(
+      false,
+    );
   });
 });

@@ -20,6 +20,15 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .group .resume-hover-control {
   opacity: 0;
   pointer-events: none;
@@ -55,8 +64,11 @@ body {
     left: 0;
     top: 0;
     width: 816px;
+    height: 1056px;
+    overflow: hidden;
     box-shadow: none !important;
     padding: 0.5in;
+    box-sizing: border-box;
   }
 
   .resume-hover-control,

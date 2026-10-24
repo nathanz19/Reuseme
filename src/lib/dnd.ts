@@ -8,6 +8,9 @@ import type { BlockCategory } from "@/types/resume";
 export const VAULT_DROP_ID = "vault-drop";
 export const RESUME_DROP_ID = "resume-drop";
 
+/** Stable @dnd-kit context id — avoids module-scoped ID counters that break SSR hydration. */
+export const DND_CONTEXT_ID = "reuseme-dnd";
+
 export function vaultDraggableId(blockId: string): string {
   return `vault:${blockId}`;
 }

@@ -26,10 +26,10 @@ export function AppShell({
   const vaultHighlight = vaultDropActive && isOver;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-100">
       {navbar}
-      <div className="flex min-h-0 flex-1 flex-col wide-two-pane:flex-row">
-        <div className="flex border-b border-slate-200 bg-white text-sm wide-two-pane:hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden wide-two-pane:flex-row">
+        <div className="flex shrink-0 border-b border-slate-200 bg-white text-sm wide-two-pane:hidden">
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
@@ -51,8 +51,8 @@ export function AppShell({
         </div>
         <aside
           ref={setNodeRef}
-          className={`min-h-0 w-full shrink-0 overflow-y-auto border-slate-200 bg-white wide-two-pane:w-[min(480px,40%)] wide-two-pane:border-r ${
-            mobilePane === "canvas" ? "hidden wide-two-pane:block" : "block"
+          className={`flex min-h-0 w-full flex-1 flex-col overflow-hidden border-slate-200 bg-white wide-two-pane:flex-none wide-two-pane:w-[min(480px,40%)] wide-two-pane:border-r ${
+            mobilePane === "canvas" ? "hidden wide-two-pane:flex" : "flex"
           } ${vaultHighlight ? "bg-sky-50 ring-2 ring-inset ring-sky-300" : ""}`}
         >
           {leftPane}

@@ -5,7 +5,8 @@ import { useMemo } from "react";
 import { ResumeHeader } from "@/components/ResumeHeader";
 import { ResumeSection } from "@/components/ResumeSection";
 import { RESUME_DROP_ID } from "@/lib/dnd";
-import { pickOverflowBlockId } from "@/lib/lineCount";
+import { isWithinLineBudget, pickOverflowBlockId } from "@/lib/lineCount";
+import { MAX_LINES, PAGE_HEIGHT, PAGE_WIDTH } from "@/lib/tunables";
 import type {
   AccomplishmentBlock,
   BlockCategory,
@@ -59,7 +60,10 @@ export function ResumeCanvas({
     return map;
   }, [byId, preset.activeBlockIds]);
 
-  const overflowBlockId = pickOverflowBlockId(preset, vaultBlocks, rankings);
+  const withinBudget = isWithinLineBudget(preset, vaultBlocks);
+  const overflowBlockId = withinBudget
+    ? null
+    : pickOverflowBlockId(preset, vaultBlocks, rankings);
 
   const templateId = preset.templateId;
   const templateClass =
@@ -71,7 +75,11 @@ export function ResumeCanvas({
     <div
       ref={setNodeRef}
       id="resume-print-root"
-      className={`mx-auto w-[816px] max-w-full bg-white p-8 shadow-md ${templateClass} print:shadow-none`}
+      className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-md ${templateClass} print:shadow-none ${
+        withinBudget ? "ring-1 ring-slate-200" : "ring-2 ring-amber-400"
+      }`}
+      style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
+      title={`US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), ~${MAX_LINES} estimated lines`}
     >
       <ResumeHeader
         header={preset.header}

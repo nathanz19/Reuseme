@@ -11,9 +11,10 @@ interface JDPanelProps {
   forgottenBlocks: AccomplishmentBlock[];
   rankings: Record<string, SemanticRanking>;
   activeBlockIds: string[];
+  canAddBlock: (blockId: string) => boolean;
   onJdTextChange: (text: string) => void;
   onAnalyze: () => void;
-  onAddBlock: (blockId: string) => void;
+  onAddBlock: (blockId: string) => boolean;
 }
 
 export function JDPanel({
@@ -24,12 +25,13 @@ export function JDPanel({
   forgottenBlocks,
   rankings,
   activeBlockIds,
+  canAddBlock,
   onJdTextChange,
   onAnalyze,
   onAddBlock,
 }: JDPanelProps) {
   return (
-    <div className="flex h-full flex-col gap-3 p-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
       <textarea
         className="min-h-[200px] w-full rounded border border-slate-300 p-2 text-sm"
         placeholder="Paste job description…"
@@ -53,6 +55,7 @@ export function JDPanel({
         blocks={forgottenBlocks}
         rankings={rankings}
         activeBlockIds={activeBlockIds}
+        canAddBlock={canAddBlock}
         onAdd={onAddBlock}
       />
     </div>

@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { canApplyHeaderAndSkills, canInsertBlockOnResume } from "@/lib/lineCount";
 import { AppShell } from "@/components/AppShell";
 import { BlockCard } from "@/components/BlockCard";
 import { JDPanel } from "@/components/JDPanel";
@@ -32,6 +33,7 @@ import {
   parseSectionDroppableId,
   parseVaultDraggableId,
   resumeDropCollision,
+  DND_CONTEXT_ID,
 } from "@/lib/dnd";
 import { FORGOTTEN_THRESHOLD } from "@/lib/tunables";
 import type { AccomplishmentBlock, BlockCategory } from "@/types/resume";
@@ -149,6 +151,7 @@ export function AppPage() {
     : undefined;
 
   const [activeDrag, setActiveDrag] = useState<DragItemData | null>(null);
+  const [spaceWarning, setSpaceWarning] = useState<string | null>(null);
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -177,6 +180,28 @@ export function AppPage() {
     setActiveDrag(null);
     setOverTargetId(null);
   }, []);
+
+  const flashSpaceWarning = useCallback(() => {
+    setSpaceWarning(
+      "That change would exceed the one-page line budget (45 estimated lines on US Letter).",
+    );
+    window.setTimeout(() => setSpaceWarning(null), 4500);
+  }, []);
+
+  const canAddBlock = useCallback(
+    (blockId: string) =>
+      canInsertBlockOnResume(activePreset, vaultBlocks, blockId, null),
+    [activePreset, vaultBlocks],
+  );
+
+  const tryAddBlock = useCallback(
+    (blockId: string) => {
+      const ok = addBlockToResume(blockId);
+      if (!ok) flashSpaceWarning();
+      return ok;
+    },
+    [addBlockToResume, flashSpaceWarning],
+  );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.active.data.current as DragItemData | undefined;
@@ -207,7 +232,8 @@ export function AppPage() {
         const beforeBlockId = vaultBlocks.some((b) => b.id === overId)
           ? overId
           : null;
-        insertBlockOnResume(activeData.blockId, beforeBlockId);
+        const ok = insertBlockOnResume(activeData.blockId, beforeBlockId);
+        if (!ok) flashSpaceWarning();
         return;
       }
 
@@ -232,6 +258,7 @@ export function AppPage() {
       removeBlockFromResume,
       reorderInSection,
       vaultBlocks,
+      flashSpaceWarning,
     ],
   );
 
@@ -304,8 +331,8 @@ export function AppPage() {
   }, [undo, redo]);
 
   const leftPane = (
-    <div className="flex h-full flex-col">
-      <div className="flex border-b border-slate-200 text-sm">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex shrink-0 border-b border-slate-200 text-sm">
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
@@ -326,7 +353,7 @@ export function AppPage() {
         </button>
       </div>
       {leftTab === "vault" ? (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <VaultToolbar
             searchQuery={searchQuery}
             allTags={allTags}
@@ -336,19 +363,20 @@ export function AppPage() {
             onToggleTag={toggleTag}
             onIncludeArchivedChange={setIncludeArchived}
           />
-          <div className="space-y-2 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
             {filteredBlocks.map((block) => (
               <BlockCard
                 key={block.id}
                 block={block}
                 onResume={activePreset.activeBlockIds.includes(block.id)}
                 ranking={rankings[block.id]}
-                onAdd={() => addBlockToResume(block.id)}
+                canAdd={canAddBlock(block.id)}
+                onAdd={() => tryAddBlock(block.id)}
                 onTailorBullet={(index) => void startTailor(block.id, index)}
               />
             ))}
           </div>
-        </>
+        </div>
       ) : (
         <JDPanel
           jdText={jdText}
@@ -360,7 +388,8 @@ export function AppPage() {
           activeBlockIds={activePreset.activeBlockIds}
           onJdTextChange={setJdText}
           onAnalyze={runAnalyze}
-          onAddBlock={addBlockToResume}
+          canAddBlock={canAddBlock}
+          onAddBlock={tryAddBlock}
         />
       )}
     </div>
@@ -375,6 +404,17 @@ export function AppPage() {
       highlightedSection={highlightedSection}
       onRemove={removeBlockFromResume}
       onHeaderSave={(header, skills) => {
+        if (
+          !canApplyHeaderAndSkills(
+            activePreset,
+            vaultBlocks,
+            header,
+            skills,
+          )
+        ) {
+          flashSpaceWarning();
+          return;
+        }
         commit((draft) => {
           const preset = draft.presets.find((p) => p.id === draft.activePresetId);
           if (!preset) return;
@@ -389,8 +429,17 @@ export function AppPage() {
   );
 
   return (
-    <>
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
+      {spaceWarning && (
+        <p
+          className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-xs text-amber-950"
+          role="status"
+        >
+          {spaceWarning}
+        </p>
+      )}
       <DndContext
+        id={DND_CONTEXT_ID}
         sensors={sensors}
         collisionDetection={resumeDropCollision}
         onDragStart={handleDragStart}
@@ -398,6 +447,7 @@ export function AppPage() {
         onDragEnd={handleDragEnd}
         onDragCancel={clearDragState}
       >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <AppShell
           navbar={
             <Navbar
@@ -422,6 +472,7 @@ export function AppPage() {
           onMobilePaneChange={setMobilePane}
           vaultDropActive={activeDrag?.origin === "canvas"}
         />
+        </div>
         <DragOverlay>
           {overlayBlock ? (
             <div className="rounded border border-slate-400 bg-white p-2 text-sm shadow-lg">
@@ -440,16 +491,20 @@ export function AppPage() {
             if (!tailorProposal || !tailorDialog) return;
             const text =
               tailorProposal.variants[tailorProposal.selectedTone];
-            acceptTailorOverride(
+            const ok = acceptTailorOverride(
               tailorDialog.blockId,
               tailorDialog.bulletIndex,
               text,
             );
+            if (!ok) {
+              flashSpaceWarning();
+              return;
+            }
             closeTailorDialog();
           }}
           onReject={closeTailorDialog}
         />
       )}
-    </>
+    </div>
   );
 }

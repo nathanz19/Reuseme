@@ -24,6 +24,107 @@ export function orderedCanvasBlockIds(
   return ordered;
 }
 
+export function isWithinLineBudget(
+  preset: ResumePreset,
+  vaultBlocks: AccomplishmentBlock[],
+): boolean {
+  return estimateLineCount(preset, vaultBlocks) <= MAX_LINES;
+}
+
+export function activeBlockIdsAfterInsert(
+  preset: ResumePreset,
+  vaultBlocks: AccomplishmentBlock[],
+  blockId: string,
+  beforeBlockId: string | null,
+): string[] | null {
+  if (preset.activeBlockIds.includes(blockId)) return null;
+  const block = vaultBlocks.find((b) => b.id === blockId);
+  if (!block) return null;
+
+  const filtered = preset.activeBlockIds.filter((id) => id !== blockId);
+  let sectionIds = filtered.filter((id) => {
+    const b = vaultBlocks.find((x) => x.id === id);
+    return b?.category === block.category;
+  });
+
+  if (beforeBlockId && sectionIds.includes(beforeBlockId)) {
+    const insertAt = sectionIds.indexOf(beforeBlockId);
+    sectionIds = [
+      ...sectionIds.slice(0, insertAt),
+      blockId,
+      ...sectionIds.slice(insertAt),
+    ];
+  } else {
+    sectionIds = [...sectionIds, blockId];
+  }
+
+  const next: string[] = [];
+  for (const cat of SECTION_ORDER) {
+    if (cat === block.category) {
+      next.push(...sectionIds);
+    } else {
+      next.push(
+        ...filtered.filter((id) => {
+          const b = vaultBlocks.find((x) => x.id === id);
+          return b?.category === cat;
+        }),
+      );
+    }
+  }
+  return next;
+}
+
+export function canInsertBlockOnResume(
+  preset: ResumePreset,
+  vaultBlocks: AccomplishmentBlock[],
+  blockId: string,
+  beforeBlockId: string | null = null,
+): boolean {
+  const nextIds = activeBlockIdsAfterInsert(
+    preset,
+    vaultBlocks,
+    blockId,
+    beforeBlockId,
+  );
+  if (!nextIds) return false;
+  const simulated: ResumePreset = { ...preset, activeBlockIds: nextIds };
+  return estimateLineCount(simulated, vaultBlocks) <= MAX_LINES;
+}
+
+export function canApplyTailorOverride(
+  preset: ResumePreset,
+  vaultBlocks: AccomplishmentBlock[],
+  blockId: string,
+  bulletIndex: number,
+  text: string,
+): boolean {
+  const overrides = {
+    ...preset.bulletOverrides,
+    [blockId]: {
+      ...(preset.bulletOverrides[blockId] ?? {}),
+      [bulletIndex]: text,
+    },
+  };
+  return (
+    estimateLineCount({ ...preset, bulletOverrides: overrides }, vaultBlocks) <=
+    MAX_LINES
+  );
+}
+
+export function canApplyHeaderAndSkills(
+  preset: ResumePreset,
+  vaultBlocks: AccomplishmentBlock[],
+  header: ResumePreset["header"],
+  customSkillsSection: string[],
+): boolean {
+  return (
+    estimateLineCount(
+      { ...preset, header, customSkillsSection },
+      vaultBlocks,
+    ) <= MAX_LINES
+  );
+}
+
 export function estimateLineCount(
   preset: ResumePreset,
   vaultBlocks: AccomplishmentBlock[],

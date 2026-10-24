@@ -9,6 +9,7 @@ interface ForgottenListProps {
   blocks: AccomplishmentBlock[];
   rankings: Record<string, SemanticRanking>;
   activeBlockIds: string[];
+  canAddBlock: (blockId: string) => boolean;
   onAdd: (blockId: string) => void;
 }
 
@@ -16,17 +17,19 @@ function ForgottenRow({
   block,
   ranking,
   onResume,
+  canAdd,
   onAdd,
 }: {
   block: AccomplishmentBlock;
   ranking?: SemanticRanking;
   onResume: boolean;
+  canAdd: boolean;
   onAdd: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: vaultDraggableId(block.id),
     data: { origin: "vault", blockId: block.id },
-    disabled: onResume,
+    disabled: onResume || !canAdd,
   });
 
   return (
@@ -39,7 +42,7 @@ function ForgottenRow({
       <button
         type="button"
         className="mt-0.5 shrink-0 cursor-grab text-slate-400 disabled:cursor-default disabled:opacity-30"
-        disabled={onResume}
+        disabled={onResume || !canAdd}
         aria-label="Drag to resume"
         {...attributes}
         {...listeners}
@@ -58,11 +61,11 @@ function ForgottenRow({
       </div>
       <button
         type="button"
-        disabled={onResume}
+        disabled={onResume || !canAdd}
         onClick={onAdd}
         className="shrink-0 rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50"
       >
-        {onResume ? "On resume" : "Add to Resume"}
+        {onResume ? "On resume" : canAdd ? "Add to Resume" : "Cannot Fit"}
       </button>
     </li>
   );
@@ -72,6 +75,7 @@ export function ForgottenList({
   blocks,
   rankings,
   activeBlockIds,
+  canAddBlock,
   onAdd,
 }: ForgottenListProps) {
   if (blocks.length === 0) {
@@ -90,6 +94,7 @@ export function ForgottenList({
             block={block}
             ranking={rankings[block.id]}
             onResume={activeBlockIds.includes(block.id)}
+            canAdd={canAddBlock(block.id)}
             onAdd={() => onAdd(block.id)}
           />
         ))}
