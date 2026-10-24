@@ -124,7 +124,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           <button type="button" disabled={!canExport} aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
             onClick={() => { if (canExport) onExportPdf(); }}
             title={canExport ? "Open the print dialog, then choose Save as PDF" : undefined}
-            className={`inline-flex items-center gap-2 ${btnExport}`}>
+            className={btnExport}>
             <Download size={15} aria-hidden="true" />Export PDF
           </button>
         </div>

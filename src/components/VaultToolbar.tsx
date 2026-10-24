@@ -5,6 +5,7 @@ import { Plus, SlidersHorizontal, X } from "lucide-react";
 import { VAULT_CATEGORIES } from "@/lib/vaultCategories";
 import { useSessionStore } from "@/store/sessionStore";
 import { useResumeStore } from "@/store/resumeStore";
+import { btnPrimarySm } from "@/lib/theme";
 
 interface VaultToolbarProps {
   searchQuery: string;
@@ -60,7 +61,7 @@ export function VaultToolbar({ searchQuery, allTags, selectedTags, includeArchiv
       <div className="flex items-center gap-2">
         <input type="search" aria-label="Search vault" placeholder="Search vault…" className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm" value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} />
         <button type="button" aria-expanded={open} aria-controls={panelId} onClick={() => { setOpen(!open); setAdding(false); }}
-          className={`inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${count ? "border-primary bg-primary text-white hover:bg-primary-hover" : "border-border-strong text-ink-muted hover:border-accent-border hover:bg-accent-subtle"}`}>
+          className={`inline-flex shrink-0 items-center gap-2 text-sm ${count ? btnPrimarySm : "rounded-md border border-border-strong px-3 py-2 text-ink-muted transition-colors hover:border-accent-border hover:bg-accent-subtle"}`}>
           <SlidersHorizontal size={15} aria-hidden="true" />Filters{count > 0 && <span className="rounded bg-white/20 px-1.5 text-xs">{count}</span>}
         </button>
       </div>
