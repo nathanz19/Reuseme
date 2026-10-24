@@ -34,15 +34,26 @@ body.resume-drop-blocked * {
   cursor: not-allowed !important;
 }
 
-.group .resume-hover-control {
+.group .resume-hover-control,
+.section-action-row {
   opacity: 0;
   pointer-events: none;
 }
 
 .group:hover .resume-hover-control,
-.group:focus-within .resume-hover-control {
+.group:focus-within .resume-hover-control,
+.vault-section:hover > .section-action-row,
+.vault-section:focus-within > .section-action-row {
   opacity: 1;
   pointer-events: auto;
+}
+
+@media (hover: none) {
+  .group .resume-hover-control,
+  .section-action-row {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 @media print {

@@ -9,6 +9,19 @@ import { MAX_LINES } from "@/lib/tunables";
 import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
 
 describe("line count", () => {
+  it("includes custom section headings and wrapped content in the space budget", () => {
+    const preset = SEED_PRESETS[0];
+    const baseline = estimateLineCount(preset, SEED_BLOCKS);
+    const withSections = {
+      ...preset,
+      additionalSections: [
+        { id: "summary", title: "Professional Summary", content: "A".repeat(96) + "\nAnother line" },
+        { id: "custom-empty", title: "Empty", content: "" },
+      ],
+    };
+    expect(estimateLineCount(withSections, SEED_BLOCKS)).toBe(baseline + 5);
+  });
+
   it("flags last block when over budget without rankings", () => {
     const preset = {
       ...SEED_PRESETS[0],

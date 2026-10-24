@@ -48,3 +48,6 @@ next-env.d.ts
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+
+# Local change summary
+/update.md

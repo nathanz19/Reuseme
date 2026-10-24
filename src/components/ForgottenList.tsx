@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockActions } from "@/components/BlockActions";
 import { useDraggable } from "@dnd-kit/core";
 import { GripVertical } from "lucide-react";
 import { vaultDraggableId } from "@/lib/dnd";
@@ -35,7 +36,7 @@ function ForgottenRow({
   return (
     <li
       ref={setNodeRef}
-      className={`flex items-start gap-2 rounded border border-amber-200 bg-amber-50/50 p-2 text-xs ${
+      className={`group relative flex items-start gap-2 rounded border border-amber-200 bg-amber-50/50 p-2 pt-9 text-xs ${
         isDragging ? "opacity-60" : ""
       }`}
     >
@@ -58,6 +59,7 @@ function ForgottenRow({
             Score {ranking.matchScore} — {ranking.matchExplanation}
           </p>
         )}
+        <div className="resume-hover-control absolute right-1 top-1"><BlockActions block={block} /></div>
       </div>
       <button
         type="button"

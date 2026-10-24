@@ -1,3 +1,5 @@
+import { cleanBlockReferences } from "@/lib/vaultEditing";
+import { useSessionStore } from "@/store/sessionStore";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
@@ -17,6 +19,20 @@ import type {
   TemplateId,
 } from "@/types/resume";
 import { SECTION_ORDER } from "@/types/resume";
+
+function invalidateBlockSession(blockId: string) {
+  useSessionStore.setState((state) => {
+    const rankings = { ...state.rankings };
+    delete rankings[blockId];
+    return {
+      rankings,
+      rankingsList: state.rankingsList.filter((ranking) => ranking.blockId !== blockId),
+      ...(state.tailorDialog?.blockId === blockId ? {
+        tailorDialog: null, tailorProposal: null, tailorLoading: false,
+      } : {}),
+    };
+  });
+}
 
 interface CanvasSnapshot {
   presets: ResumePreset[];
@@ -73,6 +89,9 @@ export interface ResumeState {
     bulletIndex: number,
     text: string,
   ) => boolean;
+  updateVaultBlock: (block: AccomplishmentBlock) => void;
+  deleteVaultBlock: (blockId: string) => void;
+  createVaultBlock: (block: AccomplishmentBlock) => void;
   getActivePreset: () => ResumePreset;
 }
 
@@ -89,6 +108,35 @@ export const useResumeStore = create<ResumeState>()(
       rehydrate: async () => {
         await useResumeStore.persist.rehydrate();
         set({ past: [], future: [], _hasHydrated: true });
+      },
+
+      updateVaultBlock: (block) => {
+        const previous = get().vaultBlocks.find((entry) => entry.id === block.id);
+        if (!previous) return;
+        const bulletsChanged = JSON.stringify(previous.bullets) !== JSON.stringify(block.bullets);
+        set((state) => ({
+          vaultBlocks: state.vaultBlocks.map((entry) => entry.id === block.id ? block : entry),
+          ...(bulletsChanged ? {
+            presets: cleanBlockReferences(state.presets, block.id, false),
+            past: state.past.map((entry) => ({ ...entry, presets: cleanBlockReferences(entry.presets, block.id, false) })),
+            future: state.future.map((entry) => ({ ...entry, presets: cleanBlockReferences(entry.presets, block.id, false) })),
+          } : {}),
+        }));
+        invalidateBlockSession(block.id);
+      },
+
+      deleteVaultBlock: (blockId) => {
+        set((state) => ({
+          vaultBlocks: state.vaultBlocks.filter((block) => block.id !== blockId),
+          presets: cleanBlockReferences(state.presets, blockId, true),
+          past: state.past.map((entry) => ({ ...entry, presets: cleanBlockReferences(entry.presets, blockId, true) })),
+          future: state.future.map((entry) => ({ ...entry, presets: cleanBlockReferences(entry.presets, blockId, true) })),
+        }));
+        invalidateBlockSession(blockId);
+      },
+
+      createVaultBlock: (block) => {
+        set((state) => ({ vaultBlocks: [...state.vaultBlocks, block] }));
       },
 
       getActivePreset: () => {

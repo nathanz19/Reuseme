@@ -14,7 +14,6 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  canApplyHeaderAndSkills,
   canInsertBlockOnResume,
   measureCanvasInsertion,
 } from "@/lib/lineCount";
@@ -145,7 +144,6 @@ export function AppPage() {
   const future = useResumeStore((s) => s.future);
   const hasHydrated = useResumeStore((s) => s._hasHydrated);
   const rehydrate = useResumeStore((s) => s.rehydrate);
-  const commit = useResumeStore((s) => s.commit);
   const undo = useResumeStore((s) => s.undo);
   const redo = useResumeStore((s) => s.redo);
   const addBlockToResume = useResumeStore((s) => s.addBlockToResume);
@@ -577,25 +575,6 @@ export function AppPage() {
       placeholder={placeholder}
       dropBlocked={dropBlocked}
       onRemove={removeBlockFromResume}
-      onHeaderSave={(header, skills) => {
-        if (
-          !canApplyHeaderAndSkills(
-            activePreset,
-            vaultBlocks,
-            header,
-            skills,
-          )
-        ) {
-          flashSpaceWarning();
-          return;
-        }
-        commit((draft) => {
-          const preset = draft.presets.find((p) => p.id === draft.activePresetId);
-          if (!preset) return;
-          preset.header = header;
-          preset.customSkillsSection = skills;
-        });
-      }}
       onTailorBullet={(blockId, index) => void startTailor(blockId, index)}
     />
   ) : (

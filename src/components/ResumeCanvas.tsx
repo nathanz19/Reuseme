@@ -2,6 +2,8 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { useMemo } from "react";
+import { SectionActions } from "@/components/SectionActions";
+import { VAULT_CATEGORIES } from "@/lib/vaultCategories";
 import { ResumeHeader } from "@/components/ResumeHeader";
 import { ResumeSection, type SectionItem } from "@/components/ResumeSection";
 import { RESUME_DROP_ID, type CanvasPlaceholder } from "@/lib/dnd";
@@ -51,10 +53,6 @@ interface ResumeCanvasProps {
   placeholder: CanvasPlaceholder | null;
   dropBlocked: boolean;
   onRemove: (blockId: string) => void;
-  onHeaderSave: (
-    header: ResumePreset["header"],
-    skills: string[],
-  ) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
 }
 
@@ -67,7 +65,6 @@ export function ResumeCanvas({
   placeholder,
   dropBlocked,
   onRemove,
-  onHeaderSave,
   onTailorBullet,
 }: ResumeCanvasProps) {
   const { setNodeRef } = useDroppable({ id: RESUME_DROP_ID });
@@ -118,10 +115,19 @@ export function ResumeCanvas({
     >
       <ResumeHeader
         header={preset.header}
-        customSkills={preset.customSkillsSection}
         templateId={templateId}
-        onSave={onHeaderSave}
       />
+      {(preset.additionalSections ?? []).filter((section) =>
+        section.id === "target-title" || section.id === "summary"
+      ).map((section) => (
+        <section key={section.id} className="group relative my-3 pr-16 print:pr-0">
+          <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+            <SectionActions category={VAULT_CATEGORIES.find((category) => category.id === section.id)!} />
+          </div>
+          {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">{section.title}</h2>}
+          <p className="whitespace-pre-wrap text-sm">{section.content}</p>
+        </section>
+      ))}
       {SECTION_ORDER.map((category) => (
         <ResumeSection
           key={category}
@@ -140,6 +146,14 @@ export function ResumeCanvas({
           onRemove={onRemove}
           onTailorBullet={onTailorBullet}
         />
+      ))}
+      {(preset.additionalSections ?? []).filter((section) =>
+        section.id !== "target-title" && section.id !== "summary"
+      ).map((section) => (
+        <section key={section.id} className="mb-4">
+          <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">{section.title}</h2>
+          <p className="whitespace-pre-wrap text-sm">{section.content}</p>
+        </section>
       ))}
       {preset.customSkillsSection.length > 0 && (
         <section className="mb-4">

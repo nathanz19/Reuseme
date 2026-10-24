@@ -209,6 +209,14 @@ export function estimateLineCount(
     total += Math.ceil(skillsLine.length / cpl);
   }
 
+  for (const section of preset.additionalSections ?? []) {
+    if (section.content.trim()) {
+      total += 2 + section.content.split("\n").reduce(
+        (lines, line) => lines + Math.max(1, Math.ceil(line.length / cpl)), 0,
+      );
+    }
+  }
+
   return total;
 }
 

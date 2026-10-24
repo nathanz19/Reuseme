@@ -2,6 +2,9 @@
 
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
+import { SectionActions } from "@/components/SectionActions";
+import { AddEntryDialog } from "@/components/AddEntryDialog";
+import { useResumeStore } from "@/store/resumeStore";
 import { BlockCard } from "@/components/BlockCard";
 import {
   DEFAULT_OPEN_VAULT_CATEGORIES,
@@ -63,6 +66,12 @@ export function VaultCategoryList({
   onAdd,
   onTailorBullet,
 }: VaultCategoryListProps) {
+  const [editing, setEditing] = useState(false);
+  const [entryCategory, setEntryCategory] = useState<VaultCategory | null>(null);
+  const additionalSections = useResumeStore((s) => s.presets.find((p) => p.id === s.activePresetId)?.additionalSections);
+  const categories: VaultCategory[] = [...VAULT_CATEGORIES, ...(additionalSections ?? [])
+    .filter((section) => section.id.startsWith("custom-"))
+    .map((section): VaultCategory => ({ id: section.id as `custom-${string}`, label: section.title, kind: "placeholder" }))];
   const [openOverride, setOpenOverride] = useState<
     Partial<Record<VaultCategoryId, boolean>>
   >({});
@@ -99,7 +108,8 @@ export function VaultCategoryList({
     if (filterActive) {
       return count > 0 || openOverride[category.id] === true;
     }
-    if (openOverride[category.id] !== undefined) return openOverride[category.id];
+    const override = openOverride[category.id];
+    if (override !== undefined) return override;
     return DEFAULT_OPEN_VAULT_CATEGORIES.includes(category.id);
   };
 
@@ -109,11 +119,13 @@ export function VaultCategoryList({
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      {VAULT_CATEGORIES.map((category) => {
+      {categories.map((category) => {
         const sectionBlocks = category.blockCategory
           ? (blocksByCategory.get(category.blockCategory) ?? [])
           : [];
-        const count = categoryCount(
+        const savedContent = additionalSections?.find((section) => section.id === category.id)?.content ?? "";
+        const content = selectedTags.length === 0 && matchesQuery(savedContent, searchQuery) ? savedContent : "";
+        const count = category.kind === "placeholder" ? (content ? 1 : 0) : categoryCount(
           category,
           sectionBlocks.length,
           contactVisible,
@@ -126,6 +138,8 @@ export function VaultCategoryList({
             category={category}
             open={open}
             onToggle={() => toggle(category.id, open)}
+            onCreate={() => { setEditing(false); setEntryCategory(category); }}
+            content={content}
             blocks={sectionBlocks}
             header={header}
             skills={visibleSkills}
@@ -139,6 +153,14 @@ export function VaultCategoryList({
           />
         );
       })}
+      <button type="button" className="m-3 rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"
+        onClick={() => { setEditing(false); setEntryCategory({ id: `custom-${crypto.randomUUID()}`, label: "Custom Section", kind: "placeholder" }); }}>
+        + Add section
+      </button>
+      {entryCategory && <AddEntryDialog key={entryCategory.id} editing={editing} category={entryCategory} onClose={() => {
+        setOpenOverride((previous) => ({ ...previous, [entryCategory.id]: true }));
+        setEntryCategory(null);
+      }} />}
     </div>
   );
 }
@@ -147,6 +169,8 @@ function VaultCategorySection({
   category,
   open,
   onToggle,
+  onCreate,
+  content,
   blocks,
   header,
   skills,
@@ -161,6 +185,8 @@ function VaultCategorySection({
   category: VaultCategory;
   open: boolean;
   onToggle: () => void;
+  onCreate: () => void;
+  content: string;
   blocks: AccomplishmentBlock[];
   header: ResumePreset["header"];
   skills: string[];
@@ -186,10 +212,11 @@ function VaultCategorySection({
   const panelId = `vault-category-${category.id}`;
 
   return (
-    <section className="border-b border-slate-200">
+    <section className="vault-section border-b border-slate-200">
+      <div className="flex items-center pr-3">
       <button
         type="button"
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50"
+        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={onToggle}
@@ -206,6 +233,14 @@ function VaultCategorySection({
           </span>
         )}
       </button>
+      <button type="button" onClick={onCreate} aria-label={`Add to ${category.label}`}
+        className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">+ Add</button>
+      </div>
+      {category.kind !== "blocks" && (category.kind === "contact" || skills.length > 0 || content) && (
+        <div className="section-action-row flex justify-end px-3 pb-2 print:hidden">
+          <SectionActions category={category} />
+        </div>
+      )}
       {open && (
         <div id={panelId} className="space-y-2 px-3 pb-3">
           {category.kind === "blocks" &&
@@ -239,9 +274,9 @@ function VaultCategorySection({
                 <dd className="text-slate-800">{header.phone}</dd>
                 <dt className="text-slate-500">Location</dt>
                 <dd className="text-slate-800">{header.location}</dd>
-                {header.links.map((link) => (
-                  <Fragment key={link.url}>
-                    <dt className="text-slate-500">{link.label}</dt>
+                {header.links.map((link, index) => (
+                  <Fragment key={`${index}-${link.url}`}>
+                    <dt className="text-slate-500">Website #{index + 1}</dt>
                     <dd className="break-all text-slate-800">{link.url}</dd>
                   </Fragment>
                 ))}
@@ -260,6 +295,7 @@ function VaultCategorySection({
                     className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700"
                   >
                     {skill}
+                    <RemoveSkillButton skill={skill} />
                   </span>
                 ))}
               </div>
@@ -272,11 +308,20 @@ function VaultCategorySection({
             ))}
           {category.kind === "placeholder" && (
             <p className="text-xs text-slate-500">
-              Nothing saved in this category yet.
+              {content ? <span className="whitespace-pre-wrap">{content}</span> : "Nothing saved in this category yet."}
             </p>
           )}
         </div>
       )}
     </section>
   );
+}
+
+function RemoveSkillButton({ skill }: { skill: string }) {
+  const commit = useResumeStore((state) => state.commit);
+  return <button type="button" aria-label={`Delete skill ${skill}`} className="ml-1 text-slate-500 hover:text-red-700"
+    onClick={() => commit((draft) => {
+      const active = draft.presets.find((preset) => preset.id === draft.activePresetId);
+      if (active) active.customSkillsSection = active.customSkillsSection.filter((entry) => entry !== skill);
+    })}>×</button>;
 }
