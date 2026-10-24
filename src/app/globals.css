@@ -364,14 +364,20 @@ body.resume-drop-blocked * {
 }
 
 
-/* Reveal the edge handle over either the sidebar or the handle itself. */
-.workspace-sidebar-toggle {
-  transition: opacity 250ms ease-in-out;
+/* Reveal the edge handle over the sidebar or the full-height hit column. */
+.workspace-sidebar-toggle-hitzone {
+  display: none;
+  pointer-events: auto;
+}
+@media (min-width: 1320px) {
+  .workspace-sidebar-toggle-hitzone {
+    display: flex;
+  }
 }
 .workspace-sidebar-toggle {
+  transition: opacity 250ms ease-in-out;
   opacity: 0;
   pointer-events: none;
-  transform: translate(0, -50%);
 }
 .workspace-sidebar-toggle[data-visible="true"] {
   opacity: 1;
@@ -381,7 +387,6 @@ body.resume-drop-blocked * {
   .workspace-sidebar-toggle[data-collapsed="false"] {
     opacity: 1;
     pointer-events: auto;
-    transform: translate(0, -50%);
   }
 }
 

@@ -42,6 +42,19 @@ test("wide sidebar slides closed and reopens without losing the job description"
 });
 
 
+test("sidebar handle reveals when hovering the full-height edge column", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const hitzone = page.locator(".workspace-sidebar-toggle-hitzone");
+  const handle = page.locator(".workspace-sidebar-toggle");
+  await page.mouse.move(1200, 200);
+  await expect(handle).toHaveCSS("opacity", "0");
+  const box = await hitzone.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await expect(handle).toHaveCSS("opacity", "1");
+});
+
 test("sidebar handle fades without moving on hover", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
