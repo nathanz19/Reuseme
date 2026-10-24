@@ -99,7 +99,8 @@ export function VaultCategoryList({
     if (filterActive) {
       return count > 0 || openOverride[category.id] === true;
     }
-    if (openOverride[category.id] !== undefined) return openOverride[category.id];
+    const override = openOverride[category.id];
+    if (override !== undefined) return override;
     return DEFAULT_OPEN_VAULT_CATEGORIES.includes(category.id);
   };
 
