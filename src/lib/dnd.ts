@@ -1,4 +1,5 @@
 import {
+  closestCenter,
   pointerWithin,
   rectIntersection,
   type CollisionDetection,
@@ -96,8 +97,27 @@ export function dragPointerY(event: {
   return clientY + event.delta.y;
 }
 
+/**
+ * Canvas reorders resolve against same-section blocks by center distance so the
+ * gaps between blocks never fall through to the section droppable, which would
+ * reset sibling transforms mid-drag. Raw pointer hits go stale once the canvas
+ * auto-scrolls, so they only decide whether the block is being dropped on the vault.
+ */
 export const resumeDropCollision: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args);
+  const activeData = args.active.data.current as DragItemData | undefined;
+  if (
+    activeData?.origin === "canvas" &&
+    !pointerCollisions.some((collision) => collision.id === VAULT_DROP_ID)
+  ) {
+    const siblings = args.droppableContainers.filter((container) => {
+      const data = container.data.current as Partial<DragItemData> | undefined;
+      return data?.origin === "canvas" && data.category === activeData.category;
+    });
+    if (siblings.length > 0) {
+      return closestCenter({ ...args, droppableContainers: siblings });
+    }
+  }
   if (pointerCollisions.length > 0) {
     return pointerCollisions;
   }

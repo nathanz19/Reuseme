@@ -2,6 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { useMemo } from "react";
+import { resumeTemplateClass } from "@/components/CanvasBlock";
 import { SectionActions } from "@/components/SectionActions";
 import { VAULT_CATEGORIES } from "@/lib/vaultCategories";
 import { ResumeHeader } from "@/components/ResumeHeader";
@@ -94,10 +95,7 @@ export function ResumeCanvas({
     : pickOverflowBlockId(preset, vaultBlocks, rankings);
 
   const templateId = preset.templateId;
-  const templateClass =
-    templateId === "modern-tech"
-      ? "font-[family-name:var(--font-geist-sans)]"
-      : "font-serif";
+  const templateClass = resumeTemplateClass(templateId);
 
   return (
     <div

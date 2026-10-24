@@ -18,6 +18,7 @@ import {
   measureCanvasInsertion,
 } from "@/lib/lineCount";
 import { AppShell } from "@/components/AppShell";
+import { CanvasBlockOverlay } from "@/components/CanvasBlock";
 import { JDPanel } from "@/components/JDPanel";
 import { Navbar } from "@/components/Navbar";
 import { ResumeCanvas } from "@/components/ResumeCanvas";
@@ -374,8 +375,7 @@ export function AppPage() {
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const { active, over } = event;
-      const activeData = active.data.current as DragItemData | undefined;
+      const { active, over } = event;      const activeData = active.data.current as DragItemData | undefined;
       const pendingPlaceholder = placeholderRef.current;
       const blocked = dropBlockedRef.current;
       clearDragState();
@@ -637,6 +637,8 @@ export function AppPage() {
               preset={activePreset}
               blocked={dropBlocked}
             />
+          ) : overlayBlock && activeDrag?.origin === "canvas" ? (
+            <CanvasBlockOverlay block={overlayBlock} preset={activePreset} />
           ) : null}
         </DragOverlay>
       </DndContext>

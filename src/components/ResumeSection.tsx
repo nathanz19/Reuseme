@@ -2,6 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo } from "react";
 import { CanvasBlock } from "@/components/CanvasBlock";
 import { sectionDroppableId } from "@/lib/dnd";
 import type { AccomplishmentBlock, BlockCategory, ResumePreset } from "@/types/resume";
@@ -41,6 +42,14 @@ export function ResumeSection({
     data: { category },
   });
 
+  // SortableContext compares items by reference and disables sibling
+  // transitions when they change, so keep the array stable across renders.
+  const itemIdsKey = items.map((item) => item.id).join("\n");
+  const itemIds = useMemo(
+    () => (itemIdsKey ? itemIdsKey.split("\n") : []),
+    [itemIdsKey],
+  );
+
   const showSlot = showEmptyDropSlot && items.length === 0 && !dropBlocked;
   const showBlocked = dropBlocked && showEmptyDropSlot && items.length === 0;
   if (items.length === 0 && !showSlot && !showBlocked) return null;
@@ -74,7 +83,7 @@ export function ResumeSection({
       )}
       {items.length > 0 && (
         <SortableContext
-          items={items.map((item) => item.id)}
+          items={itemIds}
           strategy={verticalListSortingStrategy}
         >
           {items.map((item) => (
