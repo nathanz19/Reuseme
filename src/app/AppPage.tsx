@@ -52,6 +52,7 @@ import {
 } from "@/lib/dnd";
 import { RELEVANT_TOP_N } from "@/lib/tunables";
 import { requestJdMatch } from "@/lib/jdMatchClient";
+import { notifyAiUsageChanged } from "@/lib/aiUsage";
 import { selectRankedCards } from "@/lib/relevance";
 import type {
   AccomplishmentBlock,
@@ -613,6 +614,7 @@ export function AppPage() {
         setTailorError(error instanceof Error ? error.message : "Unable to connect. Please retry.");
       } finally {
         if (!controller.signal.aborted && tailorRequest.current === controller) setTailorLoading(false);
+        notifyAiUsageChanged();
       }
     },
     [vaultBlocks, parsedJD, jdText, activePreset, openTailorDialog, setTailorProposal, setTailorLoading, closeTailoring],
