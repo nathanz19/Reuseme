@@ -214,7 +214,7 @@ Keep these as named constants in one file.
 
 Style: dense, utilitarian, like a document editor, not a marketing page. Plain Tailwind and native elements; refine by looking at the running app. Layout: two panes (vault/JD left, canvas right) at ≥ 1320 px; below that, one column with a Vault/Canvas toggle. The canvas always renders at 100% (no scaling).
 
-**Navbar:** preset switcher (+ "New version" duplicates the active preset), undo/redo, template switcher, space meter (neutral → amber near full → red over), Export PDF.
+**Navbar:** preset switcher (+ "New version" duplicates the active preset), undo/redo, template switcher, space meter (neutral → amber near full → red over), Export. Export opens a menu with PDF (browser print dialog) and Word (a `.docx` download of the same resume: header, extra sections, category blocks with effective bullets, then skills). Both formats stay unavailable while the document is over the line budget.
 
 **Vault tab:** search, tag filters, "Include Archived" toggle. Cards show title, org, tags, archived badge, match score and explanation (when a JD is active), a grip to drag onto the resume (disabled when already on canvas), and an "Add to Resume" button (disabled as "On resume" when present). Cards expand to show `sourceContext` and tailor controls.
 
@@ -233,7 +233,7 @@ Style: dense, utilitarian, like a document editor, not a marketing page. Plain T
 - Header editable via a small popover.
 - Overflow flag per §4.1: amber outline + "Suggested to cut for space".
 
-**Print:** hide everything except `#resume-print-root`; hide shadow, hover controls, handles, and overflow outline; ensure ancestors don't clip. Output is real selectable text with semantic markup (`h1`, `h2`, `ul/li`), single column, no text in images.
+**Print:** hide everything except `#resume-print-root`; hide shadow, hover controls, handles, and overflow outline; ensure ancestors don't clip. Output is real selectable text with semantic markup (`h1`, `h2`, `ul/li`), single column, no text in images. The Word export uses that same text, not the print stylesheet: US Letter, one column, section headings, and the effective bullets.
 
 **Store requirements:**
 - **History:** `past`/`future` arrays of canvas snapshots (`{ presets, activePresetId }`, limit `HISTORY_LIMIT`). Every canvas mutation goes through `commit(mutator)`, which pushes the pre-change snapshot, clears `future`, and skips the push if nothing changed. History is not persisted and is cleared after rehydration.
