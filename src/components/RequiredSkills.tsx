@@ -22,7 +22,7 @@ export function RequiredSkills({ coverage, parsedJD }: RequiredSkillsProps) {
   return (
     <section
       aria-label="Required skills"
-      className="shrink-0 border-b border-slate-200 px-3 py-3"
+      className="shrink-0 border-b border-border px-3 py-3"
     >
       <button
         type="button"
@@ -52,8 +52,8 @@ export function RequiredSkills({ coverage, parsedJD }: RequiredSkillsProps) {
               data-skill-state={isCovered ? "covered" : "missing"}
               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
                 isCovered
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-dashed border-slate-400 bg-white text-slate-600"
+                  ? "border-accent-border bg-accent-subtle text-accent-text"
+                  : "border-dashed border-border-strong bg-surface text-ink-muted"
               }`}
             >
               {isCovered ? (
