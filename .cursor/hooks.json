@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/force-composer-subagent.py",
+        "matcher": "Task",
+        "failClosed": true
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": ".cursor/hooks/subagent-start-model-gate.py",
+        "failClosed": true
+      }
+    ]
+  }
+}
