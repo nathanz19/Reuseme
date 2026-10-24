@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   ParsedJobDescription,
   SemanticRanking,
+  TagMatch,
   TailoredProposal,
   Tone,
 } from "@/types/resume";
@@ -24,6 +25,8 @@ export interface SessionState {
   parsedJD: ParsedJobDescription | null;
   rankings: Record<string, SemanticRanking>;
   rankingsList: SemanticRanking[];
+  tagMatches: TagMatch[];
+  matchLoading: boolean;
   lastMatchError: string | null;
   tailorProposal: TailoredProposal | null;
   tailorLoading: boolean;
@@ -41,7 +44,9 @@ export interface SessionState {
   setMatchResult: (
     parsed: ParsedJobDescription,
     list: SemanticRanking[],
+    tagMatches: TagMatch[],
   ) => void;
+  setMatchLoading: (loading: boolean) => void;
   setMatchError: (message: string) => void;
   clearMatchError: () => void;
   openTailorDialog: (blockId: string, bulletIndex: number) => void;
@@ -64,6 +69,8 @@ export const useSessionStore = create<SessionState>((set) => ({
   parsedJD: null,
   rankings: {},
   rankingsList: [],
+  tagMatches: [],
+  matchLoading: false,
   lastMatchError: null,
   tailorProposal: null,
   tailorLoading: false,
@@ -87,7 +94,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   setLeftTab: (tab) => set({ leftTab: tab }),
   setMobilePane: (pane) => set({ mobilePane: pane }),
   setJdText: (text) => set({ jdText: text }),
-  setMatchResult: (parsed, list) => {
+  setMatchResult: (parsed, list, tagMatches) => {
     const rankings: Record<string, SemanticRanking> = {};
     for (const r of list) {
       rankings[r.blockId] = r;
@@ -96,9 +103,11 @@ export const useSessionStore = create<SessionState>((set) => ({
       parsedJD: parsed,
       rankingsList: list,
       rankings,
+      tagMatches,
       lastMatchError: null,
     });
   },
+  setMatchLoading: (loading) => set({ matchLoading: loading }),
   setMatchError: (message) => set({ lastMatchError: message }),
   clearMatchError: () => set({ lastMatchError: null }),
   openTailorDialog: (blockId, bulletIndex) =>

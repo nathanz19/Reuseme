@@ -26,6 +26,12 @@ export interface AccomplishmentBlock {
   isArchived: boolean;
 }
 
+/** The block fields the match route and scoring need (no dates, category, or archive flag). */
+export type MatchableBlock = Pick<
+  AccomplishmentBlock,
+  "id" | "title" | "organization" | "tags" | "bullets" | "sourceContext"
+>;
+
 export interface AdditionalSection {
   id: string;
   title: string;
@@ -65,10 +71,22 @@ export interface BlockRanking {
 
 export interface SemanticRanking {
   blockId: string;
+  /** True when the card's content shows at least one job requirement. */
+  relevant: boolean;
   semanticScore: number;
+  /** Subset of the card's own tags that map to job requirements. */
+  matchedTags: string[];
+  /** 0-based index of the bullet that best evidences the job. */
+  bestBulletIndex: number;
   matchExplanation: string;
   keywordOverlap: number;
   matchScore: number;
+}
+
+/** A job requirement mapped to existing vault tags. */
+export interface TagMatch {
+  requirement: string;
+  tags: string[];
 }
 
 export interface TailoredProposal {

@@ -35,11 +35,12 @@ describe("session store", () => {
     const result = matchVault(DEMO_JD_TEXT, SEED_BLOCKS);
     if ("error" in result) throw new Error(result.error);
 
-    store.getState().setMatchResult(result.parsedJD, result.rankings);
+    store.getState().setMatchResult(result.parsedJD, result.rankings, result.tagMatches);
     const state = store.getState();
     expect(state.lastMatchError).toBeNull();
     expect(state.parsedJD?.companyName).toBe("Nimbus Analytics");
     expect(Object.keys(state.rankings)).toHaveLength(SEED_BLOCKS.length);
+    expect(state.tagMatches).toEqual(result.tagMatches);
     expect(state.rankings["exp-6"]).toBe(
       state.rankingsList.find((r) => r.blockId === "exp-6"),
     );
@@ -48,11 +49,18 @@ describe("session store", () => {
   it("keeps previous rankings when a later match fails", () => {
     const result = matchVault(DEMO_JD_TEXT, SEED_BLOCKS);
     if ("error" in result) throw new Error(result.error);
-    store.getState().setMatchResult(result.parsedJD, result.rankings);
+    store.getState().setMatchResult(result.parsedJD, result.rankings, result.tagMatches);
 
     store.getState().setMatchError("Fixture match failed");
     expect(store.getState().lastMatchError).toBe("Fixture match failed");
     expect(store.getState().rankingsList).toHaveLength(SEED_BLOCKS.length);
+    expect(store.getState().tagMatches.length).toBeGreaterThan(0);
+  });
+
+  it("tracks the match loading flag", () => {
+    expect(store.getState().matchLoading).toBe(false);
+    store.getState().setMatchLoading(true);
+    expect(store.getState().matchLoading).toBe(true);
   });
 
   it("changes tone only when a proposal exists and resets on close", async () => {

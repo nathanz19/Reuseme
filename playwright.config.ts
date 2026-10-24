@@ -28,11 +28,11 @@ export default defineConfig({
   webServer: externalBaseURL
     ? undefined
     : {
-        env: { MOCK_AI: "1" },
         command: `npm run build && npm run start -- --port ${port}`,
         url: baseURL,
         timeout: 180_000,
         reuseExistingServer: !process.env.CI,
         stdout: "pipe",
+        env: { MOCK_AI: "1" },
       },
 });

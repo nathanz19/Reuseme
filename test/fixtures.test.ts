@@ -6,7 +6,6 @@ import {
   tailorBullet,
 } from "@/data/fixtures";
 import { SEED_BLOCKS } from "@/data/seed";
-import { FORGOTTEN_THRESHOLD } from "@/lib/tunables";
 
 function demoMatch() {
   const result = matchVault(DEMO_JD_TEXT, SEED_BLOCKS);
@@ -56,11 +55,80 @@ describe("matchVault fixture", () => {
     }
   });
 
-  it("surfaces the archived Raft block as forgotten experience", () => {
+  it("ranks the archived Raft block first and marks it relevant", () => {
     const { rankings } = demoMatch();
     const raft = rankings.find((r) => r.blockId === "exp-6");
-    expect(raft?.matchScore).toBeGreaterThanOrEqual(FORGOTTEN_THRESHOLD);
+    expect(raft?.relevant).toBe(true);
     expect(rankings[0].blockId).toBe("exp-6");
+  });
+
+  it("keeps the existing fixture scores", () => {
+    const { rankings } = demoMatch();
+    const scores = Object.fromEntries(
+      rankings.map((r) => [r.blockId, r.matchScore]),
+    );
+    expect(scores).toMatchObject({
+      "exp-6": 76,
+      "proj-2": 74,
+      "exp-4": 72,
+      "proj-1": 70,
+      "exp-1": 65,
+      "proj-7": 53,
+      "proj-5": 25,
+    });
+    expect(rankings.map((r) => r.blockId).slice(0, 3)).toEqual([
+      "exp-6",
+      "proj-2",
+      "exp-4",
+    ]);
+  });
+
+  it("marks cards relevant when semanticScore is at least 70", () => {
+    const { rankings } = demoMatch();
+    for (const r of rankings) {
+      expect(r.relevant).toBe(r.semanticScore >= 70);
+    }
+    expect(rankings.some((r) => r.relevant)).toBe(true);
+    expect(rankings.some((r) => !r.relevant)).toBe(true);
+  });
+
+  it("returns matched tags that belong to each card", () => {
+    const { rankings } = demoMatch();
+    for (const r of rankings) {
+      const block = SEED_BLOCKS.find((b) => b.id === r.blockId)!;
+      for (const tag of r.matchedTags) expect(block.tags).toContain(tag);
+    }
+    const raft = rankings.find((r) => r.blockId === "exp-6")!;
+    expect(raft.matchedTags).toEqual(
+      expect.arrayContaining(["raft", "consensus", "distributed-systems"]),
+    );
+  });
+
+  it("picks an in-range best bullet for every card", () => {
+    const { rankings } = demoMatch();
+    for (const r of rankings) {
+      const block = SEED_BLOCKS.find((b) => b.id === r.blockId)!;
+      expect(r.bestBulletIndex).toBeGreaterThanOrEqual(0);
+      expect(r.bestBulletIndex).toBeLessThan(block.bullets.length);
+    }
+    expect(rankings.find((r) => r.blockId === "exp-1")!.bestBulletIndex).toBe(2);
+  });
+
+  it("maps JD requirements to vault tags", () => {
+    const { parsedJD, tagMatches } = demoMatch();
+    expect(tagMatches.map((m) => m.requirement)).toEqual([
+      ...parsedJD.requiredSkills,
+      ...parsedJD.preferredSkills,
+    ]);
+    const vaultTags = new Set(SEED_BLOCKS.flatMap((b) => b.tags));
+    for (const m of tagMatches) {
+      for (const tag of m.tags) expect(vaultTags.has(tag)).toBe(true);
+    }
+    const raft = tagMatches.find((m) => m.requirement === "Raft consensus");
+    expect(raft?.tags).toEqual(expect.arrayContaining(["raft", "consensus"]));
+    expect(tagMatches.find((m) => m.requirement === "Kubernetes")?.tags).toEqual(
+      [],
+    );
   });
 
   it("returns an error for the simulated failure token", () => {

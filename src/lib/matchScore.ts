@@ -1,8 +1,12 @@
 import { W_KW, W_SEM } from "@/lib/tunables";
 import { expandAlias, normalizeToken, textContainsSkill } from "@/lib/normalize";
-import type { AccomplishmentBlock, ParsedJobDescription } from "@/types/resume";
+import type {
+  AccomplishmentBlock,
+  MatchableBlock,
+  ParsedJobDescription,
+} from "@/types/resume";
 
-function blockCorpus(block: AccomplishmentBlock): string {
+function blockCorpus(block: MatchableBlock): string {
   return [
     ...block.tags,
     ...block.bullets,
@@ -13,7 +17,7 @@ function blockCorpus(block: AccomplishmentBlock): string {
 }
 
 export function computeKeywordOverlap(
-  block: AccomplishmentBlock,
+  block: MatchableBlock,
   parsedJD: ParsedJobDescription,
 ): number {
   const required = parsedJD.requiredSkills;

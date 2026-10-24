@@ -32,7 +32,12 @@ export async function analyzeDemoJd(page: Page) {
     /Nimbus Analytics/,
   );
   await page.getByRole("button", { name: "Analyze & Rank Vault" }).click();
-  await expect(page.getByText("Required skill coverage")).toBeVisible();
+  await expect(page.getByText(/\d+ of \d+ covered/)).toBeVisible();
+}
+
+/** Ranked vault card in the JD tab, located by block id. */
+export function rankedCard(page: Page, blockId: string): Locator {
+  return page.locator(`[data-ranked-block-id="${blockId}"]`);
 }
 
 export async function confirmTailor(page: Page) {
