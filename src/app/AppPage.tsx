@@ -678,7 +678,7 @@ export function AppPage() {
       highlightedSection={highlightedSection}
       dropTargetSection={vaultDropTarget}
       removingBlockId={removingBlockId}
-      placeholder={placeholder}
+      placeholder={activeDrag?.origin === "vault" ? placeholder : null}
       dropBlocked={dropBlocked}
       onRemove={removeBlockFromResume}
       onTailorBullet={(blockId, index) => void startTailor(blockId, index)}

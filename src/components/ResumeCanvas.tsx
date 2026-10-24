@@ -29,7 +29,13 @@ function sectionItems(
     block,
     placeholder: false,
   }));
-  if (!placeholder || placeholder.category !== category) return items;
+  if (
+    !placeholder ||
+    placeholder.category !== category ||
+    items.some((item) => item.id === placeholder.blockId)
+  ) {
+    return items;
+  }
   const block = byId.get(placeholder.blockId);
   if (!block) return items;
   const ghost: SectionItem = {
