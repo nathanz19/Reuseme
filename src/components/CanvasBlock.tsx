@@ -1,6 +1,7 @@
 "use client";
 
 import { useSortable } from "@dnd-kit/sortable";
+import { canvasBlockAnimateLayoutChanges } from "@/lib/sortableLayout";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
@@ -38,6 +39,7 @@ export function CanvasBlock({
     id: sortableId ?? block.id,
     data: { origin: "canvas", blockId: block.id, category: block.category },
     disabled: placeholder ? { draggable: true } : false,
+    animateLayoutChanges: canvasBlockAnimateLayoutChanges,
   });
 
   const style = {

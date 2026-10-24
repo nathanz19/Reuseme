@@ -652,7 +652,7 @@ export function AppPage() {
         />
         </div>
         <DragOverlay className={dropBlocked ? "cursor-not-allowed" : undefined}>
-          {overlayBlock ? (
+          {overlayBlock && activeDrag?.origin === "vault" ? (
             <DragPreview
               block={overlayBlock}
               preset={activePreset}
