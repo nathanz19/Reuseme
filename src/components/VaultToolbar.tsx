@@ -60,15 +60,15 @@ export function VaultToolbar({ searchQuery, allTags, selectedTags, includeArchiv
       <div className="flex items-center gap-2">
         <input type="search" aria-label="Search vault" placeholder="Search vault…" className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm" value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} />
         <button type="button" aria-expanded={open} aria-controls={panelId} onClick={() => { setOpen(!open); setAdding(false); }}
-          className={`inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${count ? "border-primary bg-primary text-white hover:bg-primary-hover" : "border-border-strong text-ink-muted hover:border-accent-border hover:bg-accent-subtle"}`}>
+          className={`inline-flex shrink-0 items-center gap-2 rounded-md border px-3 py-2 text-sm ${count ? "border-slate-800 bg-slate-900 text-white" : "border-slate-300 text-slate-600 hover:bg-slate-50"}`}>
           <SlidersHorizontal size={15} aria-hidden="true" />Filters{count > 0 && <span className="rounded bg-white/20 px-1.5 text-xs">{count}</span>}
         </button>
       </div>
       {open && <div id={panelId} role="dialog" aria-label="Vault filters" className="absolute left-3 right-3 top-full mt-2 max-h-[min(65dvh,480px)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">Filters</h2>
+          <h2 className="text-sm font-semibold">Filters</h2>
           <div className="flex items-center gap-3">
-            {count > 0 && <button type="button" onClick={() => { clearFilters(); setTypes([]); }} className="text-xs text-ink-muted hover:text-accent-text">Clear all</button>}
+            {count > 0 && <button type="button" onClick={() => { clearFilters(); setTypes([]); }} className="text-xs text-slate-500 hover:text-slate-900">Clear all</button>}
             <button type="button" aria-label="Close filters" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={16} /></button>
           </div>
         </div>

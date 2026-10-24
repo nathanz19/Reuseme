@@ -6,7 +6,6 @@ import { useDraggable } from "@dnd-kit/core";
 import { ChevronDown, ChevronRight, GripVertical, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { vaultDraggableId } from "@/lib/dnd";
-import { btnOutlineSm } from "@/lib/theme";
 import type { AccomplishmentBlock, SemanticRanking } from "@/types/resume";
 
 interface BlockCardProps {
@@ -62,7 +61,7 @@ export function BlockCard({
         </button>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h3 className="font-semibold text-ink">{block.title}</h3>
+            <h3 className="font-semibold text-slate-900">{block.title}</h3>
             <span className="text-slate-500">{block.organization}</span>
             {block.isArchived && (
               <span className="rounded bg-slate-100 px-1.5 text-xs text-slate-600">
@@ -97,7 +96,7 @@ export function BlockCard({
               ? "Adding this block would exceed the one-page line budget"
               : undefined
           }
-          className={`shrink-0 ${btnOutlineSm}`}
+          className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-500"
         >
           {onResume ? "On resume" : canAdd ? "Add to Resume" : "Cannot fit"}
         </button>

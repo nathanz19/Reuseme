@@ -4,7 +4,6 @@ import { useDroppable } from "@dnd-kit/core";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { VAULT_DROP_ID } from "@/lib/dnd";
-import { tabActive } from "@/lib/theme";
 
 const wideQuery = "(min-width: 1320px)";
 function subscribeToWidth(callback: () => void) {
@@ -46,14 +45,14 @@ export function AppShell({
   const vaultHighlight = vaultDropActive && isOver;
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-100">
       {navbar}
       <div data-mobile-pane={mobilePane} style={{ flexDirection: wide ? "row" : "column" }} className="workspace-layout relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div style={{ display: wide ? "none" : "flex" }} className="workspace-pane-switch flex shrink-0 border-b border-border bg-surface text-sm">
+        <div style={{ display: wide ? "none" : "flex" }} className="workspace-pane-switch flex shrink-0 border-b border-slate-200 bg-white text-sm">
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
-              mobilePane === "vault" ? tabActive : ""
+              mobilePane === "vault" ? "border-b-2 border-slate-900 font-medium" : ""
             }`}
             onClick={() => onMobilePaneChange("vault")}
           >
@@ -62,7 +61,7 @@ export function AppShell({
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
-              mobilePane === "canvas" ? tabActive : ""
+              mobilePane === "canvas" ? "border-b-2 border-slate-900 font-medium" : ""
             }`}
             onClick={() => onMobilePaneChange("canvas")}
           >
@@ -80,7 +79,7 @@ export function AppShell({
           inert={collapsed}
           data-collapsed={collapsed}
           style={{ transition: animateSidebar ? undefined : "none", display: wide || mobilePane === "vault" ? "flex" : "none", width: wide ? (collapsed ? 0 : "min(480px, 40vw)") : "100%", flex: wide ? "0 0 auto" : "1 1 0%" }}
-          className={`workspace-sidebar flex min-h-0 w-full flex-1 flex-col overflow-hidden border-border bg-surface ${vaultHighlight ? "bg-accent-subtle ring-2 ring-inset ring-accent-border" : ""}`}
+          className={`workspace-sidebar flex min-h-0 w-full flex-1 flex-col overflow-hidden border-slate-200 bg-white ${vaultHighlight ? "bg-sky-50 ring-2 ring-inset ring-sky-300" : ""}`}
         >
           <div style={{ width: wide ? "min(480px, 40vw)" : "100%" }} className="workspace-sidebar-content flex min-h-0 flex-1 flex-col overflow-hidden">{leftPane}</div>
         </aside>
@@ -98,7 +97,7 @@ export function AppShell({
               setHandleVisible(false);
               if (event.detail > 0) event.currentTarget.blur();
             }}
-            className="flex h-18 w-7 items-center justify-center rounded-r-lg border border-l-0 border-border-strong bg-surface text-ink-muted shadow-sm transition-colors hover:bg-accent-subtle hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring">
+            className="flex h-18 w-7 items-center justify-center rounded-r-lg border border-l-0 border-slate-300 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-sky-600">
             {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
           </button>
         </div>

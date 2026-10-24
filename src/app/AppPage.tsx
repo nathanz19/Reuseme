@@ -27,7 +27,6 @@ import { TailorDialog } from "@/components/TailorDialog";
 import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
 import { computeCoverage } from "@/lib/coverage";
-import { tabActive } from "@/lib/theme";
 import { resumeDropAnimation } from "@/lib/dropAnimation";
 import { CANVAS_BLOCK_TRANSITION } from "@/lib/sortableLayout";
 import { TailorResponseSchema } from "@/schemas/tailor";
@@ -664,11 +663,11 @@ export function AppPage() {
 
   const leftPane = (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="vault-tabbar flex shrink-0 border-b border-border bg-surface text-sm">
+      <div className="vault-tabbar flex shrink-0 border-b border-slate-200 text-sm">
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
-            leftTab === "vault" ? tabActive : ""
+            leftTab === "vault" ? "border-b-2 border-slate-900 font-medium" : ""
           }`}
           onClick={() => setLeftTab("vault")}
         >
@@ -677,7 +676,7 @@ export function AppPage() {
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
-            leftTab === "jd" ? tabActive : ""
+            leftTab === "jd" ? "border-b-2 border-slate-900 font-medium" : ""
           }`}
           onClick={() => setLeftTab("jd")}
         >

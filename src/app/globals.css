@@ -3,69 +3,21 @@
 @custom-variant wide-two-pane (@media (min-width: 1320px));
 
 :root {
-  /* Warm minimalist studio palette (compliments editorial landing imagery) */
-  --background: #f5f4f0;
-  --foreground: #1a1a1a;
-  --surface: #ffffff;
-  --surface-muted: #eceae4;
-  --border: #e3e1da;
-  --border-strong: #d4d1c8;
-  --ink: #141414;
-  --ink-muted: #5c5a54;
-  /* Sage green from the editorial template (center glass / shelf accents) */
-  --accent: #526141;
-  --accent-hover: #455237;
-  --accent-vivid: #748a5a;
-  --primary: var(--accent);
-  --primary-hover: var(--accent-hover);
-  --accent-subtle: #e9efe4;
-  --accent-border: #c5d4be;
-  --accent-text: #47523c;
-  --focus-ring: #526141;
+  --background: #f1f5f9;
+  --foreground: #0f172a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-ink: var(--ink);
-  --color-ink-muted: var(--ink-muted);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-vivid: var(--accent-vivid);
-  --color-accent-subtle: var(--accent-subtle);
-  --color-accent-border: var(--accent-border);
-  --color-accent-text: var(--accent-text);
-  --color-focus-ring: var(--focus-ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --shadow-soft: 0 1px 2px rgb(20 20 20 / 0.04), 0 8px 24px rgb(20 20 20 / 0.06);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
-}
-
-@utility btn-primary {
-  border-radius: 0.5rem;
-  background-color: var(--primary);
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: white;
-  transition-property: color, background-color, border-color;
-  transition-duration: 150ms;
-}
-
-@utility btn-primary-hover {
-  background-color: var(--primary-hover);
 }
 
 .no-scrollbar {

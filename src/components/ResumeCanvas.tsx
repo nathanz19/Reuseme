@@ -114,10 +114,10 @@ export function ResumeCanvas({
     <div
       ref={setNodeRef}
       id="resume-print-root"
-      className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-[var(--shadow-soft)] ${templateClass} print:shadow-none ${
+      className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-md ${templateClass} print:shadow-none ${
         dropBlocked
           ? "ring-2 ring-red-500"
-          : "ring-1 ring-border"
+          : "ring-1 ring-slate-200"
       }`}
       style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
       title={`US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), ~${MAX_LINES} estimated lines`}

@@ -7,7 +7,6 @@ import type { AccomplishmentBlock, ResumePreset } from "@/types/resume";
 import type { VaultCategory } from "@/lib/vaultCategories";
 import { editFitsBudget, estimateLineCount } from "@/lib/lineCount";
 import { cleanBlockReferences } from "@/lib/vaultEditing";
-import { btnPrimary, btnSecondary } from "@/lib/theme";
 
 interface AddEntryDialogProps {
   category: VaultCategory;
@@ -110,7 +109,7 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
         onClose();
       }}>
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="add-entry-title" className="text-lg font-semibold text-ink">{block || editing || existing || category.kind === "contact" ? "Edit" : "Add"} {category.label}</h2>
+          <h2 id="add-entry-title" className="text-lg font-semibold">{block || editing || existing || category.kind === "contact" ? "Edit" : "Add"} {category.label}</h2>
           <button type="button" onClick={onClose} aria-label="Close form" className="rounded px-2 py-1 hover:bg-slate-100">✕</button>
         </div>
         <div className="space-y-4">
@@ -148,14 +147,14 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
               <div className="flex-1">{input(`extra-value-${id}`, "Details", "", true)}</div>
               <button type="button" aria-label="Remove extra field" onClick={() => setExtraFields((fields) => fields.filter((field) => field !== id))} className="p-2">✕</button>
             </div>)}
-            <button type="button" className="text-sm font-medium text-accent-text hover:text-accent-hover" onClick={() => setExtraFields((fields) => [...fields, (fields.at(-1) ?? 0) + 1])}>+ Add another field</button>
+            <button type="button" className="text-sm font-medium text-sky-700" onClick={() => setExtraFields((fields) => [...fields, (fields.at(-1) ?? 0) + 1])}>+ Add another field</button>
           </>}
           {error && <p role="alert" className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <p className="text-xs text-slate-500">{category.kind === "blocks" ? (block ? "Editing this shared vault entry updates every resume that uses it. Changing description bullets clears its tailored rewrites in all versions." : "Saved to your vault. Choose Add to Resume on the new card when you're ready.") : "Saved to your current resume version."}</p>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>
-          <button type="submit" className={btnPrimary}>Save</button>
+          <button type="button" onClick={onClose} className="rounded border border-slate-300 px-4 py-2 text-sm">Cancel</button>
+          <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-sm text-white">Save</button>
         </div>
       </form>
     </dialog>,

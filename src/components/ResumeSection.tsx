@@ -63,7 +63,7 @@ export function ResumeSection({
   const ringClass = dropBlocked && (highlighted || isOver)
     ? "bg-red-50/70 ring-2 ring-inset ring-red-400"
     : dropTarget
-      ? "resume-drop-target outline-2 outline-offset-4 outline-dashed outline-accent/50 print:outline-none"
+      ? "resume-drop-target outline-2 outline-offset-4 outline-dashed outline-emerald-500/70 print:outline-none"
       : "";
 
   return (

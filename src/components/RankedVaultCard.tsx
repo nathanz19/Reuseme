@@ -3,7 +3,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Check, GripVertical } from "lucide-react";
 import { vaultDraggableId } from "@/lib/dnd";
-import { btnOutlineSm } from "@/lib/theme";
 import { matchTier, requirementsForTag, type MatchTier } from "@/lib/relevance";
 import type {
   AccomplishmentBlock,
@@ -29,8 +28,8 @@ const TIER_STYLES: Record<
 > = {
   strong: {
     label: "STRONG",
-    badge: "bg-accent-subtle text-accent-text",
-    bar: "bg-accent",
+    badge: "bg-emerald-100 text-emerald-800",
+    bar: "bg-emerald-500",
   },
   partial: {
     label: "PARTIAL",
@@ -87,7 +86,7 @@ export function RankedVaultCard({
           {rank}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-semibold text-ink">{block.title}</h3>
+          <h3 className="truncate font-semibold text-slate-900">{block.title}</h3>
           <p className="truncate text-xs text-slate-500">
             {block.organization} · {dateRange(block)}
           </p>
@@ -128,7 +127,7 @@ export function RankedVaultCard({
                       ? `Matches: ${requirements.join(", ")}`
                       : undefined
                   }
-                  className="inline-flex items-center gap-1 rounded-full bg-accent-subtle px-2 py-0.5 text-xs text-accent-text"
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800"
                 >
                   <Check size={11} aria-hidden="true" />
                   {tag}
@@ -148,7 +147,7 @@ export function RankedVaultCard({
                   ? "Adding this block would exceed the one-page line budget"
                   : undefined
               }
-              className={btnOutlineSm}
+              className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-500"
             >
               {canAdd || onResume ? "Add to Resume" : "Cannot fit"}
             </button>
