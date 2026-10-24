@@ -41,7 +41,7 @@ export function JDPanel({
       <button
         type="button"
         onClick={onAnalyze}
-        className="rounded bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800"
+        className="rounded bg-emerald-900 px-3 py-2 text-sm text-white hover:bg-emerald-800"
       >
         Analyze &amp; Rank Vault
       </button>

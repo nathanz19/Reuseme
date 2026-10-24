@@ -17,7 +17,7 @@ export function SpaceMeter({ preset, vaultBlocks }: SpaceMeterProps) {
       ? "text-red-700 bg-red-50 border-red-200"
       : state === "warn"
         ? "text-amber-800 bg-amber-50 border-amber-200"
-        : "text-slate-700 bg-slate-50 border-slate-200";
+        : "text-emerald-700 bg-emerald-50 border-emerald-200";
 
   return (
     <span

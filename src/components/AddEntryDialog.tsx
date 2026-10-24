@@ -109,7 +109,7 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
         onClose();
       }}>
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="add-entry-title" className="text-lg font-semibold">{block || editing || existing || category.kind === "contact" ? "Edit" : "Add"} {category.label}</h2>
+          <h2 id="add-entry-title" className="text-lg font-semibold text-emerald-950">{block || editing || existing || category.kind === "contact" ? "Edit" : "Add"} {category.label}</h2>
           <button type="button" onClick={onClose} aria-label="Close form" className="rounded px-2 py-1 hover:bg-slate-100">✕</button>
         </div>
         <div className="space-y-4">
@@ -154,7 +154,7 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded border border-slate-300 px-4 py-2 text-sm">Cancel</button>
-          <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-sm text-white">Save</button>
+          <button type="submit" className="rounded bg-emerald-900 px-4 py-2 text-sm text-white hover:bg-emerald-800">Save</button>
         </div>
       </form>
     </dialog>,

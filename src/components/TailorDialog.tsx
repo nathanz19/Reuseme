@@ -66,7 +66,7 @@ export function TailorDialog({
       aria-labelledby="tailor-title"
     >
       <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl">
-        <h2 id="tailor-title" className="text-lg font-semibold">
+        <h2 id="tailor-title" className="text-lg font-semibold text-emerald-950">
           Tailor bullet
         </h2>
         {loading && <p className="mt-2 text-sm text-slate-600">Loading proposal…</p>}
@@ -80,8 +80,8 @@ export function TailorDialog({
                   onClick={() => onToneChange(tone)}
                   className={`rounded border px-2 py-1 text-xs ${
                     selectedTone === tone
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-300"
+                      ? "border-emerald-900 bg-emerald-900 text-white hover:bg-emerald-800"
+                      : "border-slate-300 hover:border-emerald-200 hover:bg-emerald-50"
                   }`}
                 >
                   {TONE_LABELS[tone]}
@@ -94,7 +94,7 @@ export function TailorDialog({
                   key={i}
                   className={
                     part.added
-                      ? "bg-emerald-100"
+                      ? "bg-emerald-50 text-emerald-700"
                       : part.removed
                         ? "line-through bg-red-100"
                         : ""
@@ -146,7 +146,7 @@ export function TailorDialog({
               </button>
               <button
                 type="button"
-                className="rounded bg-slate-900 px-3 py-1 text-sm text-white"
+                className="rounded bg-emerald-900 px-3 py-1 text-sm text-white hover:bg-emerald-800"
                 onClick={onAccept}
               >
                 Accept

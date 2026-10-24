@@ -52,7 +52,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           {presets.map((preset, index) => {
             const selected = preset.id === activePresetId;
             return <SortableDocumentTab key={preset.id} id={preset.id} disabled={renaming?.id === preset.id}
-              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-slate-200 border-b-white bg-white text-slate-900 hover:bg-slate-50" : "border-slate-200/70 bg-slate-200/50 text-slate-600 hover:bg-slate-200/90 hover:text-slate-800"}`}>
+              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-slate-200 border-b-white bg-white text-emerald-950 hover:bg-emerald-50" : "border-slate-200/70 bg-slate-200/50 text-slate-600 hover:bg-slate-200/90 hover:text-slate-800"}`}>
               <FileText size={15} aria-hidden="true" className="shrink-0" />
               {renaming?.id === preset.id ? (
                 <input aria-label="Document name" value={renaming.name} autoFocus maxLength={120}
@@ -123,7 +123,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           <button type="button" disabled={!canExport} aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
             onClick={() => { if (canExport) onExportPdf(); }}
             title={canExport ? "Open the print dialog, then choose Save as PDF" : undefined}
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-900 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
             <Download size={15} aria-hidden="true" />Export PDF
           </button>
         </div>

@@ -51,7 +51,7 @@ function ForgottenRow({
         <GripVertical size={14} />
       </button>
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-slate-900">
+        <p className="font-medium text-emerald-950">
           {block.title} · {block.organization}
         </p>
         {ranking && (

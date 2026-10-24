@@ -33,7 +33,7 @@ export function AppShell({
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
-              mobilePane === "vault" ? "border-b-2 border-slate-900 font-medium" : ""
+              mobilePane === "vault" ? "border-b-2 border-emerald-950 font-medium text-emerald-950" : ""
             }`}
             onClick={() => onMobilePaneChange("vault")}
           >
@@ -42,7 +42,7 @@ export function AppShell({
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
-              mobilePane === "canvas" ? "border-b-2 border-slate-900 font-medium" : ""
+              mobilePane === "canvas" ? "border-b-2 border-emerald-950 font-medium text-emerald-950" : ""
             }`}
             onClick={() => onMobilePaneChange("canvas")}
           >

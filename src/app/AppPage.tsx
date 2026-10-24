@@ -609,7 +609,7 @@ export function AppPage() {
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
-            leftTab === "vault" ? "border-b-2 border-slate-900 font-medium" : ""
+            leftTab === "vault" ? "border-b-2 border-emerald-950 font-medium text-emerald-950" : ""
           }`}
           onClick={() => setLeftTab("vault")}
         >
@@ -618,7 +618,7 @@ export function AppPage() {
         <button
           type="button"
           className={`flex-1 px-3 py-2 ${
-            leftTab === "jd" ? "border-b-2 border-slate-900 font-medium" : ""
+            leftTab === "jd" ? "border-b-2 border-emerald-950 font-medium text-emerald-950" : ""
           }`}
           onClick={() => setLeftTab("jd")}
         >
