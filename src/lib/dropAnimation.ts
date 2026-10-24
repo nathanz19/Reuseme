@@ -29,6 +29,8 @@ function flyOverlayTo(
   };
   const previousOpacity = target.style.opacity;
   target.style.opacity = "0";
+  // The overlay ends on top of its target; let a quick re-grab reach the card underneath.
+  dragOverlay.node.style.pointerEvents = "none";
   const animation = dragOverlay.node.animate(
     [
       { transform: CSS.Transform.toString(transform) },

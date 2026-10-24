@@ -12,6 +12,7 @@ export interface SectionItem {
   id: string;
   block: AccomplishmentBlock;
   placeholder: boolean;
+  leaving?: boolean;
 }
 
 interface ResumeSectionProps {
@@ -96,6 +97,7 @@ export function ResumeSection({
               preset={preset}
               sortableId={item.id}
               placeholder={item.placeholder}
+              leaving={item.leaving}
               overflow={!item.placeholder && overflowBlockId === item.block.id}
               onRemove={() => onRemove(item.block.id)}
               onTailorBullet={(index) => onTailorBullet(item.block.id, index)}

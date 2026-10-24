@@ -87,6 +87,8 @@ interface CanvasBlockProps {
   sortableId?: string;
   /** Gray stand-in inserted while a sidebar block is over the canvas. */
   placeholder?: boolean;
+  /** Placeholder is fading out because the drag left the canvas. */
+  leaving?: boolean;
 }
 
 export function CanvasBlock({
@@ -97,6 +99,7 @@ export function CanvasBlock({
   onTailorBullet,
   sortableId,
   placeholder = false,
+  leaving = false,
 }: CanvasBlockProps) {
   const {
     attributes,
@@ -131,7 +134,9 @@ export function CanvasBlock({
       data-canvas-block-id={placeholder ? undefined : block.id}
       aria-hidden={placeholder ? true : undefined}
       className={`group mb-3 w-full rounded border p-2 ${
-        placeholder ? "resume-drop-placeholder print:hidden" : ""
+        placeholder
+          ? `resume-drop-placeholder print:hidden ${leaving ? "resume-drop-placeholder-leaving" : ""}`
+          : ""
       } ${
         skeleton
           ? "border-slate-300 bg-slate-200"

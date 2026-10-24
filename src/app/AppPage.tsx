@@ -36,6 +36,7 @@ import { collectAllTags, searchBlocks } from "@/lib/search";
 import {
   type CanvasPlaceholder,
   type DragItemData,
+  PLACEHOLDER_FADE_OUT_MS,
   RESUME_DROP_ID,
   VAULT_DROP_ID,
   dragPointerY,
@@ -69,7 +70,8 @@ function placeholdersEqual(
     a.id === b.id &&
     a.blockId === b.blockId &&
     a.category === b.category &&
-    a.beforeBlockId === b.beforeBlockId
+    a.beforeBlockId === b.beforeBlockId &&
+    Boolean(a.leaving) === Boolean(b.leaving)
   );
 }
 
@@ -262,10 +264,34 @@ export function AppPage() {
     return vaultBlocks.find((b) => b.id === activeDrag.blockId);
   }, [activeDrag, vaultBlocks]);
 
+  const fadeOutTimerRef = useRef<number | null>(null);
+
   const assignPlaceholder = useCallback((next: CanvasPlaceholder | null) => {
+    if (fadeOutTimerRef.current !== null) {
+      window.clearTimeout(fadeOutTimerRef.current);
+      fadeOutTimerRef.current = null;
+    }
     placeholderRef.current = next;
     setPlaceholder((prev) => (placeholdersEqual(prev, next) ? prev : next));
   }, []);
+
+  /** Fade the vault skeleton out in place before removing it from the section. */
+  const dismissPlaceholder = useCallback(() => {
+    const current = placeholderRef.current;
+    if (!current || current.leaving) return;
+    assignPlaceholder({ ...current, leaving: true });
+    fadeOutTimerRef.current = window.setTimeout(() => {
+      fadeOutTimerRef.current = null;
+      if (placeholderRef.current?.leaving) assignPlaceholder(null);
+    }, PLACEHOLDER_FADE_OUT_MS);
+  }, [assignPlaceholder]);
+
+  useEffect(
+    () => () => {
+      if (fadeOutTimerRef.current !== null) window.clearTimeout(fadeOutTimerRef.current);
+    },
+    [],
+  );
 
   const assignDropBlocked = useCallback((next: boolean) => {
     dropBlockedRef.current = next;
@@ -352,7 +378,7 @@ export function AppPage() {
 
       const blockIds = vaultBlocks.map((block) => block.id);
       if (!isResumeDropTarget(overId, blockIds)) {
-        assignPlaceholder(null);
+        dismissPlaceholder();
         assignDropBlocked(false);
         return;
       }
@@ -404,17 +430,20 @@ export function AppPage() {
         beforeBlockId,
       });
     },
-    [activePreset, assignDropBlocked, assignPlaceholder, vaultBlocks],
+    [activePreset, assignDropBlocked, assignPlaceholder, dismissPlaceholder, vaultBlocks],
   );
 
   // onDragOver only fires when the hovered droppable changes; the vault skeleton
-  // also has to follow the pointer within one block or across the gaps.
+  // also has to follow the pointer within one block or across the gaps. Entering
+  // and leaving the canvas stay with onDragOver so moves never start a fade-out.
   const handleDragMove = useCallback(
     (event: DragMoveEvent) => {
       const data = event.active.data.current as DragItemData | undefined;
-      if (data?.origin === "vault") handleDragOver(event);
+      if (data?.origin !== "vault" || !event.over) return;
+      const blockIds = vaultBlocks.map((block) => block.id);
+      if (isResumeDropTarget(String(event.over.id), blockIds)) handleDragOver(event);
     },
-    [handleDragOver],
+    [handleDragOver, vaultBlocks],
   );
 
   const handleDragEnd = useCallback(
@@ -433,7 +462,9 @@ export function AppPage() {
         if (!isResumeDropTarget(overId, blockIds)) return;
 
         const beforeBlockId =
-          pendingPlaceholder && pendingPlaceholder.blockId === activeData.blockId
+          pendingPlaceholder &&
+          !pendingPlaceholder.leaving &&
+          pendingPlaceholder.blockId === activeData.blockId
             ? pendingPlaceholder.beforeBlockId
             : null;
         const height = measureCanvasInsertion(

@@ -29,6 +29,40 @@ body {
   display: none;
 }
 
+@keyframes resume-drop-placeholder-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes resume-drop-placeholder-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Plays once on insert; the node is reused as the skeleton moves between slots. */
+.resume-drop-placeholder {
+  animation: resume-drop-placeholder-in 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.resume-drop-placeholder-leaving {
+  animation: resume-drop-placeholder-out 150ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-drop-placeholder,
+  .resume-drop-placeholder-leaving {
+    animation: none;
+  }
+}
+
 body.resume-drop-blocked,
 body.resume-drop-blocked * {
   cursor: not-allowed !important;

@@ -36,6 +36,7 @@ function sectionItems(
     id: placeholder.id,
     block,
     placeholder: true,
+    leaving: placeholder.leaving,
   };
   const index = placeholder.beforeBlockId
     ? items.findIndex((item) => item.id === placeholder.beforeBlockId)
