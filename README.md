@@ -6,7 +6,7 @@ Local-first web app for composing a one-page resume from a vault of career block
 
 ### Core Task
 
-Job seekers keep accomplishments as tagged blocks and assemble a role-specific, single-column resume. They paste a job description, see which vault blocks and required skills match the posting, and accept or reject bullet rewrites that stay inside facts from their own notes. The result is an on-screen US Letter resume that prints to PDF from the browser.
+Job seekers keep accomplishments as tagged blocks and assemble a role-specific, single-column resume. They paste a job description, see which vault blocks and required skills match the posting, and accept or reject bullet rewrites that stay inside facts from their own notes. The result is an on-screen US Letter resume that prints to PDF from the browser or downloads as a Word document.
 
 ### Key Features
 
@@ -26,11 +26,11 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 4. Open the JD tab. A demo job description is filled in if the field is empty. Edit the text and choose Analyze & Rank Vault.
 5. Review the skill chips and the ranked vault, and add matching blocks to the resume. Rankings stay put if a match request fails.
 6. From a vault card or a canvas bullet, open Tailor bullet, pick a tone, and Accept or Reject. Accept updates that preset only and can be undone. Reject leaves no change.
-7. Choose Export PDF once the space count is within the one-page budget. If it is over budget, remove or shorten content first. The print view is the resume only: selectable text, one column, US Letter.
+7. Choose Export once the space count is within the one-page budget. If it is over budget, remove or shorten content first. PDF opens the print dialog. The print view is the resume only: selectable text, one column, US Letter. Word downloads a .docx of the same resume text.
 
 ### Current Scope & Limitations
 
-- The vault ships with 25 fictional blocks. Adding blocks is supported. Existing blocks can be edited and deleted from vault cards and resume blocks. Edits apply across resume versions; changing bullets clears their old tailored rewrites. Deleting a block removes it from all versions. Contact details, skills, and extra sections can also be edited or cleared. Importing blocks, accounts, server sync, multi-page layout, and DOCX export remain out of scope. Overflow is flagged, not paginated.
+- The vault ships with 25 fictional blocks. Adding blocks is supported. Existing blocks can be edited and deleted from vault cards and resume blocks. Edits apply across resume versions; changing bullets clears their old tailored rewrites. Deleting a block removes it from all versions. Contact details, skills, and extra sections can also be edited or cleared. Importing blocks, accounts, server sync, and multi-page layout remain out of scope. Overflow is flagged, not paginated.
 - Coverage counts a required skill only when it appears in an on-canvas block’s tags, title, or effective bullets. Mentions that exist only in source notes do not count. Preferred skills appear as badges and are not part of the percentage. Keyword matching treats a small set of aliases as the same skill (for example `k8s` and `kubernetes`).
 - Line count is an estimate used by the space meter, not a guarantee of one printed page. Undo history is kept in memory and cleared when stored state is rehydrated. Search, filters, the job description, and rankings are session state and are not part of undo.
 - Cross-pane drag is pointer-only and only in the two-pane layout. Below 1320px the UI is one column with a Vault/Canvas toggle.

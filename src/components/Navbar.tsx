@@ -2,9 +2,9 @@
 
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type Modifier } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { FileText, Plus, Undo2, Redo2, Download, Pencil, X } from "lucide-react";
+import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
 import { btnExport, fieldBorder, focusRing } from "@/lib/theme";
@@ -28,13 +28,13 @@ interface NavbarProps {
   onRedo: () => void;
   onTemplateChange: (id: TemplateId) => void;
   onExportPdf: () => void;
+  onExportDocx: () => Promise<void>;
 }
 
 export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activePreset,
-  canUndo, canRedo, onPresetChange, onNewDocument, onRenameDocument, onCloseDocument, onReorderDocuments, onUndo, onRedo, onTemplateChange, onExportPdf,
+  canUndo, canRedo, onPresetChange, onNewDocument, onRenameDocument, onCloseDocument, onReorderDocuments, onUndo, onRedo, onTemplateChange, onExportPdf, onExportDocx,
 }: NavbarProps) {
   const tabSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-  const [showExportHelp, setShowExportHelp] = useState(false);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [closingDocument, setClosingDocument] = useState<ResumePreset | null>(null);
   const cancelRename = useRef(false);
@@ -116,20 +116,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           </select>
         </label>
         <SpaceMeter preset={activePreset} vaultBlocks={vaultBlocks} />
-        <div data-export-control className={`relative ml-auto ${!canExport ? "cursor-not-allowed" : ""}`}
-          tabIndex={!canExport ? 0 : undefined}
-          aria-label={!canExport ? "Export PDF unavailable" : undefined}
-          aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
-          onPointerEnter={() => setShowExportHelp(true)} onPointerLeave={() => setShowExportHelp(false)}
-          onFocus={() => setShowExportHelp(true)} onBlur={() => setShowExportHelp(false)}>
-          {!canExport && showExportHelp && <p id="export-space-error" role="tooltip" className="pointer-events-none absolute right-0 top-full z-50 mt-2 w-72 rounded-lg border border-red-100 bg-white px-3 py-2 text-xs text-red-700 shadow-lg">Remove or shorten content to fit one page before exporting.</p>}
-          <button type="button" disabled={!canExport} aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
-            onClick={() => { if (canExport) onExportPdf(); }}
-            title={canExport ? "Open the print dialog, then choose Save as PDF" : undefined}
-            className={btnExport}>
-            <Download size={15} aria-hidden="true" />Export PDF
-          </button>
-        </div>
+        <ExportControl canExport={canExport} onExportPdf={onExportPdf} onExportDocx={onExportDocx} />
       </div>
       {closingDocument && <DeleteDocumentDialog name={closingDocument.name}
         onCancel={() => setClosingDocument(null)}
@@ -163,6 +150,120 @@ function DeleteDocumentDialog({ name, onCancel, onConfirm }: {
   );
 }
 
+
+const EXPORT_MENU_ID = "export-format-menu";
+
+function ExportControl({ canExport, onExportPdf, onExportDocx }: {
+  canExport: boolean;
+  onExportPdf: () => void;
+  onExportDocx: () => Promise<void>;
+}) {
+  const [showExportHelp, setShowExportHelp] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const exporting = useRef(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canExport) menuRef.current?.hidePopover();
+  }, [canExport]);
+
+  const placeMenu = () => {
+    const button = buttonRef.current;
+    const menu = menuRef.current;
+    if (!button || !menu) return;
+    const rect = button.getBoundingClientRect();
+    const width = menu.offsetWidth || 256;
+    const alignRight = Math.max(8, window.innerWidth - rect.right);
+    const left = window.innerWidth - alignRight - width;
+    menu.style.margin = "0";
+    menu.style.position = "fixed";
+    menu.style.inset = "auto";
+    menu.style.top = `${rect.bottom + 8}px`;
+    if (left < 8) {
+      menu.style.left = "8px";
+      menu.style.right = "auto";
+    } else {
+      menu.style.left = "auto";
+      menu.style.right = `${alignRight}px`;
+    }
+  };
+
+  const exportDocx = async () => {
+    if (exporting.current) return;
+    exporting.current = true;
+    menuRef.current?.hidePopover();
+    setExportError(null);
+    try {
+      await onExportDocx();
+    } catch {
+      setExportError("Couldn't create the Word document. Try again.");
+    } finally {
+      exporting.current = false;
+    }
+  };
+
+  const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const next = event.key === "ArrowDown" ? index + 1 : index - 1;
+      items[(next + items.length) % items.length]?.focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      items[0]?.focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      items[items.length - 1]?.focus();
+    }
+  };
+
+  return (
+    <div data-export-control className={`relative ml-auto ${!canExport ? "cursor-not-allowed" : ""}`}
+      tabIndex={!canExport ? 0 : undefined}
+      aria-label={!canExport ? "Export unavailable" : undefined}
+      aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
+      onPointerEnter={() => setShowExportHelp(true)} onPointerLeave={() => setShowExportHelp(false)}
+      onFocus={() => setShowExportHelp(true)} onBlur={() => setShowExportHelp(false)}>
+      {!canExport && showExportHelp && <p id="export-space-error" role="tooltip" className="pointer-events-none absolute right-0 top-full z-50 mt-2 w-72 rounded-lg border border-red-100 bg-white px-3 py-2 text-xs text-red-700 shadow-lg">Remove or shorten content to fit one page before exporting.</p>}
+      <button ref={buttonRef} type="button" disabled={!canExport} popoverTarget={EXPORT_MENU_ID}
+        aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={EXPORT_MENU_ID}
+        aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
+        onClick={() => { if (canExport) placeMenu(); }}
+        className={btnExport}>
+        <Download size={15} aria-hidden="true" />Export<ChevronDown size={14} aria-hidden="true" />
+      </button>
+      <div ref={menuRef} id={EXPORT_MENU_ID} popover="auto" role="menu" aria-label="Export format"
+        onToggle={(event) => {
+          const open = event.newState === "open";
+          setMenuOpen(open);
+          if (!open) return;
+          setExportError(null);
+          placeMenu();
+          event.currentTarget.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+        }}
+        onKeyDown={onMenuKeyDown}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.hidePopover();
+        }}
+        className="w-64 rounded-lg border border-slate-200 bg-white p-1 text-left text-slate-900 shadow-lg print:hidden">
+        <button type="button" role="menuitem" onClick={() => { menuRef.current?.hidePopover(); onExportPdf(); }}
+          className="block w-full rounded-md px-3 py-2 text-left hover:bg-slate-100 focus:bg-slate-100 focus-visible:outline-2 focus-visible:outline-sky-600">
+          <span className="block text-sm font-medium">PDF</span>
+          <span className="block text-xs font-normal text-slate-500">Open the print dialog, then choose Save as PDF</span>
+        </button>
+        <button type="button" role="menuitem" onClick={() => { void exportDocx(); }}
+          className="block w-full rounded-md px-3 py-2 text-left hover:bg-slate-100 focus:bg-slate-100 focus-visible:outline-2 focus-visible:outline-sky-600">
+          <span className="block text-sm font-medium">Word (.docx)</span>
+          <span className="block text-xs font-normal text-slate-500">Download a Word document of this resume</span>
+        </button>
+      </div>
+      {exportError && <p role="alert" className="mt-1 text-right text-xs text-red-700">{exportError}</p>}
+    </div>
+  );
+}
 
 const horizontalOnly: Modifier = ({ transform }) => ({ ...transform, y: 0 });
 

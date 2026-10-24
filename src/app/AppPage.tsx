@@ -791,6 +791,7 @@ export function AppPage() {
               onRedo={redo}
               onTemplateChange={setTemplate}
               onExportPdf={() => window.print()}
+              onExportDocx={() => import("@/lib/exportDocx").then(({ downloadResumeDocx }) => downloadResumeDocx(activePreset, vaultBlocks))}
             />
           }
           leftPane={leftPane}
