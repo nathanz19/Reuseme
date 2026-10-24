@@ -17,11 +17,11 @@
     "node": ">=20.9"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.138",
+    "@ai-sdk/google": "^4.0.105",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "ai": "^6.0.315",
+    "ai": "^7.0.153",
     "lucide-react": "^1.61.0",
     "next": "16.4.3",
     "react": "19.3.0",

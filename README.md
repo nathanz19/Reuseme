@@ -34,4 +34,20 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 - Coverage counts a required skill only when it appears in an on-canvas block’s tags, title, or effective bullets. Mentions that exist only in source notes do not count. Preferred skills appear as badges and are not part of the percentage. Keyword matching treats a small set of aliases as the same skill (for example `k8s` and `kubernetes`).
 - Line count is an estimate used by the space meter, not a guarantee of one printed page. Undo history is kept in memory and cleared when stored state is rehydrated. Search, filters, the job description, and rankings are session state and are not part of undo.
 - Cross-pane drag is pointer-only and only in the two-pane layout. Below 1320px the UI is one column with a Vault/Canvas toggle.
-- Match and tailor calls are specified as `POST /api/jd/match` and `POST /api/blocks/tailor` (Google model, or deterministic fixtures when `MOCK_AI=1`). `/api/jd/match` is implemented (live Gemini call, or the fixture when `MOCK_AI=1`); tailoring still answers from in-app fixtures.
+- JD matching calls `POST /api/jd/match` (live Gemini call, or the fixture when `MOCK_AI=1`).
+- Tailoring calls `POST /api/blocks/tailor` on the server. Live Gemini returns job-focused, technical, and conversational rewrites with source quotes, unsupported skills, and grounding warnings. Accept updates only the active document and is undoable. Job-description analysis/ranking still uses local demo fixtures; `/api/jd/match` is not implemented.
+
+
+## Live tailoring setup
+
+Copy `.env.example` to `.env.local` and set:
+
+```env
+GOOGLE_GENERATIVE_AI_API_KEY=your_private_key
+AI_MODEL=gemini-3.1-flash-lite
+MOCK_AI=0
+```
+
+Use a Gemini text model available to your account. Restart `npm run dev` after changing environment variables. The key is used only on the server; `.env.local` is ignored by Git. Set `MOCK_AI=1` for deterministic tailoring samples without provider calls. Browser tests force mock mode so they do not use your key or quota.
+
+Paste the job description in the JD tab, then choose Tailor on a bullet. Analysis is optional: tailoring uses the current JD text directly. If no JD is supplied, it rewrites the bullet using its existing context. The modal shows loading, errors with retry, original text, evidence, and nonblocking warnings. Closing the dialog cancels the request. A 45-second timeout and explicit quota/configuration errors keep failures actionable. Grounding checks are heuristic warnings, not a guarantee that every claim is supported; review the proposed wording before accepting.
