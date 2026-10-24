@@ -99,15 +99,15 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         </div>
       </nav>
       </DndContext>
-      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-        <div className="flex items-center gap-1 border-r border-slate-200 pr-4">
+      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-emerald-950">
+        <div className="flex items-center gap-1 border-r border-emerald-200 pr-4">
           <IconAction label="Undo" onClick={onUndo} disabled={!canUndo}><Undo2 size={18} aria-hidden="true" /></IconAction>
           <IconAction label="Redo" onClick={onRedo} disabled={!canRedo}><Redo2 size={18} aria-hidden="true" /></IconAction>
         </div>
-        <label className="flex items-center gap-2 text-xs text-slate-500">
+        <label className="flex items-center gap-2 text-xs text-emerald-700">
           Template
           <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
-            aria-label="Template" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700">
+            aria-label="Template" className="rounded-md border border-emerald-200 bg-white px-3 py-1.5 text-sm text-emerald-950 transition-colors hover:border-emerald-300 focus-visible:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
             <option value="classic-ats">Classic ATS</option>
             <option value="modern-tech">Modern Tech</option>
           </select>
@@ -123,7 +123,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           <button type="button" disabled={!canExport} aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
             onClick={() => { if (canExport) onExportPdf(); }}
             title={canExport ? "Open the print dialog, then choose Save as PDF" : undefined}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-900 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-800 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
             <Download size={15} aria-hidden="true" />Export PDF
           </button>
         </div>
