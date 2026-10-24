@@ -11,6 +11,14 @@ beforeEach(() => {
 });
 
 describe("session store", () => {
+  it("starts with the demo JD but allows it to stay cleared", () => {
+    expect(store.getState().jdText).toBe(DEMO_JD_TEXT);
+    store.getState().setJdText("");
+    store.getState().setLeftTab("vault");
+    store.getState().setLeftTab("jd");
+    expect(store.getState().jdText).toBe("");
+  });
+
   it("clears filter values while keeping the search query", () => {
     store.getState().setSearchQuery("engineer");
     store.getState().toggleSection("project");

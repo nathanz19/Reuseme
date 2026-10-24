@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const mock = process.env.MOCK_AI === "1";
   try {
     const result = mock
-      ? TailorModelSchema.parse(createTailorPreview(input.block.id, input.bulletIndex, input.bulletText, input.parsedJD?.roleTitle))
+      ? TailorModelSchema.parse(createTailorPreview(input.block.id, input.bulletIndex, input.bulletText, input.jdText.trim() && input.jdText === input.parsedJD?.rawText ? input.parsedJD.roleTitle : undefined))
       : await generateTailoring(input, AbortSignal.any([request.signal, AbortSignal.timeout(45000)]));
     const effectiveBullets = [...input.block.bullets];
     effectiveBullets[input.bulletIndex] = input.bulletText;

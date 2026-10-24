@@ -80,7 +80,7 @@ export function TailorDialog({ block, proposal, loading, error, mock, originalTe
         </>
       ) : (
         <>
-          <p id="tailor-demo-note" className="mt-4 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">{mock && !loading ? "Sample responses only. Mock mode is enabled." : "AI rewrites use your bullet and source notes. Review the evidence before accepting."}</p>
+          <p id="tailor-demo-note" className="mt-4 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">{mock && !loading ? "Sample responses only. Mock mode is enabled." : "AI rewrites use your bullet and source notes. Review each suggestion before accepting."}</p>
       <div className="mt-4">
           <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Original bullet</h3>
           <p className="mt-2 rounded-lg bg-slate-50 px-3 py-3 text-sm leading-relaxed">{proposal?.originalText ?? originalText}</p>
@@ -105,12 +105,6 @@ export function TailorDialog({ block, proposal, loading, error, mock, originalTe
             </label>;
           })}
         </fieldset>
-        <details className="mt-4 rounded-lg border border-slate-200 p-3 text-xs text-slate-600">
-          <summary className="cursor-pointer font-medium">Supporting evidence</summary>
-          <p className="mt-2 whitespace-pre-wrap">{proposal.sourceQuote ? `“${proposal.sourceQuote}”` : "No supporting quote was returned. Check the original bullet and notes."}</p>
-          <p className="mt-2 whitespace-pre-wrap text-slate-400">{block.sourceContext}</p>
-        </details>
-        {proposal.unsupportedFlags.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{proposal.unsupportedFlags.map((skill) => <span key={skill} className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">Not in your notes: {skill}</span>)}</div>}
         {proposal.warnings.length > 0 && <div className="mt-3 space-y-1">{proposal.warnings.map((warning) => <p key={warning} className="text-xs text-amber-700">{warning === "quote_not_found" ? "The supporting quote was not found in your notes." : warning === "source_quote_missing" ? "No supporting source quote was provided." : warning === "concise_too_long" ? "The conversational option exceeds the suggested short length." : `Check this keyword against your notes: ${warning.replace("keyword_unsupported:", "")}`}</p>)}</div>}
       </>}
         </>

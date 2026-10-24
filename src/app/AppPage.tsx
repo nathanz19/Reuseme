@@ -26,7 +26,6 @@ import { ResumeCanvas } from "@/components/ResumeCanvas";
 import { TailorDialog } from "@/components/TailorDialog";
 import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
-import { DEMO_JD_TEXT } from "@/data/demo-jd";
 import { computeCoverage } from "@/lib/coverage";
 import { resumeDropAnimation } from "@/lib/dropAnimation";
 import { CANVAS_BLOCK_TRANSITION } from "@/lib/sortableLayout";
@@ -192,12 +191,6 @@ export function AppPage() {
   useEffect(() => {
     void rehydrate();
   }, [rehydrate]);
-
-  useEffect(() => {
-    if (!jdText) {
-      setJdText(DEMO_JD_TEXT);
-    }
-  }, [jdText, setJdText]);
 
   const activePreset = useMemo(
     () => presets.find((p) => p.id === activePresetId) ?? presets[0],

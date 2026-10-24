@@ -270,3 +270,20 @@ test("tailoring errors stay in the dialog and can be retried", async ({ page }) 
   await dialog.getByRole("button", { name: "Reject", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
+
+
+test("clearing the JD stays empty and tailoring sends the empty current input", async ({ page }) => {
+  await analyzeDemoJd(page);
+  await page.getByPlaceholder("Paste job description…").fill("");
+  await page.getByRole("button", { name: "Vault", exact: true }).first().click();
+  await page.getByRole("button", { name: "Job Description", exact: true }).click();
+  await expect(page.getByPlaceholder("Paste job description…")).toHaveValue("");
+  const request = page.waitForRequest((request) => request.url().endsWith("/api/blocks/tailor"));
+  await hoverClick(canvasBlock(page, "exp-1"), "Tailor bullet");
+  await confirmTailor(page);
+  expect((await request).postDataJSON().jdText).toBe("");
+  const dialog = page.getByRole("dialog", { name: "Tailor bullet", exact: true });
+  await expect(dialog.getByRole("radio")).toHaveCount(3);
+  await expect(dialog).not.toContainText("Relevant experience for");
+  await dialog.getByRole("button", { name: "Reject", exact: true }).click();
+});
