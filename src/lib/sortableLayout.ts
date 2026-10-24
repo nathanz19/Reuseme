@@ -15,17 +15,29 @@ export function sortableIndexChanged(
   return prevIndex !== -1 && nextIndex !== -1 && prevIndex !== nextIndex;
 }
 
+/** Sibling glide and skeleton slide timing for canvas block reordering. */
+export const CANVAS_BLOCK_TRANSITION = {
+  duration: 200,
+  easing: "cubic-bezier(0.2, 0, 0, 1)",
+};
+
 /**
- * dnd-kit skips layout animation when the active draggable is not in the list
- * (vault → canvas skeleton) and `newIndex` stays equal to `index`. Animate
- * siblings when the skeleton moves up or down in the section.
+ * Forcing `wasDragging` keeps the dragged row animating into its slot after
+ * drop instead of snapping. dnd-kit also skips layout animation when the active
+ * draggable is not in the list (vault → canvas skeleton) and `newIndex` stays
+ * equal to `index`, so animate siblings when that skeleton moves up or down.
  */
 export const canvasBlockAnimateLayoutChanges: AnimateLayoutChanges = (args) => {
-  if (defaultAnimateLayoutChanges(args)) {
+  if (defaultAnimateLayoutChanges({ ...args, wasDragging: true })) {
     return true;
   }
-  const { previousItems, items, id, wasDragging, transition } = args;
+  const { active, previousItems, items, id, wasDragging, transition } = args;
   if (!transition || !wasDragging || previousItems === items) {
+    return false;
+  }
+  // After a canvas reorder the siblings already sit in their new slot visually;
+  // animating from their pre-drag layout would flash them back for a frame.
+  if (!active || items.includes(active.id)) {
     return false;
   }
   return sortableIndexChanged(previousItems, items, id);
