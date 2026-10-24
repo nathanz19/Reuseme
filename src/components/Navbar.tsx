@@ -3,9 +3,11 @@
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type Modifier } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
+import { btnExport, fieldBorder, focusRing } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
@@ -34,6 +36,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
 }: NavbarProps) {
   const tabSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [closingDocument, setClosingDocument] = useState<ResumePreset | null>(null);
   const cancelRename = useRef(false);
   const startRename = (preset: ResumePreset) => {
     cancelRename.current = false;
@@ -41,18 +44,18 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
   };
   const canExport = isWithinLineBudget(activePreset, vaultBlocks);
   return (
-    <header className="z-10 shrink-0 border-b border-slate-200 bg-white text-sm print:hidden">
+    <header className="z-10 shrink-0 border-b border-border bg-surface text-sm shadow-[var(--shadow-soft)] print:hidden">
       <DndContext id="document-tabs" sensors={tabSensors} collisionDetection={closestCenter}
         modifiers={[horizontalOnly]} onDragEnd={({ active, over }) => {
           if (over && active.id !== over.id) onReorderDocuments(String(active.id), String(over.id));
         }}>
-      <nav aria-label="Documents" className="flex items-end gap-2 border-b border-slate-200 bg-slate-100 px-4 pt-3">
+      <nav aria-label="Documents" className="flex items-end gap-2 border-b border-border bg-background px-4 pt-3">
         <div role="tablist" aria-label="Resume documents" className="no-scrollbar flex min-w-0 gap-1 overflow-x-auto">
           <SortableContext items={presets.map((preset) => preset.id)} strategy={horizontalListSortingStrategy}>
           {presets.map((preset, index) => {
             const selected = preset.id === activePresetId;
             return <SortableDocumentTab key={preset.id} id={preset.id} disabled={renaming?.id === preset.id}
-              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-slate-200 border-b-white bg-white text-slate-900 hover:bg-slate-50" : "border-slate-200/70 bg-slate-200/50 text-slate-600 hover:bg-slate-200/90 hover:text-slate-800"}`}>
+              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-border border-b-surface bg-surface text-ink" : "border-border/70 bg-surface-muted/80 text-ink-muted hover:text-ink"}`}>
               <FileText size={15} aria-hidden="true" className="shrink-0" />
               {renaming?.id === preset.id ? (
                 <input aria-label="Document name" value={renaming.name} autoFocus maxLength={120}
@@ -67,7 +70,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
                     if (event.key === "Escape") { cancelRename.current = true; setRenaming(null); }
                   }}
-                  className="my-2 w-36 min-w-0 rounded border border-sky-400 bg-white px-1 py-1 outline-none" />
+                  className={`my-2 w-36 min-w-0 border px-1 py-1 outline-none ${fieldBorder} ${focusRing}`} />
               ) : (
                 <button type="button" role="tab" aria-label={preset.name} aria-selected={selected}
                   tabIndex={selected ? 0 : -1} onClick={() => onPresetChange(preset.id)}
@@ -84,12 +87,12 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                     onPresetChange(presets[next].id);
                     event.currentTarget.closest('[role="tablist"]')?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
                   }}
-                  className={`min-w-0 flex-1 truncate px-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-sky-600 ${selected ? "font-medium" : ""}`}>
+                  className={`min-w-0 flex-1 truncate px-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-focus-ring ${selected ? "font-medium" : ""}`}>
                   {preset.name}
                 </button>
               )}
               <IconAction label={`Rename ${preset.name}`} onClick={() => startRename(preset)} className="bg-transparent!"><Pencil size={13} aria-hidden="true" /></IconAction>
-              <IconAction label={`Close ${preset.name}`} onClick={() => onCloseDocument(preset.id)} className="bg-transparent!"><X size={15} aria-hidden="true" /></IconAction>
+              <IconAction label={`Close ${preset.name}`} onClick={() => setClosingDocument(preset)} className="bg-transparent!"><X size={15} aria-hidden="true" /></IconAction>
             </SortableDocumentTab>;
           })}
           </SortableContext>
@@ -99,15 +102,15 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         </div>
       </nav>
       </DndContext>
-      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-        <div className="flex items-center gap-1 border-r border-slate-200 pr-4">
+      <div role="toolbar" aria-label="Document editing" className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 text-ink">
+        <div className="flex items-center gap-1 border-r border-border pr-4">
           <IconAction label="Undo" onClick={onUndo} disabled={!canUndo}><Undo2 size={18} aria-hidden="true" /></IconAction>
           <IconAction label="Redo" onClick={onRedo} disabled={!canRedo}><Redo2 size={18} aria-hidden="true" /></IconAction>
         </div>
-        <label className="flex items-center gap-2 text-xs text-slate-500">
+        <label className="flex items-center gap-2 text-xs text-accent-text">
           Template
           <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
-            aria-label="Template" className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700">
+            aria-label="Template" className={`px-3 py-1.5 transition-colors hover:border-accent-border ${fieldBorder} ${focusRing}`}>
             <option value="classic-ats">Classic ATS</option>
             <option value="modern-tech">Modern Tech</option>
           </select>
@@ -115,7 +118,35 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         <SpaceMeter preset={activePreset} vaultBlocks={vaultBlocks} />
         <ExportControl canExport={canExport} onExportPdf={onExportPdf} onExportDocx={onExportDocx} />
       </div>
+      {closingDocument && <DeleteDocumentDialog name={closingDocument.name}
+        onCancel={() => setClosingDocument(null)}
+        onConfirm={() => { onCloseDocument(closingDocument.id); setClosingDocument(null); }} />}
     </header>
+  );
+}
+
+function DeleteDocumentDialog({ name, onCancel, onConfirm }: {
+  name: string; onCancel: () => void; onConfirm: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
+  return createPortal(
+    <dialog ref={dialogRef} aria-labelledby="delete-document-title" aria-describedby="delete-document-description"
+      onCancel={onCancel}
+      className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-md rounded-2xl bg-white p-6 text-slate-900 shadow-xl backdrop:bg-black/40 print:hidden">
+      <h2 id="delete-document-title" className="text-lg font-semibold">Delete document?</h2>
+      <p id="delete-document-description" className="mt-3 text-sm text-slate-600">
+        Are you sure you want to delete “{name}”? You can undo this using Undo in the editing toolbar.
+      </p>
+      <div className="mt-6 flex justify-end gap-3">
+        <button type="button" autoFocus onClick={onCancel} className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50">Cancel</button>
+        <button type="button" onClick={onConfirm} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Delete document</button>
+      </div>
+    </dialog>, document.body,
   );
 }
 
@@ -201,7 +232,7 @@ function ExportControl({ canExport, onExportPdf, onExportDocx }: {
         aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={EXPORT_MENU_ID}
         aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
         onClick={() => { if (canExport) placeMenu(); }}
-        className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+        className={btnExport}>
         <Download size={15} aria-hidden="true" />Export<ChevronDown size={14} aria-hidden="true" />
       </button>
       <div ref={menuRef} id={EXPORT_MENU_ID} popover="auto" role="menu" aria-label="Export format"

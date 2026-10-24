@@ -27,6 +27,7 @@ def main() -> None:
             "permission": "deny",
             "user_message": (
                 "Subagents must use composer-2.5 (not composer-2.5-fast). "
+                "Sonnet tier must be claude-sonnet-5-5-high (not Sonnet 4.x). "
                 "Use ESCALATE_SONNET / ESCALATE_OPUS in the Task prompt for tiered models."
             ),
         },

@@ -115,6 +115,12 @@ test("tabs support pencil and double-click renaming, closing, and undo", async (
   await page.reload();
   await expect(page.getByRole("tab", { name: "Final resume", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: "Close Final resume", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Delete document?", exact: true });
+  await expect(confirmation).toContainText("You can undo this");
+  await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Final resume", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close Final resume", exact: true }).click();
+  await confirmation.getByRole("button", { name: "Delete document", exact: true }).click();
   await expect(page.getByRole("tab", { name: "Final resume", exact: true })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Systems Eng", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: "Undo", exact: true }).click();

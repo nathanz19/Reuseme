@@ -67,7 +67,7 @@ test("export downloads a docx of the active resume", async ({ page }) => {
 for (const width of [900, 1440]) {
   test(`PDF contains printed text at viewport width ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await page.goto("/editor");
     const resume = page.locator("#resume-print-root");
     await expect(resume).toBeAttached();
     const name = await resume.locator("h1").innerText();
