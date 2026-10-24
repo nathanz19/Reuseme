@@ -173,6 +173,14 @@ export function canApplyHeaderAndSkills(
   );
 }
 
+/**
+ * An edit is allowed if the result fits the page, or if it does not make an
+ * already over-budget resume any longer (so users can still fix overflow).
+ */
+export function editFitsBudget(before: number, after: number): boolean {
+  return after <= MAX_LINES || after <= before;
+}
+
 export function estimateLineCount(
   preset: ResumePreset,
   vaultBlocks: AccomplishmentBlock[],
@@ -207,6 +215,14 @@ export function estimateLineCount(
   if (hasSkills) {
     const skillsLine = preset.customSkillsSection.join(", ");
     total += Math.ceil(skillsLine.length / cpl);
+  }
+
+  for (const section of preset.additionalSections ?? []) {
+    if (section.content.trim()) {
+      total += 2 + section.content.split("\n").reduce(
+        (lines, line) => lines + Math.max(1, Math.ceil(line.length / cpl)), 0,
+      );
+    }
   }
 
   return total;

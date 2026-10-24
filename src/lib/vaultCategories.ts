@@ -1,6 +1,7 @@
 import type { BlockCategory } from "@/types/resume";
 
 export type VaultCategoryId =
+  | `custom-${string}`
   | "contact"
   | "target-title"
   | "summary"

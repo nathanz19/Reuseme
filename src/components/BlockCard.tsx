@@ -1,7 +1,9 @@
 "use client";
 
+import { BlockActions } from "@/components/BlockActions";
+import { IconAction } from "@/components/IconAction";
 import { useDraggable } from "@dnd-kit/core";
-import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { vaultDraggableId } from "@/lib/dnd";
 import type { AccomplishmentBlock, SemanticRanking } from "@/types/resume";
@@ -34,11 +36,11 @@ export function BlockCard({
   return (
     <article
       ref={setNodeRef}
-      className={`rounded border border-slate-200 bg-white text-sm shadow-sm ${
+      className={`group relative rounded border border-slate-200 bg-white text-sm shadow-sm ${
         isDragging ? "opacity-60" : ""
       }`}
     >
-      <div className="flex items-start gap-2 p-3">
+      <div className="flex items-start gap-2 p-3 pt-10">
         <button
           type="button"
           className="mt-0.5 shrink-0 cursor-grab text-slate-400 disabled:cursor-default disabled:opacity-30"
@@ -98,6 +100,7 @@ export function BlockCard({
           {onResume ? "On resume" : canAdd ? "Add to Resume" : "Cannot fit"}
         </button>
       </div>
+      <div className="resume-hover-control absolute right-2 top-1 print:hidden"><BlockActions block={block} /></div>
       {open && (
         <div className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-xs">
           <p className="whitespace-pre-wrap text-slate-700">{block.sourceContext}</p>
@@ -105,13 +108,9 @@ export function BlockCard({
             {block.bullets.map((bullet, index) => (
               <li key={index} className="flex items-start justify-between gap-2">
                 <span className="text-slate-800">• {bullet}</span>
-                <button
-                  type="button"
-                  className="shrink-0 text-slate-600 underline"
-                  onClick={() => onTailorBullet(index)}
-                >
-                  Tailor
-                </button>
+                <IconAction label="Tailor bullet" className="resume-hover-control print:hidden" onClick={() => onTailorBullet(index)}>
+                  <RefreshCw size={14} aria-hidden="true" />
+                </IconAction>
               </li>
             ))}
           </ul>

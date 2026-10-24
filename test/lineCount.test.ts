@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canInsertBlockOnResume,
+  editFitsBudget,
   estimateLineCount,
   measureCanvasInsertion,
   pickOverflowBlockId,
@@ -9,6 +10,26 @@ import { MAX_LINES } from "@/lib/tunables";
 import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
 
 describe("line count", () => {
+  it("editFitsBudget allows fitting edits and edits that do not grow an overflowing resume", () => {
+    expect(editFitsBudget(MAX_LINES - 5, MAX_LINES)).toBe(true);
+    expect(editFitsBudget(MAX_LINES - 1, MAX_LINES + 1)).toBe(false);
+    expect(editFitsBudget(MAX_LINES + 2, MAX_LINES + 2)).toBe(true);
+    expect(editFitsBudget(MAX_LINES + 2, MAX_LINES + 3)).toBe(false);
+  });
+
+  it("includes custom section headings and wrapped content in the space budget", () => {
+    const preset = SEED_PRESETS[0];
+    const baseline = estimateLineCount(preset, SEED_BLOCKS);
+    const withSections = {
+      ...preset,
+      additionalSections: [
+        { id: "summary", title: "Professional Summary", content: "A".repeat(96) + "\nAnother line" },
+        { id: "custom-empty", title: "Empty", content: "" },
+      ],
+    };
+    expect(estimateLineCount(withSections, SEED_BLOCKS)).toBe(baseline + 5);
+  });
+
   it("flags last block when over budget without rankings", () => {
     const preset = {
       ...SEED_PRESETS[0],

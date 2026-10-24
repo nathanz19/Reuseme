@@ -1,3 +1,5 @@
+import { cleanBlockReferences } from "@/lib/vaultEditing";
+import { useSessionStore } from "@/store/sessionStore";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
@@ -18,9 +20,25 @@ import type {
 } from "@/types/resume";
 import { SECTION_ORDER } from "@/types/resume";
 
+function invalidateBlockSession(blockId: string) {
+  useSessionStore.setState((state) => {
+    const rankings = { ...state.rankings };
+    delete rankings[blockId];
+    return {
+      rankings,
+      rankingsList: state.rankingsList.filter((ranking) => ranking.blockId !== blockId),
+      ...(state.tailorDialog?.blockId === blockId ? {
+        tailorDialog: null, tailorProposal: null, tailorLoading: false,
+      } : {}),
+    };
+  });
+}
+
 interface CanvasSnapshot {
   presets: ResumePreset[];
   activePresetId: string;
+  // Vault blocks are replaced immutably, so holding a reference is safe.
+  vaultBlocks: AccomplishmentBlock[];
 }
 
 function clonePresets(presets: ResumePreset[]): ResumePreset[] {
@@ -30,10 +48,12 @@ function clonePresets(presets: ResumePreset[]): ResumePreset[] {
 function snapshot(state: {
   presets: ResumePreset[];
   activePresetId: string;
+  vaultBlocks: AccomplishmentBlock[];
 }): CanvasSnapshot {
   return {
     presets: clonePresets(state.presets),
     activePresetId: state.activePresetId,
+    vaultBlocks: state.vaultBlocks,
   };
 }
 
@@ -73,6 +93,9 @@ export interface ResumeState {
     bulletIndex: number,
     text: string,
   ) => boolean;
+  updateVaultBlock: (block: AccomplishmentBlock) => void;
+  deleteVaultBlock: (blockId: string) => void;
+  createVaultBlock: (block: AccomplishmentBlock) => void;
   getActivePreset: () => ResumePreset;
 }
 
@@ -89,6 +112,31 @@ export const useResumeStore = create<ResumeState>()(
       rehydrate: async () => {
         await useResumeStore.persist.rehydrate();
         set({ past: [], future: [], _hasHydrated: true });
+      },
+
+      updateVaultBlock: (block) => {
+        const previous = get().vaultBlocks.find((entry) => entry.id === block.id);
+        if (!previous) return;
+        const bulletsChanged = JSON.stringify(previous.bullets) !== JSON.stringify(block.bullets);
+        get().commit((draft) => {
+          draft.vaultBlocks = draft.vaultBlocks.map((entry) => entry.id === block.id ? block : entry);
+          if (bulletsChanged) draft.presets = cleanBlockReferences(draft.presets, block.id, false);
+        });
+        invalidateBlockSession(block.id);
+      },
+
+      deleteVaultBlock: (blockId) => {
+        get().commit((draft) => {
+          draft.vaultBlocks = draft.vaultBlocks.filter((block) => block.id !== blockId);
+          draft.presets = cleanBlockReferences(draft.presets, blockId, true);
+        });
+        invalidateBlockSession(blockId);
+      },
+
+      createVaultBlock: (block) => {
+        get().commit((draft) => {
+          draft.vaultBlocks = [...draft.vaultBlocks, block];
+        });
       },
 
       getActivePreset: () => {
@@ -110,9 +158,11 @@ export const useResumeStore = create<ResumeState>()(
         mutator(draft);
         const afterPresets = draft.presets;
         const afterActive = draft.activePresetId;
+        const afterVault = draft.vaultBlocks;
         if (
           presetsEqual(before.presets, afterPresets) &&
-          before.activePresetId === afterActive
+          before.activePresetId === afterActive &&
+          before.vaultBlocks === afterVault
         ) {
           return;
         }
@@ -121,6 +171,7 @@ export const useResumeStore = create<ResumeState>()(
           return {
             presets: afterPresets,
             activePresetId: afterActive,
+            vaultBlocks: afterVault,
             past,
             future: [],
           };
@@ -128,26 +179,28 @@ export const useResumeStore = create<ResumeState>()(
       },
 
       undo: () => {
-        const { past, future, presets, activePresetId } = get();
+        const { past, future, presets, activePresetId, vaultBlocks } = get();
         if (past.length === 0) return;
         const previous = past[past.length - 1];
-        const current = snapshot({ presets, activePresetId });
+        const current = snapshot({ presets, activePresetId, vaultBlocks });
         set({
           presets: previous.presets,
           activePresetId: previous.activePresetId,
+          vaultBlocks: previous.vaultBlocks,
           past: past.slice(0, -1),
           future: [...future, current],
         });
       },
 
       redo: () => {
-        const { past, future, presets, activePresetId } = get();
+        const { past, future, presets, activePresetId, vaultBlocks } = get();
         if (future.length === 0) return;
         const next = future[future.length - 1];
-        const current = snapshot({ presets, activePresetId });
+        const current = snapshot({ presets, activePresetId, vaultBlocks });
         set({
           presets: next.presets,
           activePresetId: next.activePresetId,
+          vaultBlocks: next.vaultBlocks,
           past: [...past, current],
           future: future.slice(0, -1),
         });

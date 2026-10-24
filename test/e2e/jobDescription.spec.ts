@@ -42,13 +42,13 @@ test("a failed match keeps the previous rankings", async ({ page }) => {
 test("accepting a tailored bullet updates only the canvas and is undoable", async ({
   page,
 }) => {
-  await hoverClick(canvasBlock(page, "proj-4"), "Remove");
+  await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
   await analyzeDemoJd(page);
 
   const block = canvasBlock(page, "exp-1");
   const original = "Built React dashboards consumed by 40k monthly active analysts.";
   await expect(block).toContainText(original);
-  await hoverClick(block, "Tailor");
+  await hoverClick(block, "Tailor bullet");
 
   const dialog = page.getByRole("dialog", { name: "Tailor bullet" });
   await expect(dialog.getByRole("button", { name: "Accept" })).toBeVisible();
@@ -69,7 +69,7 @@ test("rejecting a tailored bullet leaves the canvas unchanged", async ({
 }) => {
   await analyzeDemoJd(page);
   const block = canvasBlock(page, "exp-1");
-  await hoverClick(block, "Tailor");
+  await hoverClick(block, "Tailor bullet");
   const dialog = page.getByRole("dialog", { name: "Tailor bullet" });
   await dialog.getByRole("button", { name: "Reject" }).click();
   await expect(dialog).toHaveCount(0);

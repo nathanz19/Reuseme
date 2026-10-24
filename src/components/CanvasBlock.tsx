@@ -1,9 +1,11 @@
 "use client";
 
+import { BlockActions } from "@/components/BlockActions";
 import { useSortable } from "@dnd-kit/sortable";
 import { canvasBlockAnimateLayoutChanges } from "@/lib/sortableLayout";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { IconAction } from "@/components/IconAction";
+import { GripVertical, RefreshCw } from "lucide-react";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import type { AccomplishmentBlock, ResumePreset } from "@/types/resume";
 
@@ -88,7 +90,7 @@ export function CanvasBlock({
             <GripVertical size={16} />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-sm">
+            <p className="pr-16 font-semibold text-sm print:pr-0">
               {block.title}
               {meta && (
                 <span className="font-normal text-slate-700"> — {meta}</span>
@@ -96,26 +98,16 @@ export function CanvasBlock({
             </p>
             <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
               {bullets.map((bullet, index) => (
-                <li key={index} className="group/bullet relative pr-16">
+                <li key={index} className="group/bullet relative pr-8 print:pr-0">
                   {bullet}
-                  <button
-                    type="button"
-                    className="resume-hover-control absolute right-0 top-0 text-xs text-slate-600 underline print:hidden"
-                    onClick={() => onTailorBullet(index)}
-                  >
-                    Tailor
-                  </button>
+                  <IconAction label="Tailor bullet" className="resume-hover-control absolute right-0 top-0 print:hidden" onClick={() => onTailorBullet(index)}>
+                    <RefreshCw size={14} aria-hidden="true" />
+                  </IconAction>
                 </li>
               ))}
             </ul>
           </div>
-          <button
-            type="button"
-            className="resume-hover-control text-xs text-red-700 underline print:hidden"
-            onClick={onRemove}
-          >
-            Remove
-          </button>
+          <div className="resume-hover-control absolute right-1 top-1 print:hidden">{!placeholder && <BlockActions block={block} onRemove={onRemove} />}</div>
         </div>
       </div>
     </div>

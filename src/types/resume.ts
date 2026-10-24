@@ -24,6 +24,12 @@ export interface AccomplishmentBlock {
   isArchived: boolean;
 }
 
+export interface AdditionalSection {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export interface ResumePreset {
   id: string;
   name: string;
@@ -38,6 +44,7 @@ export interface ResumePreset {
   activeBlockIds: string[];
   bulletOverrides: Record<string, Record<number, string>>;
   customSkillsSection: string[];
+  additionalSections?: AdditionalSection[];
 }
 
 export interface ParsedJobDescription {

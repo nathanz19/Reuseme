@@ -10,6 +10,7 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 
 ### Key Features
 
+- Add your own entries from the Add button beside each vault section. Forms support titles, organizations, dates, descriptions, source notes, tags, and extra fields. Contact details, target title, summary, skills, awards, publications, and custom sections can also be entered. New career blocks are saved to the vault; choose Add to Resume to place them on the canvas. Other details belong to the active resume version.
 - Search and filter a persisted vault of accomplishment blocks by text and tags, with an option to include archived blocks. Each card expands to show the raw source notes.
 - Add, remove, and reorder blocks on a live resume canvas. Blocks land in a fixed section for their category (Education, Experience, Projects, Leadership, Certifications, Skills). Drag-and-drop runs between the vault and the canvas on wide layouts; Add to Resume and Remove work at any width.
 - Switch presets, duplicate the active preset as a new version, and switch between two ATS-style templates (font, accent, and header layout only). Undo and redo apply to canvas changes, including accepted rewrites. Vault blocks stay immutable, so a rewrite for one role does not change another preset.
@@ -28,7 +29,7 @@ Job seekers keep accomplishments as tagged blocks and assemble a role-specific, 
 
 ### Current Scope & Limitations
 
-- The vault ships with 25 fictional blocks. Adding, editing, or importing blocks is out of scope, as are accounts, server sync, multi-page layout, and DOCX export. Overflow is flagged, not paginated.
+- The vault ships with 25 fictional blocks. Adding blocks is supported. Existing blocks can be edited and deleted from vault cards, resume blocks, and forgotten-experience rows. Edits apply across resume versions; changing bullets clears their old tailored rewrites. Deleting a block removes it from all versions. Contact details, skills, and extra sections can also be edited or cleared. Importing blocks, accounts, server sync, multi-page layout, and DOCX export remain out of scope. Overflow is flagged, not paginated.
 - Coverage counts a required skill only when it appears in an on-canvas block’s tags, title, or effective bullets. Mentions that exist only in source notes do not count. Preferred skills appear as badges and are not part of the percentage. Keyword matching treats a small set of aliases as the same skill (for example `k8s` and `kubernetes`).
 - Line count is an estimate used by the space meter, not a guarantee of one printed page. Undo history is kept in memory and cleared when stored state is rehydrated. Search, filters, the job description, and rankings are session state and are not part of undo.
 - Cross-pane drag is pointer-only and only in the two-pane layout. Below 1320px the UI is one column with a Vault/Canvas toggle.

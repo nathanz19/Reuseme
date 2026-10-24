@@ -158,4 +158,42 @@ describe("resume store", () => {
     expect(store.getState().past).toEqual([]);
     expect(store.getState()._hasHydrated).toBe(true);
   });
+
+  describe("vault edits and undo", () => {
+    it("undoes and redoes a vault block deletion", () => {
+      store.getState().deleteVaultBlock("exp-1");
+      expect(store.getState().vaultBlocks.some((b) => b.id === "exp-1")).toBe(false);
+      expect(active().activeBlockIds).not.toContain("exp-1");
+
+      store.getState().undo();
+      expect(store.getState().vaultBlocks.some((b) => b.id === "exp-1")).toBe(true);
+      expect(active().activeBlockIds).toContain("exp-1");
+
+      store.getState().redo();
+      expect(store.getState().vaultBlocks.some((b) => b.id === "exp-1")).toBe(false);
+    });
+
+    it("undoes a vault block edit and restores tailored rewrites", () => {
+      store.getState().commit((d) => {
+        d.presets.find((p) => p.id === d.activePresetId)!.bulletOverrides = {
+          "exp-1": { 0: "Rewrite" },
+        };
+      });
+      const original = store.getState().vaultBlocks.find((b) => b.id === "exp-1")!;
+      store.getState().updateVaultBlock({ ...original, bullets: ["New bullet"] });
+      expect(active().bulletOverrides["exp-1"]).toBeUndefined();
+
+      store.getState().undo();
+      expect(store.getState().vaultBlocks.find((b) => b.id === "exp-1")).toEqual(original);
+      expect(active().bulletOverrides["exp-1"]).toEqual({ 0: "Rewrite" });
+    });
+
+    it("undoes a created vault block", () => {
+      const original = store.getState().vaultBlocks[0];
+      store.getState().createVaultBlock({ ...original, id: "new-1" });
+      expect(store.getState().vaultBlocks.some((b) => b.id === "new-1")).toBe(true);
+      store.getState().undo();
+      expect(store.getState().vaultBlocks.some((b) => b.id === "new-1")).toBe(false);
+    });
+  });
 });
