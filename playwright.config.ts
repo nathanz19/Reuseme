@@ -33,5 +33,6 @@ export default defineConfig({
         timeout: 180_000,
         reuseExistingServer: !process.env.CI,
         stdout: "pipe",
+        env: { MOCK_AI: "1" },
       },
 });

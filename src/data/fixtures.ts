@@ -1,10 +1,17 @@
 import { checkGrounding } from "@/lib/grounding";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
-import { computeKeywordOverlap, computeMatchScore } from "@/lib/matchScore";
+import {
+  computeKeywordOverlap,
+  computeMatchScore,
+  jdSkillsList,
+} from "@/lib/matchScore";
+import { textContainsSkill } from "@/lib/normalize";
 import type {
   AccomplishmentBlock,
+  MatchableBlock,
   ParsedJobDescription,
   SemanticRanking,
+  TagMatch,
   TailoredProposal,
   Tone,
 } from "@/types/resume";
@@ -13,8 +20,12 @@ export const FIXTURE_MATCH_FAIL_TOKEN = "__FIXTURE_MATCH_FAIL__";
 
 export interface MatchVaultResult {
   parsedJD: ParsedJobDescription;
+  tagMatches: TagMatch[];
   rankings: SemanticRanking[];
 }
+
+/** Fixture rule: a card is relevant when its semantic score reaches this. */
+const FIXTURE_RELEVANT_SCORE = 70;
 
 export interface MatchVaultError {
   error: string;
@@ -61,7 +72,7 @@ function parseDemoJd(jdText: string): ParsedJobDescription {
 }
 
 function semanticScoreForBlock(
-  block: AccomplishmentBlock,
+  block: MatchableBlock,
   _parsedJD: ParsedJobDescription,
 ): { score: number; explanation: string } {
   const corpus = [
@@ -130,9 +141,46 @@ function semanticScoreForBlock(
   };
 }
 
+function fixtureTagMatches(
+  parsedJD: ParsedJobDescription,
+  blocks: MatchableBlock[],
+): TagMatch[] {
+  const vaultTags = [...new Set(blocks.flatMap((block) => block.tags))];
+  return jdSkillsList(parsedJD).map((requirement) => ({
+    requirement,
+    tags: vaultTags.filter((tag) => textContainsSkill(tag, requirement)),
+  }));
+}
+
+function fixtureMatchedTags(
+  block: MatchableBlock,
+  skills: string[],
+): string[] {
+  return block.tags.filter((tag) =>
+    skills.some((skill) => textContainsSkill(tag, skill)),
+  );
+}
+
+/** Bullet with the most job-skill hits; the first bullet wins ties. */
+function fixtureBestBulletIndex(
+  block: MatchableBlock,
+  skills: string[],
+): number {
+  let best = 0;
+  let bestHits = -1;
+  block.bullets.forEach((bullet, index) => {
+    const hits = skills.filter((skill) => textContainsSkill(bullet, skill)).length;
+    if (hits > bestHits) {
+      best = index;
+      bestHits = hits;
+    }
+  });
+  return best;
+}
+
 export function matchVault(
   jdText: string,
-  blocks: AccomplishmentBlock[],
+  blocks: MatchableBlock[],
 ): MatchVaultResult | MatchVaultError {
   if (jdText.includes(FIXTURE_MATCH_FAIL_TOKEN)) {
     return { error: "Fixture match failed (simulated API error)." };
@@ -140,6 +188,7 @@ export function matchVault(
 
   const parsedJD = parseDemoJd(jdText);
 
+  const skills = jdSkillsList(parsedJD);
   const rankings: SemanticRanking[] = blocks.map((block) => {
     const { score: semanticScore, explanation } = semanticScoreForBlock(
       block,
@@ -149,7 +198,10 @@ export function matchVault(
     const matchScore = computeMatchScore(semanticScore, keywordOverlap);
     return {
       blockId: block.id,
+      relevant: semanticScore >= FIXTURE_RELEVANT_SCORE,
       semanticScore,
+      matchedTags: fixtureMatchedTags(block, skills),
+      bestBulletIndex: fixtureBestBulletIndex(block, skills),
       matchExplanation: explanation,
       keywordOverlap,
       matchScore,
@@ -158,7 +210,11 @@ export function matchVault(
 
   rankings.sort((a, b) => b.matchScore - a.matchScore);
 
-  return { parsedJD, rankings };
+  return {
+    parsedJD,
+    tagMatches: fixtureTagMatches(parsedJD, blocks),
+    rankings,
+  };
 }
 
 export interface TailorBulletInput {

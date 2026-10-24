@@ -21,4 +21,4 @@ Both seed presets start over the 45-line budget, so on a fresh load every add, h
 
 ### Cursor Cloud specific instructions
 
-The cloud environment is configured in the Cursor dashboard. It must provide Node 20.9+ and run `npx playwright install --with-deps chromium` after `npm ci`. Use the scripts above; no API keys are needed because match and tailor calls use in-app fixtures.
+The cloud environment is configured in the Cursor dashboard. It must provide Node 20.9+ and run `npx playwright install --with-deps chromium` after `npm ci`. Use the scripts above; no API keys are needed. Playwright starts the app with `MOCK_AI=1`, so `/api/jd/match` returns its fixture; tailor calls use in-app fixtures.

@@ -1,185 +1,118 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { collapseWhitespace } from "@/lib/normalize";
-import { diffWords } from "@/lib/textDiff";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Check, X } from "lucide-react";
 import type { AccomplishmentBlock, TailoredProposal, Tone } from "@/types/resume";
 
-const TONE_LABELS: Record<Tone, string> = {
-  technical_ic: "Technical IC",
-  leadership: "Leadership",
-  concise: "Concise",
-};
-
-function warningLabel(code: string): string {
-  if (code === "quote_not_found") return "Quote not found in your notes";
-  if (code === "concise_too_long") return "Concise variant exceeds length limit";
-  if (code.startsWith("keyword_unsupported:")) {
-    return `Keyword unsupported: ${code.split(":")[1] ?? ""}`;
-  }
-  return code;
-}
+const OPTIONS: { tone: Tone; label: string; description: string }[] = [
+  { tone: "leadership", label: "Job-focused", description: "Connect your experience to the target role." },
+  { tone: "technical_ic", label: "Technical", description: "Emphasize execution and how the work was done." },
+  { tone: "concise", label: "Conversational", description: "Say it in a more natural, everyday voice." },
+];
 
 interface TailorDialogProps {
   block: AccomplishmentBlock;
   proposal: TailoredProposal | null;
   loading: boolean;
+  error: string | null;
+  mock: boolean;
+  originalText: string;
+  confirmation?: boolean;
+  onConfirm?: () => void;
+  onRetry: () => void;
   onToneChange: (tone: Tone) => void;
   onAccept: () => void;
   onReject: () => void;
 }
 
-export function TailorDialog({
-  block,
-  proposal,
-  loading,
-  onToneChange,
-  onAccept,
-  onReject,
-}: TailorDialogProps) {
-  if (!proposal && !loading) return null;
-
-  const selectedTone = proposal?.selectedTone ?? "technical_ic";
-  const revised = proposal?.variants[selectedTone] ?? "";
-  const diff = proposal ? diffWords(proposal.originalText, revised) : [];
-
-  const quote = proposal?.sourceQuote ?? "";
-  const ctx = block.sourceContext;
-  const collapsedCtx = collapseWhitespace(ctx);
-  const collapsedQuote = collapseWhitespace(quote);
-  const quoteFound =
-    quote.length > 0 && collapsedCtx.includes(collapsedQuote);
-
-  let highlightedContext = ctx;
-  if (quoteFound && quote) {
-    const idx = collapsedCtx.indexOf(collapsedQuote);
-    if (idx >= 0) {
-      highlightedContext = ctx;
+export function TailorDialog({ block, proposal, loading, error, mock, originalText, confirmation = false, onConfirm, onRetry, onToneChange, onAccept, onReject }: TailorDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [closing, setClosing] = useState(false);
+  const fadeOut = (action: () => void) => {
+    if (closeTimer.current !== null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      action();
+      return;
     }
-  }
+    setClosing(true);
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = null;
+      action();
+      // Keep the dialog usable if Accept is refused by the page-space check.
+      setClosing(false);
+    }, 250);
+  };
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => {
+      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+      dialog?.close();
+    };
+  }, []);
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="tailor-title"
-    >
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl">
-        <h2 id="tailor-title" className="text-lg font-semibold text-emerald-950">
-          Tailor bullet
-        </h2>
-        {loading && <p className="mt-2 text-sm text-slate-600">Loading proposal…</p>}
-        {proposal && (
-          <>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {(Object.keys(TONE_LABELS) as Tone[]).map((tone) => (
-                <button
-                  key={tone}
-                  type="button"
-                  onClick={() => onToneChange(tone)}
-                  className={`rounded border px-2 py-1 text-xs ${
-                    selectedTone === tone
-                      ? "border-emerald-900 bg-emerald-900 text-white hover:bg-emerald-800"
-                      : "border-slate-300 hover:border-emerald-200 hover:bg-emerald-50"
-                  }`}
-                >
-                  {TONE_LABELS[tone]}
-                </button>
-              ))}
-            </div>
-            <div className="mt-3 rounded border border-slate-200 bg-slate-50 p-2 text-sm">
-              {diff.map((part, i) => (
-                <span
-                  key={i}
-                  className={
-                    part.added
-                      ? "bg-emerald-50 text-emerald-700"
-                      : part.removed
-                        ? "line-through bg-red-100"
-                        : ""
-                  }
-                >
-                  {part.text}
-                </span>
-              ))}
-            </div>
-            <div className="mt-3">
-              <p className="text-xs font-medium text-slate-500">Source context</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">
-                {quoteFound && quote
-                  ? highlightQuote(ctx, quote)
-                  : highlightedContext}
-              </p>
-            </div>
-            {proposal.unsupportedFlags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {proposal.unsupportedFlags.map((flag) => (
-                  <span
-                    key={flag}
-                    className="rounded border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs"
-                  >
-                    not in your notes: {flag}
-                  </span>
-                ))}
-              </div>
-            )}
-            {proposal.warnings.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {proposal.warnings.map((w) => (
-                  <span
-                    key={w}
-                    className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-900"
-                  >
-                    {warningLabel(w)}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                className="rounded border border-slate-300 px-3 py-1 text-sm"
-                onClick={onReject}
-              >
-                Reject
-              </button>
-              <button
-                type="button"
-                className="rounded bg-emerald-900 px-3 py-1 text-sm text-white hover:bg-emerald-800"
-                onClick={onAccept}
-              >
-                Accept
-              </button>
-            </div>
-          </>
-        )}
+  return createPortal(
+    <dialog ref={dialogRef} aria-labelledby="tailor-title" aria-describedby="tailor-demo-note"
+      data-closing={closing}
+      onCancel={(event) => { event.preventDefault(); fadeOut(onReject); }}
+      onClick={(event) => { if (event.target === event.currentTarget) fadeOut(onReject); }}
+      onKeyDown={(event) => event.stopPropagation()}
+      className="tailor-dialog fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-xl overflow-y-auto rounded-2xl bg-white p-6 text-emerald-950 shadow-xl backdrop:bg-black/40 print:hidden">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="tailor-title" className="text-lg font-semibold text-emerald-950">Tailor bullet</h2>
+          <p className="mt-1 text-xs text-slate-500">{block.title} · {block.organization}</p>
+        </div>
+        <button type="button" aria-label="Close tailoring" onClick={() => fadeOut(onReject)} disabled={closing} className="rounded-md p-1 text-slate-400 hover:bg-emerald-50 hover:text-emerald-700"><X size={18} /></button>
       </div>
-    </div>
-  );
-}
-
-function highlightQuote(context: string, quote: string): ReactNode {
-  const idx = context.indexOf(quote);
-  if (idx < 0) {
-    const parts = context.split(new RegExp(`(${escapeRegExp(quote)})`, "i"));
-    return parts.map((part, i) =>
-      part.toLowerCase() === quote.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-200">{part}</mark>
+      {confirmation ? (
+        <>
+          <p id="tailor-demo-note" className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Tailoring uses an AI request. Continue only if you want to generate rewrite options for this bullet.
+          </p>
+          <div className="mt-4">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Bullet to tailor</h3>
+            <p className="mt-2 rounded-lg bg-slate-50 px-3 py-3 text-sm leading-relaxed">{originalText}</p>
+          </div>
+        </>
       ) : (
-        part
-      ),
-    );
-  }
-  return (
-    <>
-      {context.slice(0, idx)}
-      <mark className="bg-yellow-200">{quote}</mark>
-      {context.slice(idx + quote.length)}
-    </>
+        <>
+          <p id="tailor-demo-note" className="mt-4 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">{mock && !loading ? "Sample responses only. Mock mode is enabled." : "AI rewrites use your bullet and source notes. Review each suggestion before accepting."}</p>
+      <div className="mt-4">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Original bullet</h3>
+          <p className="mt-2 rounded-lg bg-slate-50 px-3 py-3 text-sm leading-relaxed">{proposal?.originalText ?? originalText}</p>
+        </div>
+      {loading && <p role="status" className="mt-4 animate-pulse text-sm text-slate-500">Writing three rewrite options…</p>}
+      {error && <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p>{error}</p>
+        <button type="button" onClick={onRetry} disabled={closing} className="mt-2 font-medium underline">Try again</button>
+      </div>}
+      {proposal && <>
+        <fieldset disabled={closing} className="mt-5 space-y-2">
+          <legend className="mb-2 text-sm font-medium">Choose a rewrite</legend>
+          {OPTIONS.map(({ tone, label, description }) => {
+            const selected = proposal.selectedTone === tone;
+            return <label key={tone} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors ${selected ? "border-emerald-200 bg-emerald-50" : "border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/50"}`}>
+              <input type="radio" name="tailor-tone" value={tone} checked={selected} onChange={() => onToneChange(tone)} className="mt-1 accent-emerald-700" />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between text-sm font-medium">{label}{selected && <Check size={14} className="text-emerald-700" aria-hidden="true" />}</span>
+                <span className="mt-0.5 block text-xs text-slate-400">{description}</span>
+                <span className="mt-2 block text-sm leading-relaxed text-slate-700">{proposal.variants[tone]}</span>
+              </span>
+            </label>;
+          })}
+        </fieldset>
+        {proposal.warnings.length > 0 && <div className="mt-3 space-y-1">{proposal.warnings.map((warning) => <p key={warning} className="text-xs text-amber-700">{warning === "quote_not_found" ? "The supporting quote was not found in your notes." : warning === "source_quote_missing" ? "No supporting source quote was provided." : warning === "concise_too_long" ? "The conversational option exceeds the suggested short length." : `Check this keyword against your notes: ${warning.replace("keyword_unsupported:", "")}`}</p>)}</div>}
+      </>}
+        </>
+      )}
+      <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4">
+        <button type="button" onClick={() => fadeOut(onReject)} disabled={closing} className="rounded-lg border border-emerald-200 px-4 py-2 text-sm text-slate-600 hover:bg-emerald-50">{confirmation ? "Cancel" : "Reject"}</button>
+        <button type="button" onClick={() => confirmation ? fadeOut(onConfirm ?? onReject) : fadeOut(onAccept)} disabled={closing || (confirmation ? !onConfirm : !proposal || loading)} className="rounded-lg bg-emerald-900 px-4 py-2 text-sm text-white transition-colors hover:bg-emerald-800 disabled:opacity-40">{confirmation ? "Continue" : "Accept"}</button>
+      </div>
+    </dialog>, document.body,
   );
-}
-
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

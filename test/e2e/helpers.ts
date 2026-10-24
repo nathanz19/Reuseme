@@ -27,10 +27,21 @@ export async function hoverClick(block: Locator, name: string, nth = 0) {
 }
 
 export async function analyzeDemoJd(page: Page) {
-  await page.getByRole("button", { name: "Job Description" }).click();
+  await page.getByRole("button", { name: "Job Description", exact: true }).click();
   await expect(page.getByPlaceholder("Paste job description…")).toHaveValue(
     /Nimbus Analytics/,
   );
   await page.getByRole("button", { name: "Analyze & Rank Vault" }).click();
-  await expect(page.getByText("Required skill coverage")).toBeVisible();
+  await expect(page.getByText(/\d+ of \d+ covered/)).toBeVisible();
+}
+
+/** Ranked vault card in the JD tab, located by block id. */
+export function rankedCard(page: Page, blockId: string): Locator {
+  return page.locator(`[data-ranked-block-id="${blockId}"]`);
+}
+
+export async function confirmTailor(page: Page) {
+  await page.getByRole("dialog", { name: "Tailor bullet", exact: true })
+    .getByRole("button", { name: "Continue", exact: true })
+    .click();
 }

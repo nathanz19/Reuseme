@@ -53,14 +53,20 @@ describe("line count", () => {
     const rankings = {
       "exp-1": {
         blockId: "exp-1",
+        relevant: true,
         semanticScore: 50,
+        matchedTags: [],
+        bestBulletIndex: 0,
         matchExplanation: "",
         keywordOverlap: 50,
         matchScore: 50,
       },
       "proj-1": {
         blockId: "proj-1",
+        relevant: true,
         semanticScore: 50,
+        matchedTags: [],
+        bestBulletIndex: 0,
         matchExplanation: "",
         keywordOverlap: 50,
         matchScore: 50,

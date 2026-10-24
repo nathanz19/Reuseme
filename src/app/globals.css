@@ -136,3 +136,111 @@ body.resume-drop-blocked * {
     background: white !important;
   }
 }
+
+
+@keyframes tailor-fade-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tailor-fade-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+
+@keyframes tailor-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tailor-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.tailor-dialog[open] {
+  animation: tailor-fade-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.tailor-dialog[open]::backdrop {
+  animation: tailor-backdrop-in 320ms ease-out both;
+}
+
+.tailor-dialog[data-closing="true"] {
+  animation: tailor-fade-out 240ms ease-in both;
+}
+
+.tailor-dialog[data-closing="true"]::backdrop {
+  animation: tailor-backdrop-out 240ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tailor-dialog[open],
+  .tailor-dialog[open]::backdrop {
+    animation: none;
+  }
+}
+
+
+/* Keep responsive pane layout and animated widths in the same CSS rules. */
+.workspace-sidebar-toggle { display: none; }
+.workspace-layout[data-mobile-pane="canvas"] .workspace-sidebar { display: none; }
+.workspace-layout[data-mobile-pane="vault"] .workspace-canvas { display: none; }
+
+@media (min-width: 1320px) {
+  .workspace-layout { flex-direction: row; }
+  .workspace-pane-switch { display: none; }
+  .workspace-sidebar-toggle { display: flex; }
+  .workspace-layout[data-mobile-pane] .workspace-canvas { display: block; }
+  .workspace-layout[data-mobile-pane] .workspace-sidebar { display: flex; }
+  .workspace-sidebar {
+    flex: 0 0 auto;
+    width: min(480px, 40vw);
+    transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .workspace-sidebar[data-collapsed="true"] {
+    width: 0;
+  }
+  .workspace-sidebar-content {
+    width: min(480px, 40vw);
+    transform: translateX(0);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
+  }
+  .workspace-sidebar[data-collapsed="true"] .workspace-sidebar-content {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-sidebar,
+  .workspace-sidebar-content {
+    transition: none;
+  }
+}
+
+
+/* Reveal the edge handle over either the sidebar or the handle itself. */
+.workspace-sidebar-toggle {
+  transition: opacity 250ms ease-in-out;
+}
+.workspace-sidebar-toggle {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(0, -50%);
+}
+.workspace-sidebar-toggle[data-visible="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .workspace-sidebar-toggle[data-collapsed="false"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(0, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-sidebar-toggle { transition: none; }
+}

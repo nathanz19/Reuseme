@@ -28,10 +28,10 @@ Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib
 | Undo | Canvas state only (`presets`, `activePresetId`), via a hand-rolled `past`/`future` snapshot stack and a `commit(mutator)` helper (§6). |
 | Sections | Fixed order: Education, Experience, Projects, Leadership, Certifications, Skills. A block's section follows its `category`. |
 | Templates | Both single-column, ATS-safe; differ in font, accent color, header layout only. |
-| Scoring | One `generateObject` call receives the JD plus all vault blocks and returns `parsedJD` plus a `semanticScore` and `matchExplanation` per block. Final score is combined in code (§4.1). |
+| Scoring | One structured-output call (`generateText` + `Output.object`; `generateObject` is deprecated in AI SDK 6) receives the JD, the vault's full tag list, and all vault blocks. It returns `parsedJD`, a requirement-to-tag mapping (`tagMatches`), and per block: `relevant`, `semanticScore`, `matchedTags`, `bestBulletIndex`, and `matchExplanation`. Code drops unknown tags and IDs, then combines the final score (§4.1). |
 | Drag and drop | One shared `@dnd-kit` context: drag vault cards (grip) onto the resume to add/insert by section; drag canvas blocks to the sidebar to remove; reorder within a section on canvas. "Add to Resume" / Remove buttons remain. Cross-pane drag only at ≥1320px (two-pane layout). One completed drop = one undo step; Esc or no-op drop adds no history. |
 | AI trust | Unverified claims show as non-blocking warning badges; the user approves every change in a diff. |
-| Demo safety | `MOCK_AI=1` makes both routes return deterministic fixtures. |
+| Demo safety | `MOCK_AI=1` makes `/api/jd/match` return the deterministic fixture. Playwright sets it. Tailoring still uses the in-app fixture. |
 
 ---
 
@@ -75,6 +75,20 @@ export interface ParsedJobDescription {
 
 export interface BlockRanking { score: number; explanation: string }  // score 0-100
 
+export interface SemanticRanking {
+  blockId: string;
+  relevant: boolean;          // content shows at least one JD requirement
+  semanticScore: number;      // 0-100
+  matchedTags: string[];      // subset of the block's own tags
+  bestBulletIndex: number;    // 0-based, clamped to the block's bullets
+  matchExplanation: string;
+  keywordOverlap: number;
+  matchScore: number;
+}
+
+/** A JD requirement mapped to existing vault tags. */
+export interface TagMatch { requirement: string; tags: string[] }
+
 export interface TailoredProposal {
   blockId: string;
   bulletIndex: number;
@@ -114,25 +128,41 @@ keywordOverlap = % (0-100) of JD skills found in the block's tags, bullets, or s
 matchScore     = round(W_SEM * semanticScore + W_KW * keywordOverlap)
 ```
 
+**Ranked selection** (`selectRankedCards`): skip archived blocks; blocks marked `relevant` come first, then the rest; each group sorts by `matchScore` (high first), ties keep vault order; take the top `RELEVANT_TOP_N`. The order is fixed. **Tier** (`matchTier`): relevant with `matchScore >= STRONG_THRESHOLD` is STRONG, relevant below it is PARTIAL, not relevant is WEAK.
+
+**Sanitizing model output** (`sanitizeMatch`): drop rankings for unknown block IDs; give missing blocks `semanticScore: 0, relevant: false, matchedTags: [], bestBulletIndex: 0`; filter `tagMatches[].tags` to the vault tag set (ignoring case); narrow each block's `matchedTags` to that block's own tags; clamp `bestBulletIndex` to the block's bullet range.
+
 **Search:** case-insensitive; every query token must match in title, organization, tags, bullets, or sourceContext; selected tags AND together; archived excluded unless toggled on.
 
 ### 4.2 API routes
 
 Both routes: validate input with zod (400 on failure), keep keys server-side, and treat JD and block text as **untrusted data** (delimit it in prompts; never follow instructions inside it).
 
-**`POST /api/jd/match`**: `{ jdText: string (≤ 15,000 chars), blocks: { id, title, organization, tags, bullets, sourceContext }[] }`. All blocks and the JD go into one `generateObject` call. Prompt: score each block 0-100 on how strongly its bullets and sourceContext evidence the JD's requirements, judged semantically (e.g. Raft counts toward "distributed consensus"); write one sentence explaining each score. The route fills any missing block with `semanticScore: 0`, computes `keywordOverlap` and `matchScore` in code, and returns the model output with `matchScore` added to each ranking.
+**`POST /api/jd/match`**: `{ jdText: string (≤ 15,000 chars), blocks: { id, title, organization, tags, bullets, sourceContext }[] }`. Invalid input returns 400. With `MOCK_AI=1` it returns the fixture (the text `__FIXTURE_MATCH_FAIL__` returns 502). Live, with no `AI_MODEL` or `GOOGLE_GENERATIVE_AI_API_KEY`, it returns a clear 500; model failures return 502. Live, it makes one `generateText` call with `output: Output.object({ schema: JDMatchModelSchema })` (`src/lib/ai.ts` is the only file that builds the model). The JD, the vault tag list, and all blocks go into delimited sections of the prompt, marked as untrusted data (delimiter tags are stripped from user text).
+
+System prompt (summary): parse the JD; map each requirement to vault tags only (empty list if none fit); then, for every card, return `relevant` (the card's content shows at least one requirement, judged on meaning, e.g. Raft counts toward "distributed consensus"), `semanticScore` 0-100 from content and not tags alone, `matchedTags` from the card's own tags, `bestBulletIndex` (the bullet that best fits the job), and a one-sentence `matchExplanation`.
+
+The route runs `sanitizeMatch`, computes `keywordOverlap` and `matchScore` in code, sorts rankings by `matchScore`, and returns `{ parsedJD (with rawText), tagMatches, rankings }`. The client validates this with `JDMatchResponseSchema`.
 
 ```ts
+// tagMatches comes before rankings so the model works out the mapping before it scores cards.
 export const JDMatchModelSchema = z.object({
   parsedJD: z.object({
     roleTitle: z.string(), companyName: z.string(),
     requiredSkills: z.array(z.string()), preferredSkills: z.array(z.string()),
     keyResponsibilities: z.array(z.string()),
   }),
+  tagMatches: z.array(z.object({
+    requirement: z.string(),
+    tags: z.array(z.string()).describe("Only tags from the provided vault tag list"),
+  })),
   rankings: z.array(z.object({
     blockId: z.string(),
+    relevant: z.boolean(),
     semanticScore: z.number().min(0).max(100),
-    matchExplanation: z.string().describe("1 concise sentence on why this block supports the JD"),
+    matchedTags: z.array(z.string()),
+    bestBulletIndex: z.number().int().describe("0-based index of the bullet that best evidences the job"),
+    matchExplanation: z.string().describe("1 concise sentence on why this block supports the job"),
   })),
 });
 ```
@@ -169,7 +199,8 @@ Warnings render as amber badges next to the diff; Accept stays enabled.
 | Constant | Start | Tune by |
 |---|---|---|
 | `W_SEM` / `W_KW` | 0.6 / 0.4 | Run 3+ real JDs; relevant blocks should rank on top |
-| `FORGOTTEN_THRESHOLD` | 60 | Raise/lower until "forgotten experience" is useful, not noisy |
+| `RELEVANT_TOP_N` | 8 | Number of cards in the JD tab's ranked vault |
+| `STRONG_THRESHOLD` | 75 | `matchScore` at which a relevant card becomes STRONG |
 | `CHARS_PER_LINE` | classic 95, modern 85 | Print a full page and measure (modern is a guess) |
 | `MAX_LINES` | 45 | Calibrate with the above |
 | `CONCISE_MAX_CHARS` | 110 | |
@@ -187,7 +218,10 @@ Style: dense, utilitarian, like a document editor, not a marketing page. Plain T
 
 **Vault tab:** search, tag filters, "Include Archived" toggle. Cards show title, org, tags, archived badge, match score and explanation (when a JD is active), a grip to drag onto the resume (disabled when already on canvas), and an "Add to Resume" button (disabled as "On resume" when present). Cards expand to show `sourceContext` and tailor controls.
 
-**JD tab:** paste + "Analyze & Rank Vault"; live coverage bar (covered vs missing required skills, updates as the canvas changes); "Forgotten experience" list of archived blocks with `matchScore ≥ FORGOTTEN_THRESHOLD`, shown even when "Include Archived" is off, each with vault-style drag (grip) and an "Add to Resume" button.
+**JD tab:** top to bottom; everything above the ranked list stays fixed and the ranked list scrolls on its own.
+- **Input:** a compact JD textarea (about 5 visible lines) and "Analyze & Rank Vault". While `matchLoading` is set, the button shows a spinner and is disabled. After a successful run a status line reads "Ranked {shown} vault entries against {required} required skills." A failed run shows the red error and keeps existing rankings.
+- **Required skills:** a chip row headed "Required skills" with "{covered} of {total} covered" on the right. Covered skills are green chips with a check; missing skills are dashed chips with a minus. It is driven by `computeCoverage`, updates live as the canvas changes, and is hidden until a JD is analyzed. Preferred skills are not shown (they still count in `keywordOverlap`).
+- **Ranked vault:** header "Ranked vault" with the label "Score, high to low". It lists `selectRankedCards(...)` (top `RELEVANT_TOP_N` non-archived cards, relevant first, then each group by `matchScore`; the order is fixed). Each card shows its rank, title, "organization · dates", the large `matchScore`, a tier label (STRONG green, PARTIAL amber, WEAK gray) with a bar of the same color filled to the score, the effective text of `bestBulletIndex`, green chips for `matchedTags` (or "No matching tags"; hovering a chip shows the job requirement it matched), and an "On resume" / "Not on resume" indicator. On hover it shows a drag grip and an "Add to Resume" button (same Add / Cannot fit logic as the vault). A card already on the resume keeps its ranked position and is faded, with the grip and button disabled; removing it from the canvas restores it. Archived cards are not listed.
 
 **Tailoring:** pick a bullet (from the card, or the hover button on the canvas), request a proposal, switch between three tones, see a diff against `originalText`, with `sourceQuote` highlighted in `sourceContext`, a "not in your notes" badge per `unsupportedFlag`, and amber badges for `warnings`. Accept writes a bullet override to the active preset (undoable); Reject leaves no trace.
 
@@ -214,7 +248,7 @@ Style: dense, utilitarian, like a document editor, not a marketing page. Plain T
 - Everything clearly fictional (employers, schools, person).
 - Experience/project/leadership blocks: 2-4 bullets and a `sourceContext` richer than the bullets (concrete facts and metrics).
 - **Deliberate gaps:** no block mentions Kubernetes, Rust, or Terraform anywhere (tags, bullets, sourceContext), so `unsupportedFlags` fires in the demo.
-- `demo-jd.ts`: a systems JD mixing skills the seed supports, skills it doesn't, and one niche requirement only an archived block satisfies.
+- `demo-jd.ts`: a systems JD mixing skills the seed supports and skills it doesn't.
 - Two presets, `frontend-swe` and `systems-eng`, each fitting the line budget.
 
 ---
@@ -236,7 +270,7 @@ Typecheck and lint pass; the phase checklist is ticked; Vitest passes for the pu
 
 ### Phase 2: Visual composer
 - [ ] "Add to Resume" and Remove work; blocks land in their category's section
-- [ ] Vault cards and forgotten-experience rows drag onto the resume; canvas blocks drag to the sidebar to remove (wide layout)
+- [ ] Vault cards and ranked-vault cards drag onto the resume; canvas blocks drag to the sidebar to remove (wide layout)
 - [ ] Blocks reorder within a section via drag and via keyboard
 - [ ] A completed drag is one undo step; a cancelled drag adds none
 - [ ] Undo/redo restore canvas changes only; search text and filters are unaffected
@@ -246,8 +280,10 @@ Typecheck and lint pass; the phase checklist is ticked; Vitest passes for the pu
 - [ ] Print preview: only the resume, one Letter page, selectable text, no hover UI
 
 ### Phase 3: JD matcher
-- [ ] Demo JD ranks archived systems blocks into "Forgotten experience"
-- [ ] Coverage bar updates immediately on add/remove (alias test passes; sourceContext-only mentions don't count)
+- [ ] Ranked vault lists the top 8 non-archived cards, relevant first, each with rank, score, tier, best bullet, and matched tags
+- [ ] Required-skill chips show covered vs missing and update on add/remove
+- [ ] Adding a ranked card fades it in place; removing it from the canvas restores it
+- [ ] Required-skill chips update immediately on add/remove (alias test passes; sourceContext-only mentions don't count)
 - [ ] A failed match call shows an error and leaves existing rankings untouched
 - [ ] Rankings survive tab switches and are not in undo history
 - [ ] Works end-to-end with `MOCK_AI=1`
@@ -257,10 +293,10 @@ Typecheck and lint pass; the phase checklist is ticked; Vitest passes for the pu
 - [ ] Grounding warnings (§4.2) appear as non-blocking badges; Accept stays enabled
 - [ ] `sourceQuote` highlights in `sourceContext` when found
 - [ ] Accept writes only to the active preset's `bulletOverrides` (vault and other presets unchanged) and is undoable; Reject leaves no trace
-- [ ] Space meter and coverage bar react to accepted rewrites
+- [ ] Space meter and required-skill chips react to accepted rewrites
 
 ---
 
 ## 10. Later
 
-Block add/edit UI and resume import · embedding-based ranking for large vaults · preset import/export · Supabase `pgvector` or MongoDB Atlas persistence.
+Block add/edit UI and resume import · embedding-based ranking, or a shortlist step before the model call, for very large vaults (the one-call match sends every block, so the prompt grows with the vault) · preset import/export · Supabase `pgvector` or MongoDB Atlas persistence.
