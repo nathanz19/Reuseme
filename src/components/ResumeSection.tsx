@@ -7,24 +7,32 @@ import { sectionDroppableId } from "@/lib/dnd";
 import type { AccomplishmentBlock, BlockCategory, ResumePreset } from "@/types/resume";
 import { SECTION_LABELS } from "@/types/resume";
 
+export interface SectionItem {
+  id: string;
+  block: AccomplishmentBlock;
+  placeholder: boolean;
+}
+
 interface ResumeSectionProps {
   category: BlockCategory;
-  blocks: AccomplishmentBlock[];
+  items: SectionItem[];
   preset: ResumePreset;
   overflowBlockId: string | null;
   showEmptyDropSlot: boolean;
   highlighted: boolean;
+  dropBlocked: boolean;
   onRemove: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
 }
 
 export function ResumeSection({
   category,
-  blocks,
+  items,
   preset,
   overflowBlockId,
   showEmptyDropSlot,
   highlighted,
+  dropBlocked,
   onRemove,
   onTailorBullet,
 }: ResumeSectionProps) {
@@ -33,15 +41,20 @@ export function ResumeSection({
     data: { category },
   });
 
-  const showSlot = showEmptyDropSlot && blocks.length === 0;
-  if (blocks.length === 0 && !showSlot) return null;
+  const showSlot = showEmptyDropSlot && items.length === 0 && !dropBlocked;
+  const showBlocked = dropBlocked && showEmptyDropSlot && items.length === 0;
+  if (items.length === 0 && !showSlot && !showBlocked) return null;
 
-  const ringActive = highlighted || isOver;
+  const ringClass = dropBlocked && (highlighted || isOver)
+    ? "bg-red-50/70 ring-2 ring-inset ring-red-400"
+    : highlighted || isOver
+      ? "bg-sky-50/80 ring-2 ring-inset ring-sky-300"
+      : "";
 
   return (
     <section
       ref={setNodeRef}
-      className={`mb-4 rounded-sm ${ringActive ? "bg-sky-50/80 ring-2 ring-inset ring-sky-300" : ""}`}
+      className={`mb-4 rounded-sm ${ringClass}`}
     >
       <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">
         {SECTION_LABELS[category]}
@@ -54,19 +67,26 @@ export function ResumeSection({
           Drop here
         </div>
       )}
-      {blocks.length > 0 && (
+      {showBlocked && (
+        <p className="mb-3 rounded border border-dashed border-red-300 bg-red-50 px-2 py-3 text-center text-xs text-red-700 print:hidden">
+          Not enough space on the page
+        </p>
+      )}
+      {items.length > 0 && (
         <SortableContext
-          items={blocks.map((b) => b.id)}
+          items={items.map((item) => item.id)}
           strategy={verticalListSortingStrategy}
         >
-          {blocks.map((block) => (
+          {items.map((item) => (
             <CanvasBlock
-              key={block.id}
-              block={block}
+              key={item.id}
+              block={item.block}
               preset={preset}
-              overflow={overflowBlockId === block.id}
-              onRemove={() => onRemove(block.id)}
-              onTailorBullet={(index) => onTailorBullet(block.id, index)}
+              sortableId={item.id}
+              placeholder={item.placeholder}
+              overflow={!item.placeholder && overflowBlockId === item.block.id}
+              onRemove={() => onRemove(item.block.id)}
+              onTailorBullet={(index) => onTailorBullet(item.block.id, index)}
             />
           ))}
         </SortableContext>
