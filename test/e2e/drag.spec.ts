@@ -1,6 +1,41 @@
 import { expect, test } from "@playwright/test";
 import { canvasBlock, hoverClick, openApp, vaultCard } from "./helpers";
 
+test("vault drag outlines the valid section and the skeleton follows the pointer", async ({ page }) => {
+  await openApp(page);
+  for (const id of ["cert-3", "proj-4", "lead-4"]) {
+    await hoverClick(canvasBlock(page, id), "Remove from resume");
+  }
+  const grip = vaultCard(page, "Backend Engineer").getByRole("button", { name: "Drag to resume" });
+  // A scrolled vault list used to offset the skeleton from the pointer.
+  await grip.scrollIntoViewIfNeeded();
+  const last = canvasBlock(page, "exp-3");
+  await last.scrollIntoViewIfNeeded();
+  const gripBox = (await grip.boundingBox())!;
+  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(gripBox.x + 20, gripBox.y + 4, { steps: 4 });
+
+  const targets = page.locator(".resume-drop-target");
+  await expect(targets).toHaveCount(1);
+  await expect(targets).toContainText("Experience");
+
+  const lastBox = (await last.boundingBox())!;
+  await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height - 8, { steps: 20 });
+  const placeholder = page.locator(".resume-drop-placeholder");
+  await expect(placeholder).toHaveCount(1);
+  await expect
+    .poll(() => placeholder.evaluate((el) => el.nextElementSibling === null))
+    .toBe(true);
+
+  await page.mouse.up();
+  await expect(targets).toHaveCount(0);
+  const experienceIds = await page
+    .locator('[data-canvas-block-id^="exp-"]')
+    .evaluateAll((blocks) => blocks.map((block) => block.getAttribute("data-canvas-block-id")));
+  expect(experienceIds).toEqual(["exp-1", "exp-3", "exp-2"]);
+});
+
 test("vault placeholder stays stable near a block midpoint without crashing", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));

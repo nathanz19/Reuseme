@@ -173,16 +173,27 @@ export function CanvasBlock({
 export function CanvasBlockOverlay({
   block,
   preset,
+  width,
+  blocked = false,
 }: {
   block: AccomplishmentBlock;
   preset: ResumePreset;
+  /** Canvas block width in px; defaults to the dragged node's width. */
+  width?: number;
+  blocked?: boolean;
 }) {
   return (
     <div
-      className={`w-full cursor-grabbing rounded border border-slate-300 bg-white p-2 shadow-xl ring-1 ring-slate-900/5 ${resumeTemplateClass(
-        preset.templateId,
-      )}`}
+      style={width ? { width } : undefined}
+      className={`w-full rounded border bg-white p-2 shadow-xl ring-1 ring-slate-900/5 ${
+        blocked ? "cursor-not-allowed border-red-500" : "cursor-grabbing border-slate-300"
+      } ${resumeTemplateClass(preset.templateId)}`}
     >
+      {blocked && (
+        <p className="mb-1 text-xs font-medium text-red-700">
+          Not enough space on the page
+        </p>
+      )}
       <CanvasBlockBody
         block={block}
         preset={preset}

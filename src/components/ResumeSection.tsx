@@ -21,6 +21,8 @@ interface ResumeSectionProps {
   overflowBlockId: string | null;
   showEmptyDropSlot: boolean;
   highlighted: boolean;
+  /** The dragged vault block fits here; outline the section as a valid drop area. */
+  dropTarget: boolean;
   dropBlocked: boolean;
   onRemove: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
@@ -33,6 +35,7 @@ export function ResumeSection({
   overflowBlockId,
   showEmptyDropSlot,
   highlighted,
+  dropTarget,
   dropBlocked,
   onRemove,
   onTailorBullet,
@@ -56,14 +59,14 @@ export function ResumeSection({
 
   const ringClass = dropBlocked && (highlighted || isOver)
     ? "bg-red-50/70 ring-2 ring-inset ring-red-400"
-    : highlighted || isOver
-      ? "bg-sky-50/80 ring-2 ring-inset ring-sky-300"
+    : dropTarget
+      ? "resume-drop-target outline-2 outline-offset-4 outline-dashed outline-emerald-500/70 print:outline-none"
       : "";
 
   return (
     <section
       ref={setNodeRef}
-      className={`mb-4 rounded-sm ${ringClass}`}
+      className={`mb-4 rounded-sm transition-[outline-color] duration-200 ${ringClass}`}
     >
       <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">
         {SECTION_LABELS[category]}

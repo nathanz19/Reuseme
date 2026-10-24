@@ -51,6 +51,8 @@ interface ResumeCanvasProps {
   rankings: Record<string, SemanticRanking>;
   vaultDragCategory: BlockCategory | null;
   highlightedSection: BlockCategory | null;
+  /** Section a vault block being dragged can be dropped into. */
+  dropTargetSection: BlockCategory | null;
   placeholder: CanvasPlaceholder | null;
   dropBlocked: boolean;
   onRemove: (blockId: string) => void;
@@ -63,6 +65,7 @@ export function ResumeCanvas({
   rankings,
   vaultDragCategory,
   highlightedSection,
+  dropTargetSection,
   placeholder,
   dropBlocked,
   onRemove,
@@ -140,6 +143,7 @@ export function ResumeCanvas({
           overflowBlockId={overflowBlockId}
           showEmptyDropSlot={vaultDragCategory === category}
           highlighted={highlightedSection === category}
+          dropTarget={dropTargetSection === category}
           dropBlocked={dropBlocked}
           onRemove={onRemove}
           onTailorBullet={onTailorBullet}
