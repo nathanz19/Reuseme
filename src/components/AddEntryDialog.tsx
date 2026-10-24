@@ -7,6 +7,7 @@ import type { AccomplishmentBlock, ResumePreset } from "@/types/resume";
 import type { VaultCategory } from "@/lib/vaultCategories";
 import { editFitsBudget, estimateLineCount } from "@/lib/lineCount";
 import { cleanBlockReferences } from "@/lib/vaultEditing";
+import { btnPrimary, btnSecondary } from "@/lib/theme";
 
 interface AddEntryDialogProps {
   category: VaultCategory;
@@ -153,8 +154,8 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
           <p className="text-xs text-slate-500">{category.kind === "blocks" ? (block ? "Editing this shared vault entry updates every resume that uses it. Changing description bullets clears its tailored rewrites in all versions." : "Saved to your vault. Choose Add to Resume on the new card when you're ready.") : "Saved to your current resume version."}</p>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded border border-slate-300 px-4 py-2 text-sm">Cancel</button>
-          <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm text-white transition-colors hover:bg-primary-hover">Save</button>
+          <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>
+          <button type="submit" className={btnPrimary}>Save</button>
         </div>
       </form>
     </dialog>,

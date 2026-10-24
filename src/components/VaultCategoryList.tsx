@@ -158,7 +158,7 @@ export function VaultCategoryList({
           />
         );
       })}
-      <button type="button" className="m-3 rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"
+      <button type="button" className="m-3 rounded-lg border border-accent-border px-3 py-2 text-sm font-medium text-accent-text transition-colors hover:bg-accent-subtle"
         onClick={() => { setEditing(false); setEntryCategory({ id: `custom-${crypto.randomUUID()}`, label: "Custom Section", kind: "placeholder" }); }}>
         + Add section
       </button>

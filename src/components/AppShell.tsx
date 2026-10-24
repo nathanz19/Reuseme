@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { VAULT_DROP_ID } from "@/lib/dnd";
+import { tabActive } from "@/lib/theme";
 
 const wideQuery = "(min-width: 1320px)";
 function subscribeToWidth(callback: () => void) {
@@ -52,7 +53,7 @@ export function AppShell({
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
-              mobilePane === "vault" ? "border-b-2 border-ink font-medium text-ink" : ""
+              mobilePane === "vault" ? tabActive : ""
             }`}
             onClick={() => onMobilePaneChange("vault")}
           >
@@ -61,7 +62,7 @@ export function AppShell({
           <button
             type="button"
             className={`flex-1 px-3 py-2 ${
-              mobilePane === "canvas" ? "border-b-2 border-ink font-medium text-ink" : ""
+              mobilePane === "canvas" ? tabActive : ""
             }`}
             onClick={() => onMobilePaneChange("canvas")}
           >

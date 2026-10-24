@@ -3,6 +3,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Check, GripVertical } from "lucide-react";
 import { vaultDraggableId } from "@/lib/dnd";
+import { btnOutlineSm } from "@/lib/theme";
 import { matchTier, requirementsForTag, type MatchTier } from "@/lib/relevance";
 import type {
   AccomplishmentBlock,
@@ -147,7 +148,7 @@ export function RankedVaultCard({
                   ? "Adding this block would exceed the one-page line budget"
                   : undefined
               }
-              className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-500"
+              className={btnOutlineSm}
             >
               {canAdd || onResume ? "Add to Resume" : "Cannot fit"}
             </button>

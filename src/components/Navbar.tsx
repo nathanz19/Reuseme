@@ -6,7 +6,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
-import { btnPrimary, fieldBorder, focusRing } from "@/lib/theme";
+import { btnExport, fieldBorder, focusRing } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
@@ -53,7 +53,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           {presets.map((preset, index) => {
             const selected = preset.id === activePresetId;
             return <SortableDocumentTab key={preset.id} id={preset.id} disabled={renaming?.id === preset.id}
-              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-border border-b-surface bg-surface text-ink hover:bg-accent-subtle/60" : "border-border/70 bg-surface-muted/80 text-ink-muted hover:bg-surface-muted hover:text-ink"}`}>
+              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-border border-b-surface bg-surface text-ink" : "border-border/70 bg-surface-muted/80 text-ink-muted hover:text-ink"}`}>
               <FileText size={15} aria-hidden="true" className="shrink-0" />
               {renaming?.id === preset.id ? (
                 <input aria-label="Document name" value={renaming.name} autoFocus maxLength={120}
@@ -124,7 +124,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           <button type="button" disabled={!canExport} aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
             onClick={() => { if (canExport) onExportPdf(); }}
             title={canExport ? "Open the print dialog, then choose Save as PDF" : undefined}
-            className={`inline-flex items-center gap-2 ${btnPrimary}`}>
+            className={`inline-flex items-center gap-2 ${btnExport}`}>
             <Download size={15} aria-hidden="true" />Export PDF
           </button>
         </div>

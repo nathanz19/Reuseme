@@ -12,14 +12,16 @@
   --border-strong: #d4d1c8;
   --ink: #141414;
   --ink-muted: #5c5a54;
-  --primary: #171717;
-  --primary-hover: #2a2a2a;
-  --accent: #1e3a5f;
-  --accent-hover: #234876;
-  --accent-subtle: #eef2f7;
-  --accent-border: #c5d0de;
-  --accent-text: #1e3a5f;
-  --focus-ring: #2563eb;
+  /* Sage green from the editorial template (center glass / shelf accents) */
+  --accent: #526141;
+  --accent-hover: #455237;
+  --accent-vivid: #748a5a;
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --accent-subtle: #e9efe4;
+  --accent-border: #c5d4be;
+  --accent-text: #47523c;
+  --focus-ring: #526141;
 }
 
 @theme inline {
@@ -35,6 +37,7 @@
   --color-primary-hover: var(--primary-hover);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-accent-vivid: var(--accent-vivid);
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-border: var(--accent-border);
   --color-accent-text: var(--accent-text);
