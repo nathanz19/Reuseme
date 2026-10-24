@@ -64,12 +64,18 @@ test("presets, templates, and new versions switch the canvas", async ({
 });
 
 test("header edits update the resume", async ({ page }) => {
-  // Any canvas change is refused while the seed preset is over budget.
+  // Make room before exercising the contact editor.
   await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
   const root = page.locator("#resume-print-root");
-  await root.getByRole("button", { name: "Edit Contact Information" }).click({ force: true });
-  await page.getByLabel("Full name").fill("Ada Lovelace");
-  await page.getByRole("button", { name: "Save" }).click();
+  await root.locator("header").hover();
+  await root.getByRole("button", { name: "Edit Contact Information" }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit Contact Information" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Full name").fill("Ada Lovelace");
+  // The modal must remain clickable after the pointer leaves the header controls.
+  await page.mouse.move(5, 5);
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
   await expect(root.getByRole("heading", { level: 1 })).toHaveText(
     "Ada Lovelace",
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useResumeStore } from "@/store/resumeStore";
 import type { AccomplishmentBlock } from "@/types/resume";
 import type { VaultCategory } from "@/lib/vaultCategories";
@@ -37,7 +38,7 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
     </label>
   );
 
-  return (
+  return createPortal(
     <dialog ref={dialogRef} onCancel={onClose}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
       onKeyDown={(event) => event.stopPropagation()}
@@ -132,6 +133,7 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
           <button type="submit" className="rounded bg-slate-900 px-4 py-2 text-sm text-white">Save</button>
         </div>
       </form>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
