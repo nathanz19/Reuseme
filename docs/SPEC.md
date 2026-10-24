@@ -310,7 +310,7 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 ### Phase 2: Visual composer
 - [ ] "Add to Resume" and Remove work; blocks land in their category's section; over-budget adds show Cannot fit and do not change the canvas
 - [ ] Vault cards and ranked-vault cards drag onto the resume; canvas blocks drag to the sidebar to remove (wide layout)
-- [ ] A fitting vault drag shows a skeleton in the target section and a dashed outline; an empty section does not show a "Drop here" box; an over-budget drag is refused
+- [ ] A fitting vault drag shows a skeleton in the target section and a dashed outline; an empty target section shows its heading; an over-budget drag is refused
 - [ ] Blocks reorder within a section via drag and via keyboard
 - [ ] A completed drag is one undo step; a cancelled drag adds none
 - [ ] Undo/redo restore document and vault changes; search text, filters, and rankings are unaffected
