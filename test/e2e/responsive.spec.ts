@@ -44,7 +44,7 @@ test("wide sidebar slides closed and reopens without losing the job description"
 
 test("sidebar handle reveals when hovering the full-height edge column", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto("/editor");
   const hitzone = page.locator(".workspace-sidebar-toggle-hitzone");
   const handle = page.locator(".workspace-sidebar-toggle");
   await page.mouse.move(1200, 200);
