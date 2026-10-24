@@ -74,21 +74,69 @@ export function activeBlockIdsAfterInsert(
   return next;
 }
 
-export function canInsertBlockOnResume(
+export interface CanvasHeightCheck {
+  /** Estimated lines already on the page, before this drop. */
+  currentCanvasHeight: number;
+  /** Extra estimated lines the dragged block would add. Zero when reordering. */
+  draggedBlockHeight: number;
+  /** One-page budget (`MAX_LINES`), calibrated to the US Letter canvas. */
+  maxCanvasHeight: number;
+  fits: boolean;
+}
+
+/**
+ * Vertical space check for inserting a vault block.
+ * Heights are estimated lines, which is the page limit this canvas enforces
+ * (`MAX_LINES` for a US Letter page). Order does not change the total.
+ * Reordering a block that is already on the canvas is not an insertion.
+ */
+export function measureCanvasInsertion(
   preset: ResumePreset,
   vaultBlocks: AccomplishmentBlock[],
   blockId: string,
   beforeBlockId: string | null = null,
-): boolean {
+): CanvasHeightCheck {
+  const currentCanvasHeight = estimateLineCount(preset, vaultBlocks);
+  const maxCanvasHeight = MAX_LINES;
   const nextIds = activeBlockIdsAfterInsert(
     preset,
     vaultBlocks,
     blockId,
     beforeBlockId,
   );
-  if (!nextIds) return false;
-  const simulated: ResumePreset = { ...preset, activeBlockIds: nextIds };
-  return estimateLineCount(simulated, vaultBlocks) <= MAX_LINES;
+  if (!nextIds) {
+    return {
+      currentCanvasHeight,
+      draggedBlockHeight: 0,
+      maxCanvasHeight,
+      fits: false,
+    };
+  }
+  const nextHeight = estimateLineCount(
+    { ...preset, activeBlockIds: nextIds },
+    vaultBlocks,
+  );
+  const draggedBlockHeight = nextHeight - currentCanvasHeight;
+  return {
+    currentCanvasHeight,
+    draggedBlockHeight,
+    maxCanvasHeight,
+    fits: currentCanvasHeight + draggedBlockHeight <= maxCanvasHeight,
+  };
+}
+
+export function canInsertBlockOnResume(
+  preset: ResumePreset,
+  vaultBlocks: AccomplishmentBlock[],
+  blockId: string,
+  beforeBlockId: string | null = null,
+): boolean {
+  return measureCanvasInsertion(
+    preset,
+    vaultBlocks,
+    blockId,
+    beforeBlockId,
+  ).fits;
 }
 
 export function canApplyTailorOverride(

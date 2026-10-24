@@ -27,8 +27,8 @@ export function BlockCard({
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: vaultDraggableId(block.id),
-    data: { origin: "vault", blockId: block.id },
-    disabled: onResume || !canAdd,
+    data: { origin: "vault", blockId: block.id, category: block.category },
+    disabled: onResume,
   });
 
   return (
@@ -42,7 +42,7 @@ export function BlockCard({
         <button
           type="button"
           className="mt-0.5 shrink-0 cursor-grab text-slate-400 disabled:cursor-default disabled:opacity-30"
-          disabled={onResume || !canAdd}
+          disabled={onResume}
           aria-label="Drag to resume"
           {...attributes}
           {...listeners}

@@ -12,8 +12,12 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { canApplyHeaderAndSkills, canInsertBlockOnResume } from "@/lib/lineCount";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  canApplyHeaderAndSkills,
+  canInsertBlockOnResume,
+  measureCanvasInsertion,
+} from "@/lib/lineCount";
 import { AppShell } from "@/components/AppShell";
 import { JDPanel } from "@/components/JDPanel";
 import { Navbar } from "@/components/Navbar";
@@ -27,18 +31,91 @@ import { computeCoverage } from "@/lib/coverage";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import { collectAllTags, searchBlocks } from "@/lib/search";
 import {
+  type CanvasPlaceholder,
   type DragItemData,
   RESUME_DROP_ID,
   VAULT_DROP_ID,
+  dragPointerY,
+  insertionBeforeBlockId,
+  isResumeDropTarget,
+  parsePlaceholderId,
   parseSectionDroppableId,
   parseVaultDraggableId,
+  placeholderId,
   resumeDropCollision,
   DND_CONTEXT_ID,
 } from "@/lib/dnd";
 import { FORGOTTEN_THRESHOLD } from "@/lib/tunables";
-import type { AccomplishmentBlock, BlockCategory } from "@/types/resume";
+import type {
+  AccomplishmentBlock,
+  BlockCategory,
+  ResumePreset,
+} from "@/types/resume";
 import { useResumeStore } from "@/store/resumeStore";
 import { useSessionStore } from "@/store/sessionStore";
+
+const SPACE_LIMIT_MESSAGE =
+  "That change would exceed the one-page line budget (45 estimated lines on US Letter).";
+
+function placeholdersEqual(
+  a: CanvasPlaceholder | null,
+  b: CanvasPlaceholder | null,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.id === b.id &&
+    a.blockId === b.blockId &&
+    a.category === b.category &&
+    a.beforeBlockId === b.beforeBlockId
+  );
+}
+
+function readBlockRects(ids: readonly string[]) {
+  const rects: { id: string; top: number; height: number }[] = [];
+  for (const id of ids) {
+    const el = document.querySelector(
+      `[data-canvas-block-id="${CSS.escape(id)}"]`,
+    );
+    if (!(el instanceof HTMLElement)) continue;
+    const rect = el.getBoundingClientRect();
+    rects.push({ id, top: rect.top, height: rect.height });
+  }
+  return rects;
+}
+
+function DragPreview({
+  block,
+  preset,
+  blocked,
+}: {
+  block: AccomplishmentBlock;
+  preset: ResumePreset;
+  blocked: boolean;
+}) {
+  const bullets = getEffectiveBullets(block, preset).slice(0, 3);
+  return (
+    <div
+      className={`w-[min(360px,70vw)] rounded border bg-white p-2 text-sm shadow-lg ${
+        blocked ? "cursor-not-allowed border-red-500" : "border-slate-400"
+      }`}
+    >
+      <p className="font-semibold">{block.title}</p>
+      <p className="text-xs text-slate-600">{block.organization}</p>
+      {blocked ? (
+        <p className="mt-1 text-xs font-medium text-red-700">
+          Not enough space on the page
+        </p>
+      ) : (
+        <ul className="mt-1 list-disc pl-4 text-xs text-slate-800">
+          {bullets.map((bullet, index) => (
+            <li key={index}>{bullet}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function highlightedVaultSection(
   activeDrag: DragItemData | null,
@@ -48,7 +125,9 @@ function highlightedVaultSection(
   if (!activeDrag || activeDrag.origin !== "vault" || !overId) return null;
   const dragged = vaultBlocks.find((b) => b.id === activeDrag.blockId);
   if (!dragged) return null;
-  if (overId === RESUME_DROP_ID) return dragged.category;
+  if (overId === RESUME_DROP_ID || parsePlaceholderId(overId)) {
+    return dragged.category;
+  }
   const sectionCat = parseSectionDroppableId(overId);
   if (sectionCat === dragged.category) return sectionCat;
   const overBlock = vaultBlocks.find((b) => b.id === overId);
@@ -153,6 +232,10 @@ export function AppPage() {
   const [activeDrag, setActiveDrag] = useState<DragItemData | null>(null);
   const [spaceWarning, setSpaceWarning] = useState<string | null>(null);
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
+  const [placeholder, setPlaceholder] = useState<CanvasPlaceholder | null>(null);
+  const [dropBlocked, setDropBlocked] = useState(false);
+  const placeholderRef = useRef<CanvasPlaceholder | null>(null);
+  const dropBlockedRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -176,15 +259,31 @@ export function AppPage() {
     return vaultBlocks.find((b) => b.id === activeDrag.blockId);
   }, [activeDrag, vaultBlocks]);
 
+  const assignPlaceholder = useCallback((next: CanvasPlaceholder | null) => {
+    placeholderRef.current = next;
+    setPlaceholder((prev) => (placeholdersEqual(prev, next) ? prev : next));
+  }, []);
+
+  const assignDropBlocked = useCallback((next: boolean) => {
+    dropBlockedRef.current = next;
+    setDropBlocked((prev) => (prev === next ? prev : next));
+  }, []);
+
   const clearDragState = useCallback(() => {
     setActiveDrag(null);
     setOverTargetId(null);
-  }, []);
+    assignPlaceholder(null);
+    assignDropBlocked(false);
+  }, [assignPlaceholder, assignDropBlocked]);
+
+  useEffect(() => {
+    if (!dropBlocked) return;
+    document.body.classList.add("resume-drop-blocked");
+    return () => document.body.classList.remove("resume-drop-blocked");
+  }, [dropBlocked]);
 
   const flashSpaceWarning = useCallback(() => {
-    setSpaceWarning(
-      "That change would exceed the one-page line budget (45 estimated lines on US Letter).",
-    );
+    setSpaceWarning(SPACE_LIMIT_MESSAGE);
     window.setTimeout(() => setSpaceWarning(null), 4500);
   }, []);
 
@@ -203,19 +302,84 @@ export function AppPage() {
     [addBlockToResume, flashSpaceWarning],
   );
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const data = event.active.data.current as DragItemData | undefined;
-    if (data) setActiveDrag(data);
-  }, []);
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      setSpaceWarning(null);
+      assignPlaceholder(null);
+      assignDropBlocked(false);
+      const data = event.active.data.current as DragItemData | undefined;
+      if (data) setActiveDrag(data);
+    },
+    [assignPlaceholder, assignDropBlocked],
+  );
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    setOverTargetId(event.over ? String(event.over.id) : null);
-  }, []);
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const overId = event.over ? String(event.over.id) : null;
+      setOverTargetId((prev) => (prev === overId ? prev : overId));
+
+      const activeData = event.active.data.current as DragItemData | undefined;
+      if (!activeData || activeData.origin !== "vault") {
+        assignPlaceholder(null);
+        assignDropBlocked(false);
+        return;
+      }
+
+      const blockIds = vaultBlocks.map((block) => block.id);
+      if (!isResumeDropTarget(overId, blockIds)) {
+        assignPlaceholder(null);
+        assignDropBlocked(false);
+        return;
+      }
+
+      const block = vaultBlocks.find((item) => item.id === activeData.blockId);
+      if (!block) {
+        assignPlaceholder(null);
+        assignDropBlocked(false);
+        return;
+      }
+
+      const height = measureCanvasInsertion(
+        activePreset,
+        vaultBlocks,
+        block.id,
+      );
+      if (!height.fits) {
+        assignPlaceholder(null);
+        assignDropBlocked(true);
+        return;
+      }
+
+      assignDropBlocked(false);
+      const sectionIds = activePreset.activeBlockIds.filter((id) => {
+        return (
+          vaultBlocks.find((item) => item.id === id)?.category === block.category
+        );
+      });
+      const pointerY = dragPointerY(event);
+      const beforeBlockId =
+        pointerY == null
+          ? overId && sectionIds.includes(overId)
+            ? overId
+            : null
+          : insertionBeforeBlockId(pointerY, readBlockRects(sectionIds));
+
+      assignPlaceholder({
+        id: placeholderId(block.id),
+        blockId: block.id,
+        category: block.category,
+        beforeBlockId,
+      });
+    },
+    [activePreset, assignDropBlocked, assignPlaceholder, vaultBlocks],
+  );
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
       const activeData = active.data.current as DragItemData | undefined;
+      const pendingPlaceholder = placeholderRef.current;
+      const blocked = dropBlockedRef.current;
       clearDragState();
 
       if (!over || active.id === over.id || !activeData) return;
@@ -223,15 +387,23 @@ export function AppPage() {
       const overId = String(over.id);
 
       if (activeData.origin === "vault") {
-        const isResumeTarget =
-          overId === RESUME_DROP_ID ||
-          parseSectionDroppableId(overId) !== null ||
-          vaultBlocks.some((b) => b.id === overId);
-        if (!isResumeTarget) return;
+        const blockIds = vaultBlocks.map((block) => block.id);
+        if (!isResumeDropTarget(overId, blockIds)) return;
 
-        const beforeBlockId = vaultBlocks.some((b) => b.id === overId)
-          ? overId
-          : null;
+        const beforeBlockId =
+          pendingPlaceholder && pendingPlaceholder.blockId === activeData.blockId
+            ? pendingPlaceholder.beforeBlockId
+            : null;
+        const height = measureCanvasInsertion(
+          activePreset,
+          vaultBlocks,
+          activeData.blockId,
+          beforeBlockId,
+        );
+        if (blocked || !height.fits) {
+          flashSpaceWarning();
+          return;
+        }
         const ok = insertBlockOnResume(activeData.blockId, beforeBlockId);
         if (!ok) flashSpaceWarning();
         return;
@@ -259,6 +431,7 @@ export function AppPage() {
       reorderInSection,
       vaultBlocks,
       flashSpaceWarning,
+      activePreset,
     ],
   );
 
@@ -401,6 +574,8 @@ export function AppPage() {
       rankings={rankings}
       vaultDragCategory={vaultDragCategory}
       highlightedSection={highlightedSection}
+      placeholder={placeholder}
+      dropBlocked={dropBlocked}
       onRemove={removeBlockFromResume}
       onHeaderSave={(header, skills) => {
         if (
@@ -429,12 +604,16 @@ export function AppPage() {
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden">
-      {spaceWarning && (
+      {(dropBlocked || spaceWarning) && (
         <p
-          className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-xs text-amber-950"
+          className={`shrink-0 border-b px-3 py-1.5 text-center text-xs ${
+            dropBlocked
+              ? "border-red-200 bg-red-50 text-red-900"
+              : "border-amber-200 bg-amber-50 text-amber-950"
+          }`}
           role="status"
         >
-          {spaceWarning}
+          {dropBlocked ? SPACE_LIMIT_MESSAGE : spaceWarning}
         </p>
       )}
       <DndContext
@@ -472,11 +651,13 @@ export function AppPage() {
           vaultDropActive={activeDrag?.origin === "canvas"}
         />
         </div>
-        <DragOverlay>
+        <DragOverlay className={dropBlocked ? "cursor-not-allowed" : undefined}>
           {overlayBlock ? (
-            <div className="rounded border border-slate-400 bg-white p-2 text-sm shadow-lg">
-              {overlayBlock.title}
-            </div>
+            <DragPreview
+              block={overlayBlock}
+              preset={activePreset}
+              blocked={dropBlocked}
+            />
           ) : null}
         </DragOverlay>
       </DndContext>

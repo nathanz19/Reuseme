@@ -29,6 +29,11 @@ body {
   display: none;
 }
 
+body.resume-drop-blocked,
+body.resume-drop-blocked * {
+  cursor: not-allowed !important;
+}
+
 .group .resume-hover-control {
   opacity: 0;
   pointer-events: none;
@@ -74,7 +79,8 @@ body {
   .resume-hover-control,
   .drag-handle,
   .overflow-flag,
-  .overflow-label {
+  .overflow-label,
+  .resume-drop-placeholder {
     display: none !important;
   }
 

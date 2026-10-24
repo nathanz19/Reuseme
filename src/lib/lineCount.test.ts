@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canInsertBlockOnResume,
   estimateLineCount,
+  measureCanvasInsertion,
   pickOverflowBlockId,
 } from "@/lib/lineCount";
 import { MAX_LINES } from "@/lib/tunables";
@@ -49,6 +50,20 @@ describe("line count", () => {
     expect(overflow).toBe("proj-1");
   });
 
+  it("allows an insert only when current height plus the block fits the page", () => {
+    const preset = SEED_PRESETS[0];
+    const check = measureCanvasInsertion(preset, SEED_BLOCKS, "proj-2", "proj-1");
+    expect(check.maxCanvasHeight).toBe(MAX_LINES);
+    expect(check.draggedBlockHeight).toBeGreaterThan(0);
+    expect(
+      check.currentCanvasHeight + check.draggedBlockHeight <=
+        check.maxCanvasHeight,
+    ).toBe(check.fits);
+    expect(check.fits).toBe(
+      canInsertBlockOnResume(preset, SEED_BLOCKS, "proj-2", "proj-1"),
+    );
+  });
+
   it("blocks insert when the block would exceed the line budget", () => {
     const preset = {
       ...SEED_PRESETS[0],
@@ -60,5 +75,11 @@ describe("line count", () => {
     expect(canInsertBlockOnResume(preset, SEED_BLOCKS, "proj-1", null)).toBe(
       false,
     );
+    const blocked = measureCanvasInsertion(preset, SEED_BLOCKS, "proj-1", null);
+    expect(blocked.fits).toBe(false);
+    expect(
+      blocked.currentCanvasHeight + blocked.draggedBlockHeight >
+        blocked.maxCanvasHeight,
+    ).toBe(true);
   });
 });

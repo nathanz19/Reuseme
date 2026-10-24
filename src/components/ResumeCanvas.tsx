@@ -3,8 +3,8 @@
 import { useDroppable } from "@dnd-kit/core";
 import { useMemo } from "react";
 import { ResumeHeader } from "@/components/ResumeHeader";
-import { ResumeSection } from "@/components/ResumeSection";
-import { RESUME_DROP_ID } from "@/lib/dnd";
+import { ResumeSection, type SectionItem } from "@/components/ResumeSection";
+import { RESUME_DROP_ID, type CanvasPlaceholder } from "@/lib/dnd";
 import { isWithinLineBudget, pickOverflowBlockId } from "@/lib/lineCount";
 import { MAX_LINES, PAGE_HEIGHT, PAGE_WIDTH } from "@/lib/tunables";
 import type {
@@ -15,12 +15,41 @@ import type {
 } from "@/types/resume";
 import { SECTION_ORDER } from "@/types/resume";
 
+function sectionItems(
+  category: BlockCategory,
+  blocks: AccomplishmentBlock[],
+  placeholder: CanvasPlaceholder | null,
+  byId: Map<string, AccomplishmentBlock>,
+): SectionItem[] {
+  const items: SectionItem[] = blocks.map((block) => ({
+    id: block.id,
+    block,
+    placeholder: false,
+  }));
+  if (!placeholder || placeholder.category !== category) return items;
+  const block = byId.get(placeholder.blockId);
+  if (!block) return items;
+  const ghost: SectionItem = {
+    id: placeholder.id,
+    block,
+    placeholder: true,
+  };
+  const index = placeholder.beforeBlockId
+    ? items.findIndex((item) => item.id === placeholder.beforeBlockId)
+    : -1;
+  if (index === -1) items.push(ghost);
+  else items.splice(index, 0, ghost);
+  return items;
+}
+
 interface ResumeCanvasProps {
   preset: ResumePreset;
   vaultBlocks: AccomplishmentBlock[];
   rankings: Record<string, SemanticRanking>;
   vaultDragCategory: BlockCategory | null;
   highlightedSection: BlockCategory | null;
+  placeholder: CanvasPlaceholder | null;
+  dropBlocked: boolean;
   onRemove: (blockId: string) => void;
   onHeaderSave: (
     header: ResumePreset["header"],
@@ -35,6 +64,8 @@ export function ResumeCanvas({
   rankings,
   vaultDragCategory,
   highlightedSection,
+  placeholder,
+  dropBlocked,
   onRemove,
   onHeaderSave,
   onTailorBullet,
@@ -76,7 +107,11 @@ export function ResumeCanvas({
       ref={setNodeRef}
       id="resume-print-root"
       className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-md ${templateClass} print:shadow-none ${
-        withinBudget ? "ring-1 ring-slate-200" : "ring-2 ring-amber-400"
+        dropBlocked
+          ? "ring-2 ring-red-500"
+          : withinBudget
+            ? "ring-1 ring-slate-200"
+            : "ring-2 ring-amber-400"
       }`}
       style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
       title={`US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), ~${MAX_LINES} estimated lines`}
@@ -91,11 +126,17 @@ export function ResumeCanvas({
         <ResumeSection
           key={category}
           category={category}
-          blocks={blocksBySection.get(category) ?? []}
+          items={sectionItems(
+            category,
+            blocksBySection.get(category) ?? [],
+            placeholder,
+            byId,
+          )}
           preset={preset}
           overflowBlockId={overflowBlockId}
           showEmptyDropSlot={vaultDragCategory === category}
           highlighted={highlightedSection === category}
+          dropBlocked={dropBlocked}
           onRemove={onRemove}
           onTailorBullet={onTailorBullet}
         />
