@@ -170,7 +170,7 @@ export function CanvasBlock({
       data-canvas-block-id={placeholder ? undefined : block.id}
       data-removing={fadingOut ? "true" : undefined}
       aria-hidden={placeholder ? true : undefined}
-      className={`group mb-3 w-full rounded border p-2 ${
+      className={`group mb-2 w-full rounded border p-2 ${
         placeholder
           ? `resume-drop-placeholder print:hidden ${
               leaving ? "resume-drop-placeholder-leaving" : ""

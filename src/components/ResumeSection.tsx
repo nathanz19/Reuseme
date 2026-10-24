@@ -69,11 +69,11 @@ export function ResumeSection({
   return (
     <section
       ref={setNodeRef}
-      className={`mb-4 rounded-sm transition-[outline-color] duration-200 ${
+      className={`mb-3 rounded-sm transition-[outline-color] duration-200 ${
         showSlot ? "min-h-16" : ""
       } ${ringClass}`}
     >
-      <h2 className="mb-2 border-b border-slate-300 text-sm font-bold uppercase tracking-wide">
+      <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">
         {SECTION_LABELS[category]}
       </h2>
       {showBlocked && (
@@ -82,24 +82,26 @@ export function ResumeSection({
         </p>
       )}
       {items.length > 0 && (
-        <SortableContext
-          items={itemIds}
-          strategy={verticalListSortingStrategy}
-        >
-          {items.map((item) => (
-            <CanvasBlock
-              key={item.id}
-              block={item.block}
-              preset={preset}
-              sortableId={item.id}
-              placeholder={item.placeholder}
-              leaving={item.leaving || (!item.placeholder && item.block.id === removingBlockId)}
-              overflow={!item.placeholder && overflowBlockId === item.block.id}
-              onRemove={() => onRemove(item.block.id)}
-              onTailorBullet={(index) => onTailorBullet(item.block.id, index)}
-            />
-          ))}
-        </SortableContext>
+        <div className="pt-1">
+          <SortableContext
+            items={itemIds}
+            strategy={verticalListSortingStrategy}
+          >
+            {items.map((item) => (
+              <CanvasBlock
+                key={item.id}
+                block={item.block}
+                preset={preset}
+                sortableId={item.id}
+                placeholder={item.placeholder}
+                leaving={item.leaving || (!item.placeholder && item.block.id === removingBlockId)}
+                overflow={!item.placeholder && overflowBlockId === item.block.id}
+                onRemove={() => onRemove(item.block.id)}
+                onTailorBullet={(index) => onTailorBullet(item.block.id, index)}
+              />
+            ))}
+          </SortableContext>
+        </div>
       )}
     </section>
   );

@@ -19,7 +19,7 @@ export function ResumeHeader({ header, templateId }: ResumeHeaderProps) {
         <h1 className={`pr-16 print:pr-0 font-bold ${modern ? "text-2xl text-sky-900" : "text-xl"}`}>
           {header.fullName}
         </h1>
-        <p className={`text-sm ${modern ? "text-slate-600" : "text-slate-800"}`}>
+        <p className={`pb-2 text-sm ${modern ? "text-slate-600" : "text-slate-800"}`}>
           {[header.email, header.phone, header.location]
             .filter(Boolean)
             .join(" · ")}

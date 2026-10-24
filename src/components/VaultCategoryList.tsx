@@ -248,7 +248,7 @@ function VaultCategorySection({
       </IconAction>
       </div>
       {open && (
-        <div id={panelId} className="space-y-2 px-3 pb-3">
+        <div id={panelId} className="space-y-1 px-3 pb-3">
           {category.kind === "blocks" &&
             (blocks.length > 0 ? (
               blocks.map((block) => (
