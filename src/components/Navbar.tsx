@@ -49,14 +49,14 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         modifiers={[horizontalOnly]} onDragEnd={({ active, over }) => {
           if (over && active.id !== over.id) onReorderDocuments(String(active.id), String(over.id));
         }}>
-      <nav aria-label="Documents" className="flex items-end gap-2 border-b border-border bg-background px-4 pt-3">
-        <div role="tablist" aria-label="Resume documents" className="no-scrollbar flex min-w-0 gap-1 overflow-x-auto">
+      <nav aria-label="Documents" className="flex items-end gap-1.5 border-b border-border bg-background px-4 pt-1">
+        <div role="tablist" aria-label="Resume documents" className="no-scrollbar flex min-w-0 gap-0.5 overflow-x-auto">
           <SortableContext items={presets.map((preset) => preset.id)} strategy={horizontalListSortingStrategy}>
           {presets.map((preset, index) => {
             const selected = preset.id === activePresetId;
             return <SortableDocumentTab key={preset.id} id={preset.id} disabled={renaming?.id === preset.id}
-              className={`flex max-w-80 min-w-44 shrink-0 items-center gap-1 rounded-t-xl border pl-3 pr-1 transition-colors ${selected ? "border-border border-b-surface bg-surface text-ink" : "border-border/70 bg-surface-muted/80 text-ink-muted hover:text-ink"}`}>
-              <FileText size={15} aria-hidden="true" className="shrink-0" />
+              className={`flex h-8 max-w-80 min-w-36 shrink-0 items-center gap-0.5 rounded-t-md border pl-2 pr-0.5 transition-colors ${selected ? "border-border border-b-surface bg-surface text-ink" : "border-border/70 bg-surface-muted/80 text-ink-muted hover:text-ink"}`}>
+              <FileText size={14} aria-hidden="true" className="shrink-0" />
               {renaming?.id === preset.id ? (
                 <input aria-label="Document name" value={renaming.name} autoFocus maxLength={120}
                   onFocus={(event) => event.currentTarget.select()}
@@ -70,7 +70,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
                     if (event.key === "Escape") { cancelRename.current = true; setRenaming(null); }
                   }}
-                  className={`my-2 w-36 min-w-0 border px-1 py-1 outline-none ${fieldBorder} ${focusRing}`} />
+                  className={`my-0.5 w-36 min-w-0 border px-1 py-0.5 text-sm outline-none ${fieldBorder} ${focusRing}`} />
               ) : (
                 <button type="button" role="tab" aria-label={preset.name} aria-selected={selected}
                   tabIndex={selected ? 0 : -1} onClick={() => onPresetChange(preset.id)}
@@ -87,18 +87,18 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
                     onPresetChange(presets[next].id);
                     event.currentTarget.closest('[role="tablist"]')?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
                   }}
-                  className={`min-w-0 flex-1 truncate px-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-focus-ring ${selected ? "font-medium" : ""}`}>
+                  className={`min-w-0 flex-1 truncate px-1.5 py-1 text-left focus-visible:outline-2 focus-visible:outline-focus-ring ${selected ? "font-medium" : ""}`}>
                   {preset.name}
                 </button>
               )}
-              <IconAction label={`Rename ${preset.name}`} onClick={() => startRename(preset)} className="bg-transparent!"><Pencil size={13} aria-hidden="true" /></IconAction>
-              <IconAction label={`Close ${preset.name}`} onClick={() => setClosingDocument(preset)} className="bg-transparent!"><X size={15} aria-hidden="true" /></IconAction>
+              <IconAction label={`Rename ${preset.name}`} onClick={() => startRename(preset)} className="h-6! w-6! bg-transparent!"><Pencil size={12} aria-hidden="true" /></IconAction>
+              <IconAction label={`Close ${preset.name}`} onClick={() => setClosingDocument(preset)} className="h-6! w-6! bg-transparent!"><X size={14} aria-hidden="true" /></IconAction>
             </SortableDocumentTab>;
           })}
           </SortableContext>
         </div>
-        <div className="mb-2 shrink-0">
-          <IconAction label="New document" onClick={onNewDocument}><Plus size={18} aria-hidden="true" /></IconAction>
+        <div className="mb-px shrink-0">
+          <IconAction label="New document" onClick={onNewDocument} className="h-7! w-7!"><Plus size={16} aria-hidden="true" /></IconAction>
         </div>
       </nav>
       </DndContext>
