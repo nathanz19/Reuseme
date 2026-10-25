@@ -1,4 +1,5 @@
 import { expect, test } from "./test";
+import { DEMO_JD_TEXT } from "../fixtures/demoJd";
 import {
   analyzeDemoJd,
   canvasBlock,
@@ -46,6 +47,7 @@ test("analyze shows a disabled spinner button while the match request runs", asy
   });
 
   await page.getByRole("button", { name: "Job Description", exact: true }).click();
+  await page.getByPlaceholder("Paste job description…").fill(DEMO_JD_TEXT);
   const analyze = page.getByRole("button", { name: "Analyze & Rank Vault" });
   await analyze.click();
   await expect(analyze).toBeDisabled();
