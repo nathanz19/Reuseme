@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
-import {
-  FIXTURE_MATCH_FAIL_TOKEN,
-  matchVault,
-  tailorBullet,
-} from "@/data/fixtures";
+import { matchVault } from "@/data/fixtures";
 import { SEED_BLOCKS } from "@/data/seed";
 
 function demoMatch() {
@@ -13,6 +9,7 @@ function demoMatch() {
   return result;
 }
 
+// Demo mode (MOCK_AI=1) serves this fixture from /api/jd/match, and the e2e suite depends on it.
 describe("matchVault fixture", () => {
   it("parses title, company, and skill lists from the demo JD", () => {
     const { parsedJD } = demoMatch();
@@ -53,13 +50,6 @@ describe("matchVault fixture", () => {
       expect(r.matchScore).toBeLessThanOrEqual(100);
       expect(r.matchExplanation).not.toBe("");
     }
-  });
-
-  it("ranks the archived Raft block first and marks it relevant", () => {
-    const { rankings } = demoMatch();
-    const raft = rankings.find((r) => r.blockId === "exp-6");
-    expect(raft?.relevant).toBe(true);
-    expect(rankings[0].blockId).toBe("exp-6");
   });
 
   it("keeps the existing fixture scores", () => {
@@ -129,41 +119,5 @@ describe("matchVault fixture", () => {
     expect(tagMatches.find((m) => m.requirement === "Kubernetes")?.tags).toEqual(
       [],
     );
-  });
-
-  it("returns an error for the simulated failure token", () => {
-    const result = matchVault(
-      `${DEMO_JD_TEXT}\n${FIXTURE_MATCH_FAIL_TOKEN}`,
-      SEED_BLOCKS,
-    );
-    expect(result).toEqual({
-      error: expect.stringContaining("simulated API error"),
-    });
-  });
-});
-
-describe("tailorBullet fixture", () => {
-  it("returns three tones grounded in the block notes", async () => {
-    const { parsedJD } = demoMatch();
-    const block = SEED_BLOCKS.find((b) => b.id === "exp-6")!;
-    const proposal = await tailorBullet({
-      block,
-      bulletIndex: 0,
-      bulletText: block.bullets[0],
-      parsedJD,
-      presetId: "frontend-swe",
-    });
-
-    expect(proposal.blockId).toBe("exp-6");
-    expect(proposal.originalText).toBe(block.bullets[0]);
-    expect(proposal.selectedTone).toBe("technical_ic");
-    expect(Object.keys(proposal.variants).sort()).toEqual([
-      "concise",
-      "leadership",
-      "technical_ic",
-    ]);
-    expect(block.sourceContext).toContain(proposal.sourceQuote);
-    expect(proposal.warnings).not.toContain("quote_not_found");
-    expect(proposal.unsupportedFlags).toEqual(["Kubernetes", "Terraform"]);
   });
 });

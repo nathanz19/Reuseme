@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
 import { buildResumeDocument, resumeDocxFilename } from "@/lib/exportDocx";
 import type { ResumePreset } from "@/types/resume";
-import { docxPlainText, readZipText } from "./docxZip";
+import { docxPlainText, readZipText } from "../support/docxZip";
 
 async function packed(preset: ResumePreset, blocks = SEED_BLOCKS) {
   const buffer = await Packer.toBuffer(buildResumeDocument(preset, blocks));

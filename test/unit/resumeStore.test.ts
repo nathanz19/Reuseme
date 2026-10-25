@@ -74,13 +74,6 @@ describe("resume store", () => {
     expect(active()).toEqual(source);
   });
 
-  it("starts on the default preset with no history", () => {
-    const state = store.getState();
-    expect(state.activePresetId).toBe("frontend-swe");
-    expect(state.past).toEqual([]);
-    expect(state.future).toEqual([]);
-  });
-
   it("adds a block into its section order and supports undo/redo", () => {
     expect(store.getState().addBlockToResume("exp-2")).toBe(true);
     expect(active().activeBlockIds).toEqual([

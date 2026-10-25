@@ -1,5 +1,3 @@
-import { checkGrounding } from "@/lib/grounding";
-import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import {
   computeKeywordOverlap,
   computeMatchScore,
@@ -7,13 +5,10 @@ import {
 } from "@/lib/matchScore";
 import { textContainsSkill } from "@/lib/normalize";
 import type {
-  AccomplishmentBlock,
   MatchableBlock,
   ParsedJobDescription,
   SemanticRanking,
   TagMatch,
-  TailoredProposal,
-  Tone,
 } from "@/types/resume";
 
 export const FIXTURE_MATCH_FAIL_TOKEN = "__FIXTURE_MATCH_FAIL__";
@@ -215,71 +210,4 @@ export function matchVault(
     tagMatches: fixtureTagMatches(parsedJD, blocks),
     rankings,
   };
-}
-
-export interface TailorBulletInput {
-  block: AccomplishmentBlock;
-  bulletIndex: number;
-  bulletText: string;
-  parsedJD: ParsedJobDescription;
-  presetId: string;
-}
-
-export async function tailorBullet(
-  input: TailorBulletInput,
-): Promise<TailoredProposal> {
-  await new Promise((r) => setTimeout(r, 120));
-
-  const { block, bulletIndex, bulletText, parsedJD } = input;
-  const quote =
-    block.sourceContext.match(/Raft[^.]*\./)?.[0] ??
-    block.sourceContext.slice(0, 80);
-
-  const variants: Record<Tone, string> = {
-    technical_ic:
-      "Implemented Raft leader election for a metadata plane at 8k RPS with partition-tested failover runbooks.",
-    leadership:
-      "Owned consensus reliability for the metadata service, leading failover drills and cross-team incident reviews.",
-    concise:
-      "Led Raft-based metadata service reliability with sub-2s failover and documented recovery runbooks for the team.",
-  };
-
-  const matchedKeywords = ["Distributed systems", "Go", "Docker", "AWS"].filter(
-    (kw) => parsedJD.requiredSkills.some((s) => s.toLowerCase().includes(kw.toLowerCase().split(" ")[0])),
-  );
-
-  const unsupportedFlags = ["Kubernetes", "Terraform", "Rust"].filter((kw) =>
-    parsedJD.rawText.toLowerCase().includes(kw.toLowerCase()),
-  );
-
-  const base: Omit<TailoredProposal, "warnings"> = {
-    blockId: block.id,
-    bulletIndex,
-    originalText: bulletText,
-    variants,
-    selectedTone: "technical_ic",
-    sourceQuote: quote,
-    matchedKeywords,
-    unsupportedFlags,
-  };
-
-  const effectiveBullets = getEffectiveBullets(block, {
-    id: input.presetId,
-    name: "",
-    templateId: "classic-ats",
-    header: {
-      fullName: "",
-      email: "",
-      phone: "",
-      location: "",
-      links: [],
-    },
-    activeBlockIds: [],
-    bulletOverrides: {},
-    customSkillsSection: [],
-  });
-
-  const warnings = checkGrounding(block, base, effectiveBullets);
-
-  return { ...base, warnings };
 }
