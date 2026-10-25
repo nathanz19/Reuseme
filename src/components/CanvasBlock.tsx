@@ -24,11 +24,11 @@ interface CanvasBlockBodyProps {
   block: AccomplishmentBlock;
   preset: ResumePreset;
   overflow: boolean;
-  handle: ReactNode;
+  handle?: ReactNode;
   actions?: ReactNode;
   onTailorBullet?: (bulletIndex: number) => void;
-  /** Stretch the date to the card’s outer edge so it meets the section rule. */
-  flushDates?: boolean;
+  /** Grip is on the card shell; header uses the full padded inner width. */
+  detachedGrip?: boolean;
 }
 
 function CanvasBlockBody({
@@ -38,19 +38,44 @@ function CanvasBlockBody({
   handle,
   actions,
   onTailorBullet,
-  flushDates = false,
+  detachedGrip = false,
 }: CanvasBlockBodyProps) {
   const bullets = getEffectiveBullets(block, preset);
   const dateLine = [block.startDate, block.endDate].filter(Boolean).join(" – ");
   const subtitle = [block.organization, block.location]
     .filter(Boolean)
     .join(" · ");
-  // Card padding is 0.5rem; the border is 1px, or 2px on the overflow flag.
-  const dateInset = flushDates
-    ? overflow
-      ? "w-[calc(100%+0.5rem+2px)]"
-      : "w-[calc(100%+0.5rem+1px)]"
-    : "";
+
+  const content = (
+    <div className="min-w-0 flex-1">
+      <div className="relative">
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="min-w-0 font-semibold text-sm">{block.title}</p>
+          {dateLine ? (
+            <p className="shrink-0 text-right text-sm text-slate-700 tabular-nums">
+              {dateLine}
+            </p>
+          ) : null}
+        </div>
+        {subtitle ? (
+          <p className="pr-16 text-sm text-slate-700 print:pr-0">{subtitle}</p>
+        ) : null}
+        {actions}
+      </div>
+      <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
+        {bullets.map((bullet, index) => (
+          <li key={index} className="group/bullet relative pr-8 print:pr-0">
+            {bullet}
+            {onTailorBullet && (
+              <IconAction label="Tailor bullet" className="resume-hover-control absolute right-0 top-0 print:hidden" onClick={() => onTailorBullet(index)}>
+                <RefreshCw size={14} aria-hidden="true" />
+              </IconAction>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 
   return (
     <>
@@ -59,37 +84,14 @@ function CanvasBlockBody({
           Suggested to cut for space
         </p>
       )}
-      <div className="flex items-start gap-1">
-        {handle}
-        <div className="min-w-0 flex-1">
-          <div className={`relative ${dateInset}`}>
-            <div className="flex items-baseline justify-between gap-4">
-              <p className="min-w-0 font-semibold text-sm">{block.title}</p>
-              {dateLine ? (
-                <p className="shrink-0 text-right text-sm text-slate-700 tabular-nums">
-                  {dateLine}
-                </p>
-              ) : null}
-            </div>
-            {subtitle ? (
-              <p className="pr-16 text-sm text-slate-700 print:pr-0">{subtitle}</p>
-            ) : null}
-            {actions}
-          </div>
-          <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
-            {bullets.map((bullet, index) => (
-              <li key={index} className="group/bullet relative pr-8 print:pr-0">
-                {bullet}
-                {onTailorBullet && (
-                  <IconAction label="Tailor bullet" className="resume-hover-control absolute right-0 top-0 print:hidden" onClick={() => onTailorBullet(index)}>
-                    <RefreshCw size={14} aria-hidden="true" />
-                  </IconAction>
-                )}
-              </li>
-            ))}
-          </ul>
+      {detachedGrip ? (
+        content
+      ) : (
+        <div className="flex items-start gap-1">
+          {handle}
+          {content}
         </div>
-      </div>
+      )}
     </>
   );
 }
@@ -186,7 +188,7 @@ export function CanvasBlock({
       data-canvas-block-id={placeholder ? undefined : block.id}
       data-removing={fadingOut ? "true" : undefined}
       aria-hidden={placeholder ? true : undefined}
-      className={`group mb-2 w-full rounded border p-2 ${
+      className={`group relative mb-2 w-full rounded border px-3 py-2 ${
         placeholder
           ? `resume-drop-placeholder print:hidden ${
               leaving ? "resume-drop-placeholder-leaving" : ""
@@ -201,24 +203,24 @@ export function CanvasBlock({
       }`}
     >
       <div className={skeleton ? "pointer-events-none invisible" : undefined}>
+        {!placeholder && (
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            className="resume-hover-control drag-handle absolute -left-4 top-2 z-20 cursor-grab text-slate-400 print:hidden"
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical size={16} />
+          </button>
+        )}
         <CanvasBlockBody
           block={block}
           preset={preset}
           overflow={overflow}
           onTailorBullet={onTailorBullet}
-          flushDates
-          handle={
-            <button
-              type="button"
-              ref={placeholder ? undefined : setActivatorNodeRef}
-              className="resume-hover-control drag-handle cursor-grab text-slate-400 print:hidden"
-              {...(placeholder ? {} : attributes)}
-              {...(placeholder ? {} : listeners)}
-              aria-label="Drag to reorder"
-            >
-              <GripVertical size={16} />
-            </button>
-          }
+          detachedGrip
           actions={
             <div className="resume-hover-control absolute right-0 top-5 z-10 origin-top-right scale-75 print:hidden">
               {!placeholder && <BlockActions block={block} onRemove={onRemove} />}
@@ -246,7 +248,7 @@ export function CanvasBlockOverlay({
   return (
     <div
       style={width ? { width } : undefined}
-      className={`w-full rounded border bg-white p-2 shadow-xl ring-1 ring-slate-900/5 ${
+      className={`w-full rounded border bg-white px-3 py-2 shadow-xl ring-1 ring-slate-900/5 ${
         blocked ? "cursor-not-allowed border-red-500" : "cursor-grabbing border-slate-300"
       } ${resumeTemplateClass(preset.templateId)}`}
     >
@@ -255,16 +257,7 @@ export function CanvasBlockOverlay({
           Not enough space on the page
         </p>
       )}
-      <CanvasBlockBody
-        block={block}
-        preset={preset}
-        overflow={false}
-        handle={
-          <span className="text-slate-500" aria-hidden="true">
-            <GripVertical size={16} />
-          </span>
-        }
-      />
+      <CanvasBlockBody block={block} preset={preset} overflow={false} detachedGrip />
     </div>
   );
 }
