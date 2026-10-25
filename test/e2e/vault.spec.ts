@@ -1,5 +1,5 @@
 import { expect, test } from "./test";
-import { canvasBlock, hoverClick, openApp, spaceMeter, vaultCard } from "./helpers";
+import { analyzeDemoJd, canvasBlock, hoverClick, openApp, rankedCard, spaceMeter, vaultCard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await openApp(page);
@@ -124,4 +124,33 @@ test("compact filters combine section and date and can be cleared", async ({ pag
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Filters", exact: true })).toBeVisible();
   await expect(vaultCard(page, "Backend Engineer")).toBeVisible();
+});
+
+const contentHeight = (page: import("@playwright/test").Page) =>
+  page.locator("#resume-print-root [data-resume-content]").evaluate((el) => el.getBoundingClientRect().height);
+
+test("vault cards show how much space adding each block takes, matching the real change", async ({ page }) => {
+  // Free enough room that the block fits again.
+  for (const id of ["proj-4", "lead-4"]) await hoverClick(canvasBlock(page, id), "Remove from resume");
+  const card = vaultCard(page, "Clinic Forms Kit");
+  const badge = card.locator("[data-add-cost]");
+  await expect(badge).toHaveText(/^\+\d+ lines?$/);
+  // A block already on the resume shows no cost.
+  await expect(vaultCard(page, "Software Engineer").locator("[data-add-cost]")).toHaveCount(0);
+
+  const title = (await badge.getAttribute("title"))!;
+  const px = Number(/about (\d+)px/.exec(title)![1]);
+  const before = await contentHeight(page);
+  await card.getByRole("button", { name: "Add to Resume" }).click();
+  await expect(canvasBlock(page, "proj-4")).toBeVisible();
+  await expect.poll(async () => Math.abs((await contentHeight(page)) - before - px)).toBeLessThanOrEqual(1);
+  await expect(card.locator("[data-add-cost]")).toHaveCount(0);
+});
+
+test("ranked cards show the add cost, except for blocks already on the resume", async ({ page }) => {
+  await analyzeDemoJd(page);
+  const ranked = rankedCard(page, "proj-2");
+  await expect(ranked.locator("[data-add-cost]")).toHaveText(/^\+\d+ lines?$/);
+  await expect(ranked.locator("[data-add-cost]")).toHaveAttribute("title", /^Adds about \d+px/);
+  await expect(rankedCard(page, "exp-1").locator("[data-add-cost]")).toHaveCount(0);
 });

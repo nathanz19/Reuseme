@@ -17,6 +17,7 @@ import {
   canInsertBlockOnResume,
   measureCanvasInsertion,
 } from "@/lib/lineCount";
+import { addCostFromCheck, type AddCost } from "@/components/AddCostBadge";
 import { usePageMeasurerVersion } from "@/lib/pageFit";
 import { pageGeometry } from "@/lib/pageGeometry";
 import { registerPageMeasurer } from "@/lib/pageMeasurer";
@@ -382,18 +383,35 @@ export function AppPage() {
     preset: typeof activePreset;
     blocks: typeof vaultBlocks;
     fits: Map<string, boolean>;
+    costs: Map<string, AddCost>;
   } | null>(null);
   useEffect(() => {
     if (measurerVersion === 0) return;
     const timer = window.setTimeout(() => {
       const fits = new Map<string, boolean>();
+      const costs = new Map<string, AddCost>();
+      const { lineHeightPx } = pageGeometry(activePreset);
       for (const block of vaultBlocks) {
-        fits.set(block.id, canInsertBlockOnResume(activePreset, vaultBlocks, block.id, null));
+        const check = measureCanvasInsertion(activePreset, vaultBlocks, block.id, null);
+        fits.set(block.id, check.fits);
+        // A block already on the resume has no add cost.
+        if (!activePreset.activeBlockIds.includes(block.id)) {
+          costs.set(block.id, addCostFromCheck(check, lineHeightPx));
+        }
       }
-      setAddable({ preset: activePreset, blocks: vaultBlocks, fits });
+      setAddable({ preset: activePreset, blocks: vaultBlocks, fits, costs });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [activePreset, vaultBlocks, measurerVersion]);
+
+  // Shown on the cards only when it was measured for the current document.
+  const addCost = useCallback(
+    (blockId: string): AddCost | null =>
+      addable?.preset === activePreset && addable.blocks === vaultBlocks
+        ? (addable.costs.get(blockId) ?? null)
+        : null,
+    [addable, activePreset, vaultBlocks],
+  );
 
   const canAddBlock = useCallback(
     (blockId: string) => {
@@ -781,6 +799,7 @@ export function AppPage() {
             activeBlockIds={activePreset.activeBlockIds}
             rankings={rankings}
             canAddBlock={canAddBlock}
+            addCost={addCost}
             onAdd={tryAddBlock}
             onTailorBullet={requestTailorConfirmation}
           />
@@ -798,6 +817,7 @@ export function AppPage() {
           onJdTextChange={setJdText}
           onAnalyze={() => void runAnalyze()}
           canAddBlock={canAddBlock}
+          addCost={addCost}
           onAddBlock={tryAddBlock}
         />
       )}

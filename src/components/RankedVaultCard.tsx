@@ -2,6 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { Check } from "lucide-react";
+import { AddCostBadge, type AddCost } from "@/components/AddCostBadge";
 import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
 import { vaultDraggableId, wholeElementDragListeners } from "@/lib/dnd";
 import { btnOutlineSm } from "@/lib/theme";
@@ -22,6 +23,8 @@ interface RankedVaultCardProps {
   tagMatches: TagMatch[];
   onResume: boolean;
   canAdd: boolean;
+  /** What adding the block does to the page. Null when unknown or already on the resume. */
+  addCost?: AddCost | null;
   onAdd: () => void;
 }
 
@@ -60,6 +63,7 @@ export function RankedVaultCard({
   tagMatches,
   onResume,
   canAdd,
+  addCost,
   onAdd,
 }: RankedVaultCardProps) {
   const arrange = useSessionStore((s) => s.dragMode === "arrange");
@@ -146,6 +150,7 @@ export function RankedVaultCard({
           )}
         </ul>
         <div className="flex shrink-0 items-center gap-2">
+          {!onResume && <AddCostBadge cost={addCost} />}
           <div className="resume-hover-control print:hidden">
             <button
               type="button"

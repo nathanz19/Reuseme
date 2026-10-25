@@ -1,5 +1,6 @@
 "use client";
 
+import { AddCostBadge, type AddCost } from "@/components/AddCostBadge";
 import { BlockActions } from "@/components/BlockActions";
 import { IconAction } from "@/components/IconAction";
 import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
@@ -15,6 +16,8 @@ interface BlockCardProps {
   block: AccomplishmentBlock;
   onResume: boolean;
   canAdd: boolean;
+  /** What adding the block does to the page. Null when unknown or already on the resume. */
+  addCost?: AddCost | null;
   ranking?: SemanticRanking;
   onAdd: () => void;
   onTailorBullet: (bulletIndex: number) => void;
@@ -24,6 +27,7 @@ export function BlockCard({
   block,
   onResume,
   canAdd,
+  addCost,
   ranking,
   onAdd,
   onTailorBullet,
@@ -99,6 +103,7 @@ export function BlockCard({
         >
           {onResume ? "On resume" : canAdd ? "Add to Resume" : "Cannot fit"}
         </button>
+        {!onResume && <AddCostBadge cost={addCost} />}
         <div className="resume-hover-control print:hidden"><BlockActions block={block} /></div>
         </div>
       </div>
