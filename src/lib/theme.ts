@@ -28,5 +28,9 @@ export const accentHoverSurface =
 export const fieldBorder =
   "rounded-md border border-border-strong bg-surface text-sm text-ink";
 
+/** Native `<select>` in the editing toolbar; pair with an overlaid chevron icon. */
+export const selectToolbar =
+  "select-toolbar rounded-md border border-border-strong bg-surface text-xs text-ink";
+
 export const focusRing =
   "focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";

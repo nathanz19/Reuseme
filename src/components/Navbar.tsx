@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
-import { btnExport, fieldBorder, focusRing } from "@/lib/theme";
+import { btnExport, fieldBorder, focusRing, selectToolbar } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
@@ -102,18 +102,21 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         </div>
       </nav>
       </DndContext>
-      <div role="toolbar" aria-label="Document editing" className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1 text-ink">
-        <div className="flex items-center gap-0.5 border-r border-border pr-3">
-          <IconAction label="Undo" onClick={onUndo} disabled={!canUndo} className="h-6! w-6!"><Undo2 size={16} aria-hidden="true" /></IconAction>
-          <IconAction label="Redo" onClick={onRedo} disabled={!canRedo} className="h-6! w-6!"><Redo2 size={16} aria-hidden="true" /></IconAction>
+      <div role="toolbar" aria-label="Document editing" className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-1.5 text-ink">
+        <div className="flex h-8 shrink-0 items-center gap-0 border-r border-border pr-2">
+          <IconAction label="Undo" onClick={onUndo} disabled={!canUndo} className="h-7! w-7!"><Undo2 size={16} aria-hidden="true" /></IconAction>
+          <IconAction label="Redo" onClick={onRedo} disabled={!canRedo} className="h-7! w-7!"><Redo2 size={16} aria-hidden="true" /></IconAction>
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-accent-text">
+        <label className="flex h-8 shrink-0 items-center gap-2 text-xs text-accent-text">
           Template
-          <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
-            aria-label="Template" className={`px-2 py-0.5 text-xs transition-colors hover:border-accent-border ${fieldBorder} ${focusRing}`}>
-            <option value="classic-ats">Classic ATS</option>
-            <option value="modern-tech">Modern Tech</option>
-          </select>
+          <span className="relative inline-flex h-8">
+            <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
+              aria-label="Template" className={`h-8 min-h-8 pl-3 pr-7 leading-none transition-colors hover:border-accent-border ${selectToolbar} ${focusRing}`}>
+              <option value="classic-ats">Classic ATS</option>
+              <option value="modern-tech">Modern Tech</option>
+            </select>
+            <ChevronDown size={13} aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-ink-muted" />
+          </span>
         </label>
         <SpaceMeter preset={activePreset} vaultBlocks={vaultBlocks} />
         <ExportControl canExport={canExport} onExportPdf={onExportPdf} onExportDocx={onExportDocx} />
@@ -221,7 +224,7 @@ function ExportControl({ canExport, onExportPdf, onExportDocx }: {
   };
 
   return (
-    <div data-export-control className={`relative ml-auto ${!canExport ? "cursor-not-allowed" : ""}`}
+    <div data-export-control className={`relative ml-auto flex h-8 shrink-0 items-center ${!canExport ? "cursor-not-allowed" : ""}`}
       tabIndex={!canExport ? 0 : undefined}
       aria-label={!canExport ? "Export unavailable" : undefined}
       aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
@@ -232,8 +235,8 @@ function ExportControl({ canExport, onExportPdf, onExportDocx }: {
         aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={EXPORT_MENU_ID}
         aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
         onClick={() => { if (canExport) placeMenu(); }}
-        className={`${btnExport} gap-1! px-2.5! py-1! text-xs! shadow-none!`}>
-        <Download size={14} aria-hidden="true" />Export<ChevronDown size={12} aria-hidden="true" />
+        className={`${btnExport} h-8! shrink-0! gap-1.5! px-3! py-0! text-xs! leading-none! shadow-none!`}>
+        <Download size={15} aria-hidden="true" />Export<ChevronDown size={13} aria-hidden="true" />
       </button>
       <div ref={menuRef} id={EXPORT_MENU_ID} popover="auto" role="menu" aria-label="Export format"
         onToggle={(event) => {
