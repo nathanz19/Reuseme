@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { BlockActions } from "@/components/BlockActions";
 import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
+import { ReferenceEntryHeading } from "@/components/ReferenceEntryHeading";
 import { useSortable } from "@dnd-kit/sortable";
 import {
   CANVAS_BLOCK_TRANSITION,
@@ -46,10 +47,21 @@ function CanvasBlockBody({
   const subtitle = [block.organization, block.location]
     .filter(Boolean)
     .join(" · ");
+  const details = preset.referenceFormat?.details;
+  const stacked = details && details.entryLayout !== "inline";
+  const organizationFirst = details?.entryLayout === "organization-first" && block.category !== "project";
 
   const content = (
     <div className="min-w-0 flex-1">
       <div className="relative">
+        {preset.referenceFormat?.layout ? <ReferenceEntryHeading title={block.title} organization={block.organization} location={block.location} dates={dateLine} format={preset.referenceFormat} /> : stacked ? <div className="reference-entry-heading">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="min-w-0 font-bold">{organizationFirst ? block.organization || block.title : block.title}</p>
+            {dateLine && <p className="shrink-0 text-right font-bold">{dateLine}</p>}
+          </div>
+          {organizationFirst && block.organization ? <p className={block.category === "education" ? "italic" : "font-semibold"}>{block.title}{block.location && <span className="font-normal not-italic"> · {block.location}</span>}</p>
+            : !organizationFirst && block.organization && <p>{block.organization}{block.location && ` · ${block.location}`}</p>}
+        </div> : <>
         <div className="flex items-baseline justify-between gap-4">
           <p className="min-w-0 font-semibold text-sm">{block.title}</p>
           {dateLine ? (
@@ -61,9 +73,10 @@ function CanvasBlockBody({
         {subtitle ? (
           <p className="pr-16 text-sm text-slate-700 print:pr-0">{subtitle}</p>
         ) : null}
+        </>}
         {actions}
       </div>
-      <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
+      <ul data-description-style={preset.referenceFormat?.layout?.descriptionStyle} className="mt-1 list-disc pl-5 text-sm text-slate-900">
         {bullets.map((bullet, index) => (
           <li key={index} className="group/bullet relative pr-8 print:pr-0">
             {bullet}
@@ -91,6 +104,7 @@ function CanvasBlockBody({
         <div className="flex items-start gap-1">
           {handle}
           {content}
+
         </div>
       )}
     </>
@@ -222,7 +236,7 @@ export function CanvasBlock({
           onTailorBullet={onTailorBullet}
           detachedGrip
           actions={
-            <div className="resume-hover-control absolute right-0 top-5 z-10 origin-top-right scale-75 print:hidden">
+            <div className={`reference-block-actions resume-hover-control absolute print:hidden ${preset.referenceFormat ? "right-1 top-1" : "right-0 top-5 z-10 origin-top-right scale-75"}`}>
               {!placeholder && <BlockActions block={block} onRemove={onRemove} />}
             </div>
           }

@@ -4,9 +4,12 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type M
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown, Move, TextCursor } from "lucide-react";
+import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown, Trash2, Move, TextCursor } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
+import { ReferenceFormatDialog } from "@/components/ReferenceFormatDialog";
+import { useResumeStore } from "@/store/resumeStore";
+import { DeleteTemplateDialog } from "@/components/DeleteTemplateDialog";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { btnExport, fieldBorder, focusRing, selectToolbar } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
@@ -41,6 +44,12 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
   const tabSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [closingDocument, setClosingDocument] = useState<ResumePreset | null>(null);
+  const [showFormatUpload, setShowFormatUpload] = useState(false);
+  const savedFormats = useResumeStore((state) => state.savedReferenceFormats);
+  const applyFormat = useResumeStore((state) => state.applyReferenceFormat);
+  const deleteFormat = useResumeStore((state) => state.deleteReferenceFormat);
+  const [deletingTemplate, setDeletingTemplate] = useState<{ id: string; name: string } | null>(null);
+  const selectedSavedFormat = savedFormats.find((entry) => entry.id === activePreset.referenceFormatId);
   const cancelRename = useRef(false);
   const startRename = (preset: ResumePreset) => {
     cancelRename.current = false;
@@ -114,14 +123,21 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         <label className="flex h-8 shrink-0 items-center gap-2 text-xs text-accent-text">
           Template
           <span className="relative inline-flex h-8">
-            <select value={templateId} onChange={(event) => onTemplateChange(event.target.value as TemplateId)}
-              aria-label="Template" className={`h-8 min-h-8 pl-3 pr-7 leading-none transition-colors hover:border-accent-border ${selectToolbar} ${focusRing}`}>
+            <select value={activePreset.referenceFormat ? activePreset.referenceFormatId ?? "reference" : templateId} onChange={(event) => {
+              const saved = savedFormats.find((entry) => entry.id === event.target.value);
+              if (saved) applyFormat(activePreset.id, saved.format, saved.name);
+              else if (event.target.value !== "reference") onTemplateChange(event.target.value as TemplateId);
+            }} aria-label="Template" className={`h-8 min-h-8 pl-3 pr-7 leading-none transition-colors hover:border-accent-border ${selectToolbar} ${focusRing}`}>
               <option value="classic-ats">Classic ATS</option>
               <option value="modern-tech">Modern Tech</option>
+              {activePreset.referenceFormat && !savedFormats.some((entry) => entry.id === activePreset.referenceFormatId) && <option value={activePreset.referenceFormatId ?? "reference"}>Current uploaded style</option>}
+              {savedFormats.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
             </select>
             <ChevronDown size={13} aria-hidden="true" className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-ink-muted" />
           </span>
         </label>
+        {selectedSavedFormat && <IconAction label="Delete selected template" danger onClick={() => setDeletingTemplate({ id: selectedSavedFormat.id, name: selectedSavedFormat.name })}><Trash2 size={16} /></IconAction>}
+        <button type="button" onClick={() => setShowFormatUpload(true)} className="btn-secondary text-xs">Upload format</button>
         <SpaceMeter preset={activePreset} vaultBlocks={vaultBlocks} />
         <AiUsageMeter />
         <DragModeToggle mode={dragMode} onChange={onDragModeChange} />
@@ -130,6 +146,8 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
       {closingDocument && <DeleteDocumentDialog name={closingDocument.name}
         onCancel={() => setClosingDocument(null)}
         onConfirm={() => { onCloseDocument(closingDocument.id); setClosingDocument(null); }} />}
+      {showFormatUpload && <ReferenceFormatDialog preset={activePreset} onClose={() => setShowFormatUpload(false)} />}
+      {deletingTemplate && <DeleteTemplateDialog name={deletingTemplate.name} onCancel={() => setDeletingTemplate(null)} onConfirm={() => { deleteFormat(deletingTemplate.id); setDeletingTemplate(null); }} />}
     </header>
   );
 }
