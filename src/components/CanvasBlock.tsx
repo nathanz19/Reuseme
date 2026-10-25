@@ -71,14 +71,14 @@ function CanvasBlockBody({
           ) : null}
         </div>
         {subtitle ? (
-          <p className="pr-16 text-sm text-slate-700 print:pr-0">{subtitle}</p>
+          <p className="text-sm text-slate-700">{subtitle}</p>
         ) : null}
         </>}
         {actions}
       </div>
       <ul data-description-style={preset.referenceFormat?.layout?.descriptionStyle} className="mt-1 list-disc pl-5 text-sm text-slate-900">
         {bullets.map((bullet, index) => (
-          <li key={index} className="group/bullet relative pr-8 print:pr-0">
+          <li key={index} className="group/bullet relative">
             {bullet}
             {onTailorBullet && (
               <IconAction label="Tailor bullet" className="resume-hover-control absolute right-0 top-0 print:hidden" onClick={() => onTailorBullet(index)}>
@@ -94,7 +94,7 @@ function CanvasBlockBody({
   return (
     <>
       {overflow && (
-        <p className="overflow-label mb-1 text-xs font-medium text-amber-800">
+        <p className="overflow-label absolute -top-2 left-2 z-10 bg-white px-1 text-xs font-medium leading-none text-amber-800">
           Suggested to cut for space
         </p>
       )}
@@ -221,7 +221,7 @@ export function CanvasBlock({
         skeleton
           ? "border-slate-300 bg-slate-200"
           : overflow
-            ? "overflow-flag border-2 border-amber-500 bg-white"
+            ? "overflow-flag border-transparent bg-white outline-2 outline-solid outline-amber-500"
             : "border-transparent bg-white"
       }`}
     >
@@ -236,7 +236,7 @@ export function CanvasBlock({
           onTailorBullet={onTailorBullet}
           detachedGrip
           actions={
-            <div className={`reference-block-actions resume-hover-control absolute print:hidden ${preset.referenceFormat ? "right-1 top-1" : "right-0 top-5 z-10 origin-top-right scale-75"}`}>
+            <div className="reference-block-actions resume-hover-control absolute print:hidden">
               {!placeholder && <BlockActions block={block} onRemove={onRemove} />}
             </div>
           }

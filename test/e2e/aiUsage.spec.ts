@@ -20,7 +20,7 @@ test("Space and AI show explanations only on hover or focus", async ({ page }) =
   await expect(tooltip).toContainText("Resets at");
   await page.mouse.move(0, 0);
   await space.focus();
-  await expect(tooltip).toContainText("estimated lines");
+  await expect(tooltip).toContainText("lines, measured on the page");
   await space.press("Escape");
   await expect(tooltip).toHaveCount(0);
 });

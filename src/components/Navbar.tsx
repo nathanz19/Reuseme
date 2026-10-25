@@ -7,12 +7,12 @@ import { createPortal } from "react-dom";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown, Trash2, Move, TextCursor } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
+import { usePageBudget } from "@/lib/usePageBudget";
 import { ReferenceFormatDialog } from "@/components/ReferenceFormatDialog";
 import { useResumeStore } from "@/store/resumeStore";
 import { DeleteTemplateDialog } from "@/components/DeleteTemplateDialog";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { btnExport, fieldBorder, focusRing, selectToolbar } from "@/lib/theme";
-import { isWithinLineBudget } from "@/lib/lineCount";
 import type { DragMode } from "@/store/sessionStore";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
@@ -55,7 +55,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
     cancelRename.current = false;
     setRenaming({ id: preset.id, name: preset.name });
   };
-  const canExport = isWithinLineBudget(activePreset, vaultBlocks);
+  const canExport = usePageBudget(activePreset, vaultBlocks).fits;
   return (
     <header className="z-10 shrink-0 border-b border-border bg-surface text-sm shadow-[var(--shadow-soft)] print:hidden">
       <DndContext id="document-tabs" sensors={tabSensors} collisionDetection={closestCenter}

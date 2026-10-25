@@ -79,6 +79,9 @@ for (const width of [900, 1440]) {
     expect(pdf.toString("latin1").match(/\/Type\s*\/Page\b/g)).toHaveLength(1);
     await expect(page.locator("#resume-print-copy")).toHaveCount(0);
 
+    // The overflow flag follows the measured page (the canvas is hidden on the narrow layout).
+    await expect(resume.locator(".overflow-flag")).toBeAttached();
+
     // Inspect the document that beforeprint supplies to the print compositor.
     await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
     await page.emulateMedia({ media: "print" });
@@ -114,29 +117,41 @@ test("printing preserves canvas margins and does not push Skills lower", async (
   expect(printed.skillsBottom).toBeLessThanOrEqual(screen.skillsBottom + 1);
 });
 
-test("print fits the entire Skills section inside the page instead of clipping", async ({ page }) => {
+test("print clips like the canvas instead of scaling the content", async ({ page }) => {
   await openApp(page);
-  // Reproduce a document with more physical content than the line estimate predicts.
+  // Reproduce a document with more physical content than the page holds.
   await page.locator('#resume-print-root section[aria-label="Resume skills"] p').evaluate((skills) => {
     skills.textContent += ", " + "Additional skill ".repeat(100);
   });
+  const measure = (element: HTMLElement | SVGElement) => {
+    const root = element.getBoundingClientRect();
+    const skills = element.querySelector('section[aria-label="Resume skills"] p')!.getBoundingClientRect();
+    const content = element.querySelector("[data-resume-content]")!.getBoundingClientRect();
+    return { skillsBottom: skills.bottom - root.top, skillsHeight: skills.height, contentHeight: content.height, pageHeight: root.height };
+  };
+  const screen = await page.locator("#resume-print-root").evaluate(measure);
   await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
   await page.emulateMedia({ media: "print" });
-  const layout = await page.locator("#resume-print-copy").evaluate((copy) => {
-    const page = copy.getBoundingClientRect();
-    const skills = copy.querySelector('section[aria-label="Resume skills"] p')!.getBoundingClientRect();
-    const padding = parseFloat(getComputedStyle(copy).paddingBottom);
-    return { bottom: skills.bottom, pageBottom: page.bottom - padding };
-  });
-  expect(layout.bottom).toBeLessThanOrEqual(layout.pageBottom + 1);
+  const printed = await page.locator("#resume-print-copy").evaluate(measure);
+  expect(printed.skillsBottom).toBeCloseTo(screen.skillsBottom, 0);
+  expect(printed.skillsHeight).toBeCloseTo(screen.skillsHeight, 0);
+  expect(printed.contentHeight).toBeCloseTo(screen.contentHeight, 0);
+  // The content is taller than the page and the page clips it, in the PDF as on the canvas.
+  expect(printed.contentHeight).toBeGreaterThan(printed.pageHeight);
+  expect(await page.locator("#resume-print-copy").evaluate((copy) => getComputedStyle(copy).overflow)).toBe("hidden");
 });
 
-test("normal export retains readable scale when prepared in the screen layout", async ({ page }) => {
+test("print copy is unscaled", async ({ page }) => {
   await openApp(page);
   await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
-  const scale = await page.locator("#resume-print-copy .resume-print-content").evaluate((content) =>
-    new DOMMatrix(getComputedStyle(content).transform).a,
+  await page.emulateMedia({ media: "print" });
+  const copy = page.locator("#resume-print-copy");
+  await expect(copy).toBeVisible();
+  const transforms = await copy.evaluate((element) =>
+    [element, ...element.querySelectorAll<HTMLElement>("*")]
+      .map((node) => getComputedStyle(node).transform)
+      .filter((transform) => transform !== "none"),
   );
-  expect(scale).toBeGreaterThan(0.85);
-  expect(scale).toBeLessThanOrEqual(1);
+  expect(transforms).toEqual([]);
+  await expect(copy.locator("[data-resume-content]")).toHaveCount(1);
 });

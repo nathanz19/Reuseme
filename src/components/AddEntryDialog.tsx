@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useResumeStore } from "@/store/resumeStore";
 import type { AccomplishmentBlock, ResumePreset } from "@/types/resume";
 import type { VaultCategory } from "@/lib/vaultCategories";
-import { editFitsBudget, estimateLineCount } from "@/lib/lineCount";
+import { editFitsBudget, measurePage } from "@/lib/lineCount";
 import { cleanBlockReferences } from "@/lib/vaultEditing";
 import { btnPrimary, btnSecondary } from "@/lib/theme";
 
@@ -74,8 +74,8 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
             // Only blocks already on the active resume can change its length.
             const bulletsChanged = JSON.stringify(block.bullets) !== JSON.stringify(next.bullets);
             const candidatePreset = bulletsChanged ? cleanBlockReferences([preset], block.id, false)[0] : preset;
-            const before = estimateLineCount(preset, vaultBlocks);
-            const after = estimateLineCount(candidatePreset, vaultBlocks.map((entry) => entry.id === block.id ? next : entry));
+            const before = measurePage(preset, vaultBlocks);
+            const after = measurePage(candidatePreset, vaultBlocks.map((entry) => entry.id === block.id ? next : entry));
             if (!editFitsBudget(before, after)) return setError(SPACE_ERROR);
             updateVaultBlock(next);
           } else {
@@ -99,7 +99,7 @@ export function AddEntryDialog({ category, block, editing = false, onClose }: Ad
           };
           const candidate = JSON.parse(JSON.stringify(preset)) as ResumePreset;
           apply(candidate);
-          if (!editFitsBudget(estimateLineCount(preset, vaultBlocks), estimateLineCount(candidate, vaultBlocks))) {
+          if (!editFitsBudget(measurePage(preset, vaultBlocks), measurePage(candidate, vaultBlocks))) {
             return setError(SPACE_ERROR);
           }
           commit((draft) => {

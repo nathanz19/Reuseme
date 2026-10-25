@@ -263,6 +263,11 @@ body.resume-drop-blocked * {
     display: none !important;
   }
 
+  /*
+   * The print copy is an unscaled clone of the canvas. Print rules may change
+   * only visibility and color, never size, padding, margin, or font; the
+   * clone keeps the canvas padding, so text wraps exactly as on screen.
+   */
   #resume-print-copy {
     position: relative;
     display: block !important;
@@ -273,14 +278,12 @@ body.resume-drop-blocked * {
     box-shadow: none !important;
     border: 0 !important;
     outline: 0 !important;
-    /* Match the canvas p-8 padding; larger print margins can clip Skills. */
-    padding: 32px;
     box-sizing: border-box;
     break-inside: avoid;
   }
 
   #resume-print-copy .overflow-flag {
-    border-color: transparent !important;
+    outline: 0 !important;
     background: white !important;
   }
 }
@@ -501,48 +504,61 @@ body.resume-drop-blocked * {
   padding-bottom: 6px;
 }
 
-/* Keep reference-format controls in continuous margin rails, outside the text. */
-.resume-reference [data-canvas-block-id]::before,
-.resume-reference [data-canvas-block-id]::after {
+/*
+ * Hover controls sit in continuous margin rails, outside the text, on every
+ * template. The rails take no layout space, so the page wraps the same with
+ * or without controls (and in the PDF).
+ */
+.resume-page [data-canvas-block-id]::before,
+.resume-page [data-canvas-block-id]::after {
   content: "";
   position: absolute;
   top: 0;
   bottom: 0;
   z-index: 0;
 }
-.resume-reference [data-canvas-block-id]::before {
+.resume-page [data-canvas-block-id]::before {
   left: -28px;
   width: 28px;
 }
-.resume-reference [data-canvas-block-id]::after {
+.resume-page [data-canvas-block-id]::after,
+.resume-page .resume-rail::after {
   right: calc(-1 * var(--reference-rail-width) - 4px);
   width: calc(var(--reference-rail-width) + 4px);
 }
-.resume-reference .reference-block-actions {
+.resume-page .resume-rail::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+}
+.resume-page .reference-block-actions,
+.resume-page .resume-margin-control {
   right: calc(-1 * var(--reference-rail-width));
   top: 0;
   z-index: 2;
 }
-.resume-reference .reference-block-actions > div {
+.resume-page .reference-block-actions > div,
+.resume-page .resume-margin-control > div {
   gap: 0;
   flex-direction: var(--reference-actions-direction);
 }
-.resume-reference .reference-block-actions .icon-action {
+.resume-page .reference-block-actions .icon-action,
+.resume-page .resume-margin-control .icon-action {
   width: var(--reference-control-size);
   height: var(--reference-control-size);
 }
-.resume-reference [data-canvas-block-id] li {
-  padding-right: 0;
-}
-.resume-reference [data-canvas-block-id] li > .icon-action {
+.resume-page [data-canvas-block-id] li > .icon-action {
   right: calc(-1 * min(25px, var(--reference-rail-width)));
   width: var(--reference-control-size);
   height: var(--reference-control-size);
   z-index: 2;
 }
 @media print {
-  .resume-reference [data-canvas-block-id]::before,
-  .resume-reference [data-canvas-block-id]::after {
+  .resume-page [data-canvas-block-id]::before,
+  .resume-page [data-canvas-block-id]::after,
+  .resume-page .resume-rail::after {
     display: none;
   }
 }

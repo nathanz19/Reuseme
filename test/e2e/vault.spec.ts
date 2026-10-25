@@ -9,7 +9,7 @@ test("loads the seeded vault and the over-budget default preset", async ({ page 
   await expect(page).toHaveTitle(/Reuseme/);
   await expect(page.getByRole("tab", { name: "Frontend SWE", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByLabel("Template")).toHaveValue("classic-ats");
-  await expect(spaceMeter(page)).toHaveText("Space 46/45");
+  await expect(spaceMeter(page)).toHaveText("Space 55/49");
   await expect(page.getByText("Suggested to cut for space")).toBeVisible();
   await expect(
     page.getByRole("button", { name: /^Work Experience/ }),

@@ -52,7 +52,7 @@ test("remove, undo, redo, and re-add blocks on the canvas", async ({
 
 test("canvas edits persist across a reload", async ({ page }) => {
   await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
-  await expect(spaceMeter(page)).not.toHaveText("Space 46/45");
+  await expect(spaceMeter(page)).not.toHaveText("Space 55/49");
   const meterAfterRemove = await spaceMeter(page).textContent();
 
   await page.reload();

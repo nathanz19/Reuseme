@@ -15,12 +15,12 @@ export function ResumeHeader({ header, templateId, referenceFormat, subtitle }: 
   const modern = templateId === "modern-tech";
   const separator = referenceFormat?.details?.contactSeparator === "pipe" ? " | " : " · ";
   return (
-    <div className="group relative">
-      <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+    <div className="group resume-rail relative">
+      <div className="resume-hover-control resume-margin-control absolute top-0 print:hidden">
         <SectionActions category={{ id: "contact", label: "Contact Information", kind: "contact" }} />
       </div>
       <header className={modern ? "border-b-2 border-sky-700 pb-2" : ""}>
-        <h1 className={`pr-16 print:pr-0 font-bold ${modern ? "text-2xl text-sky-900" : "text-xl"}`}>
+        <h1 className={`font-bold ${modern ? "text-2xl text-sky-900" : "text-xl"}`}>
           {header.fullName}
         </h1>
         {subtitle && <p className="reference-subtitle">{subtitle}</p>}

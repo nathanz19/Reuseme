@@ -8,6 +8,7 @@ import { ReferenceEntryHeading } from "@/components/ReferenceEntryHeading";
 import { ReferenceLayoutControls } from "@/components/ReferenceLayoutControls";
 import { useResumeStore } from "@/store/resumeStore";
 import { notifyAiUsageChanged } from "@/lib/aiUsage";
+import { measurePage } from "@/lib/lineCount";
 import { referenceFormatStyle } from "@/lib/referenceFormat";
 import { FormatAnalysisSchema, MAX_REFERENCE_BYTES } from "@/schemas/referenceFormat";
 import type { ResumePreset } from "@/types/resume";
@@ -31,6 +32,19 @@ export function ReferenceFormatDialog({ preset, onClose }: { preset: ResumePrese
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const apply = useResumeStore((state) => state.applyReferenceFormat);
+  const vaultBlocks = useResumeStore((state) => state.vaultBlocks);
+  // The format is always applied. This only tells the user, before they apply
+  // it, whether the document would be longer than one page in the new style.
+  const [overBudget, setOverBudget] = useState(false);
+  const previewFormat = result?.format;
+  useEffect(() => {
+    if (!previewFormat) return;
+    // The measurer renders synchronously, so it runs on a later task, not during commit.
+    const timer = window.setTimeout(() => {
+      setOverBudget(!measurePage({ ...preset, referenceFormat: previewFormat, templateId: "classic-ats" }, vaultBlocks).fits);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [previewFormat, preset, vaultBlocks]);
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
@@ -107,6 +121,7 @@ export function ReferenceFormatDialog({ preset, onClose }: { preset: ResumePrese
         </section>
       </div>
       <p className="mt-3 text-xs text-ink-muted">Detected: {result.format.details?.fontFace ?? result.format.font} font · {result.format.headerAlignment}-aligned header · {result.format.spacing} spacing · {result.format.margins} margins.</p>
+      {overBudget && <p role="status" className="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">This template makes the resume longer than one page. Remove or shorten content before exporting.</p>}
       <p className="mt-3 text-xs text-ink-muted">Applying also saves this style in your template list for reuse.</p>
       <div className="mt-5 flex flex-wrap justify-end gap-3"><button type="button" onClick={onClose} className="btn-secondary">Cancel</button><button type="button" disabled={!formatName.trim()} onClick={() => { apply(preset.id, result.format, formatName); onClose(); }} className="btn-primary disabled:opacity-50">Apply format</button></div>
     </div>}
