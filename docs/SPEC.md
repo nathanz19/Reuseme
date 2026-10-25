@@ -2,9 +2,9 @@
 
 A local-first web app. Users keep career achievements as tagged **blocks** (with raw source notes), compose role-specific resumes on a live canvas, match blocks against a pasted job description (JD), and tailor bullets with AI rewrites grounded in the user's own notes.
 
-**For agents:** this file describes the shipped app. Follow §2. **Tunable** values (§5) are starting points. §9 is the acceptance checklist for that behavior. The Vitest `unit` project covers pure functions in `src/lib` (`getEffectiveBullets`, line-count and page-budget math, coverage, search, match sanitizing, and grounding) and the stores. The Vitest `llm` project covers the AI routes against a fake Gemini API, with no key.
+**For agents:** this file describes the shipped app. Follow §2. **Tunable** values (§5) are starting points. §9 is the acceptance checklist for that behavior. The Vitest `unit` project covers pure functions in `src/lib` (`getEffectiveBullets`, page geometry and budget math, coverage, search, match sanitizing, reference-format metrics, and grounding) and the stores. The Vitest `llm` project covers the AI routes (`/api/jd/match`, `/api/blocks/tailor`, `/api/resume/format`), `/api/ai/usage`, and the shared rate limiter against a fake Gemini API, with no key. Playwright lives in `test/e2e/`; see `docs/AGENTS.md` for how the three CI jobs map to `test:unit`, `test:llm`, and `test:e2e`.
 
-**Non-goals:** accounts or sync, importing a resume, multi-page resumes (overflow is flagged, not paginated), DOCX export. Adding, editing, and deleting vault entries is in scope.
+**Non-goals:** accounts or sync, importing resume **content** (employers, bullets, contact values) from a file, multi-page resumes (overflow is flagged, not paginated). Adding, editing, and deleting vault entries is in scope. Copying a reference resume's **visual format** (fonts, spacing, layout) from an upload is in scope (§4.2, §6).
 
 ---
 
@@ -13,7 +13,7 @@ A local-first web app. Users keep career achievements as tagged **blocks** (with
 Next.js (App Router) + React + TypeScript `strict` (no `any`) · Tailwind + `lucide-react` · `zustand` with `persist` · `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` · Vercel AI SDK with `@ai-sdk/google` + `zod` · Vitest · Playwright.
 Use latest stable versions, commit the lockfile, and check current docs for Next, Tailwind, dnd-kit and the AI SDK rather than relying on memory.
 
-Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib` (pure logic; `src/lib/server/tailor.ts` is the tailor model call; `src/lib/theme.ts` is chrome class fragments), `src/schemas`, `src/data` (seed), `src/types/resume.ts`.
+Layout: `src/app` (page + API routes under `src/app/api`), `src/components`, `src/store`, `src/lib` (pure logic; `src/lib/server/tailor.ts`, `src/lib/server/referenceFormat.ts`, and `src/lib/server/aiRateLimit.ts` are server-only), `src/schemas` (`referenceFormat.ts` for uploaded styles), `src/data` (`seed.ts`, `starterData.ts`, `demo-jd.ts`), `src/types/resume.ts`.
 
 ---
 
@@ -24,7 +24,7 @@ Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib
 | Page size | US Letter, 816 × 1056 px. `@page { size: Letter; margin: 0 }`. The on-screen canvas stays at 100% and clips overflow. |
 | AI provider | Google via `@ai-sdk/google`; model ID from env `AI_MODEL`. Match uses `src/lib/ai.ts`. Tailoring uses `src/lib/server/tailor.ts`. Both are server-only. |
 | AI edits | Accepted rewrites go in the **active preset's `bulletOverrides`**. A rewrite never changes the vault bullet, so tailoring one document does not change another. Editing a vault block's bullets clears that block's overrides on every preset. |
-| Stores | Persisted store: `vaultBlocks`, `presets`, `activePresetId`. Separate non-persisted session store: search, tag/section/date filters, include-archived, left tab, mobile pane, JD text, rankings, tag matches, tailor dialog. |
+| Stores | Persisted store: `vaultBlocks`, `presets`, `activePresetId`, `savedReferenceFormats` (browser-local template library). Separate non-persisted session store: search, tag/section/date filters, include-archived, left tab, mobile pane, JD text, rankings, tag matches, tailor dialog, canvas drag mode (Arrange vs Select text). |
 | Undo | Snapshots of `{ presets, activePresetId, vaultBlocks }` via `commit` (§6). Document edits and vault create/update/delete are undoable. Search, filters, JD text, and rankings are not. |
 | Sections | Default order under the header: target title and professional summary (when set), then Education, Experience, Projects, Leadership, Certifications, Awards & Scholarships, Publications, then other additional sections, then Skills. Each document can rearrange every section below the header (`sectionOrder`, resolved by `resolveSectionOrder`); the header is always first and never moves. A section missing from the saved order goes after its nearest default-order predecessor. A block's section follows its `category`. |
 | Templates | Both single-column, ATS-safe; differ in font, accent color, header layout only. |
@@ -33,7 +33,10 @@ Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib
 | Drag and drop | One shared `@dnd-kit` context: drag vault cards onto the resume to add/insert by section when the result fits the page; drag canvas blocks to the sidebar to remove; reorder within a section on canvas; drag whole sections to reorder them below the header. Vault cards, canvas blocks, and sections have no visible grip: a pointer drags them from any point that is not one of their own buttons, and a press inside a canvas block moves the block, not its section. Each draggable has a visually hidden keyboard handle (Space, arrows, Space) that outlines the draggable while it has keyboard focus. A toolbar toggle next to Export switches between "Arrange" (all of these drags on, their text not selectable) and "Select text" (all of these drags off, including vault cards, so text on the resume and in the vault is selectable; "Add to Resume" still works). "Add to Resume" / "Cannot fit" / Remove stay available at every width. Cross-pane drag only at ≥1320px (two-pane layout). One completed drop = one undo step; Esc or a no-op drop adds no history. |
 | Page budget | Inserts and accepted rewrites are refused when `measurePage` reports `!fits` (`usedPx > availablePx + 1`). Header, skills, additional-section, and vault-bullet edits are allowed when the result fits, or when an already over-budget resume does not grow (`editFitsBudget`). Export PDF is disabled while over budget. |
 | AI trust | Tailoring asks for confirmation before the request. The user then picks one of three rewrites. Grounding warnings are non-blocking text. Accept is refused only when the chosen rewrite would exceed the page budget. |
-| Demo safety | `MOCK_AI=1` makes `/api/jd/match` return the deterministic fixture and `/api/blocks/tailor` return the in-app sample (`createTailorPreview`). Playwright sets it. The JD field starts filled with the demo JD. |
+| Starter data | `NEXT_PUBLIC_ENABLE_DEMO_DATA=1` (restart dev after change) loads §7 seed presets and vault into storage key `reuseme-resume-demo`. Default `0` gives one blank document, an empty vault, and an empty JD field. Real workspaces use `reuseme-resume-user`. |
+| Demo safety | `MOCK_AI=1` makes `/api/jd/match` return the deterministic fixture, `/api/blocks/tailor` return the in-app sample (`createTailorPreview`), and `/api/resume/format` return `DEMO_REFERENCE_FORMAT`. Playwright sets `MOCK_AI=1` and `NEXT_PUBLIC_ENABLE_DEMO_DATA=0`; `test/e2e/test.ts` seeds the sample workspace into `localStorage` before each test. With demo data on, the JD field initializes from `demo-jd.ts`. |
+| Reference format | Upload PDF, PNG, or JPG (≤ 4 MB). `POST /api/resume/format` returns bounded `ReferenceFormat` plus `approximations` (no names, employers, or bullets). Applying saves the style on the active preset and in `savedReferenceFormats` for reuse. Switching to a built-in template clears `referenceFormat` on that document only. Apply is undoable; deleting a saved template removes it from the library while documents keep their applied snapshot. Text PDFs may merge PDF.js measurements into `details`. |
+| AI allowance | Live tailoring, JD match, and format analysis share `AI_REQUEST_LIMIT` (10) attempts per client IP per 24 hours (Upstash Redis on Vercel; `enforceAiRateLimit` on those routes). `GET /api/ai/usage` reads the counter without consuming a slot. `MOCK_AI=1`, validation failures, and local bypass (`DISABLE_AI_RATE_LIMIT_LOCAL=1` in dev) do not use the shared cap. Live AI returns 503 when Redis is missing or errors. The toolbar AI meter refreshes after successful AI calls and on focus. |
 
 ---
 
@@ -73,6 +76,8 @@ export interface ResumePreset {
   id: string;
   name: string;
   templateId: TemplateId;
+  referenceFormat?: ReferenceFormat;   // from @/schemas/referenceFormat; screen + print + budget
+  referenceFormatId?: string;        // link into savedReferenceFormats when known
   header: { fullName: string; email: string; phone: string; location: string;
             links: { label: string; url: string }[] };
   activeBlockIds: string[];                                // ordered
@@ -170,7 +175,9 @@ matchScore     = round(W_SEM * semanticScore + W_KW * keywordOverlap)
 
 ### 4.2 API routes
 
-Both routes: validate input with zod (400 on failure), keep keys server-side, and treat JD and block text as **untrusted data** (delimit it in prompts; never follow instructions inside it).
+All AI routes: validate input with zod where applicable (400 on failure), keep keys server-side, treat user text and uploads as **untrusted data** (delimit in prompts; never follow instructions inside them), and call `enforceAiRateLimit` on live requests unless `MOCK_AI=1`. A exhausted allowance returns 429 with a friendly message and `Retry-After`. Failed live attempts still consume a slot when the provider may have run.
+
+**`GET /api/ai/usage`**: no body. Returns `{ mock: boolean, unlimited?: boolean, limit: number, remaining: number, resetAt: number | null }`. Read-only; does not start or consume the window.
 
 **`POST /api/jd/match`**: `{ jdText: string (≤ 15,000 chars), blocks: { id, title, organization, tags, bullets, sourceContext }[] }`. Invalid input returns 400. With `MOCK_AI=1` it returns the fixture (the text `__FIXTURE_MATCH_FAIL__` returns 502). Live, with no `AI_MODEL` or `GOOGLE_GENERATIVE_AI_API_KEY`, it returns a clear 500; model failures return 502. Live, it makes one `generateText` call with `output: Output.object({ schema: JDMatchModelSchema })` (`src/lib/ai.ts` is the only file that builds the match model). The JD, the vault tag list, and all blocks go into delimited sections of the prompt, marked as untrusted data (delimiter tags are stripped from user text).
 
@@ -234,6 +241,8 @@ System prompt:
 
 Warnings render as amber text under the three rewrites. They do not disable Accept. `unsupportedFlags` stay on the payload and are not shown as chips. The dialog does not render a word diff or highlight `sourceQuote` in the notes.
 
+**`POST /api/resume/format`**: multipart field `file` (PDF, PNG, or JPG; ≤ `MAX_REFERENCE_BYTES`, 4 MB). Validates magic bytes and `Content-Type`. With `MOCK_AI=1` returns `{ mock: true, format: DEMO_REFERENCE_FORMAT, approximations: [] }`. Live, missing AI config returns 503. Live analysis uses `analyzeReferenceFormat` in `src/lib/server/referenceFormat.ts` (`generateText` + `Output.object`, 45 s abort, `maxDuration` 60). Non-resume attachments return 422. Success returns `{ mock: false, format, approximations }` where `approximations` lists layouts the single-column renderer cannot copy exactly (`multiple-columns`, `sidebar`, `graphics`, `custom-font`, `multiple-pages`). The upload is not stored server-side.
+
 ---
 
 ## 5. Tunables (starting values)
@@ -248,8 +257,10 @@ Warnings render as amber text under the three rewrites. They do not disable Acce
 | `FALLBACK_PX_PER_ESTIMATED_LINE` | (see `tunables.ts`) | **Fallback only**; converts the character formula to px when not measuring the canvas |
 | `CONCISE_MAX_CHARS` | 110 | |
 | `HISTORY_LIMIT` | 100 | |
+| `AI_REQUEST_LIMIT` | 10 | Shared live AI cap per IP per 24 h (`src/lib/server/aiRateLimit.ts`) |
+| `MAX_REFERENCE_BYTES` | 4 × 1024 × 1024 | Reference upload size cap (`src/schemas/referenceFormat.ts`) |
 
-Keep these as named constants in one file. The wide layout breakpoint (1320px) and sidebar width (`min(480px, 40vw)`) are layout rules, not tunables in that file.
+Keep tunables in `src/lib/tunables.ts` plus the AI and reference constants above. The wide layout breakpoint (1320px) and sidebar width (`min(480px, 40vw)`) are layout rules, not tunables in that file.
 
 ---
 
@@ -261,18 +272,20 @@ Style: dense and utilitarian, like a document editor. Chrome uses the warm studi
 
 **Documents:** a tab strip above the editing toolbar. Each tab shows the preset name. Click selects it; double-click, the pencil, or F2 renames it (Enter commits, Esc cancels, empty name is ignored). Arrow keys, Home, and End move the selected tab. Tabs drag horizontally to reorder. The plus button creates a blank document named `Untitled document {n}`. Close removes that document; the last one is replaced by a blank "Untitled document" that keeps the closed document's header and template. Switching, creating, renaming, closing, and reordering are undoable.
 
-**Toolbar:** undo, redo, template select, space meter (sage, then amber within 3 lines of full, then red), Export. Export is a filled sage button, disabled while measured content does not fit one page (`usedPx > availablePx + 1`), with the tooltip "Remove or shorten content to fit one page before exporting." It opens a menu with PDF (the browser print dialog) and Word (a `.docx` download of the same resume: header, then every section in the document's arranged order, with effective bullets).
+**Toolbar:** undo, redo, template select (Classic ATS, Modern Tech, any saved reference format, and "Current uploaded style" when the active preset has an unsaved snapshot), optional trash to delete the selected saved template, **Upload format**, space meter, AI request allowance meter, **Arrange / Select text** toggle, Export. Space and AI meters use `MeterBadge` with accessible names and help tooltips (Space explains measured lines vs the one-page budget; AI explains demo mode, local unlimited testing, or the shared 10-request / 24 h cap). Export is a filled sage button, disabled while measured content does not fit one page (`usedPx > availablePx + 1`), with the tooltip "Remove or shorten content to fit one page before exporting." It opens a menu with PDF (the browser print dialog) and Word (a `.docx` download of the same resume: header, then every section in the document's arranged order, with effective bullets and reference styling when applied).
+
+**Reference format:** **Upload format** opens `ReferenceFormatDialog`. The user names the style, chooses a file, and runs **Analyze format** (`POST /api/resume/format`). Mock mode labels the preview as sample. The preview lists approximation notes, optional **Adjust detected layout** (`ReferenceLayoutControls`), and an over-budget status line when `measurePage` would not fit before **Apply format**. Apply calls `applyReferenceFormat` (undoable). The template dropdown can reapply a saved library entry without another AI call.
 
 **Vault tab:** search box plus a Filters button that shows the active filter count. The panel adds Tags, Date, and Sections filters; Include Archived and Clear all live in the panel. Entries are grouped into collapsible categories, in order: Contact Information, Skills & Interests, Target Title, Professional Summary, Work Experience, Education, Certifications, Awards & Scholarships, Projects, Volunteering & Leadership, Publications, then any custom sections. Contact, experience, education, skills, certifications, projects, and leadership start open. While a search or filter is active, a category opens when it has visible rows.
 
 Each block category has an Add button. The form saves a vault block (title, organization, dates, optional location, one bullet per description line, comma-separated tags, source notes, and optional extra fields appended to the bullets). A new block is not placed on the canvas. Edit and Delete sit on the card (and Edit on the canvas block). Editing a shared block updates every document that uses it; changing its bullets clears that block's tailored rewrites everywhere and drops its session ranking. Delete asks for confirmation, then removes the block from the vault and from every document. That removal is an undo step. Contact, skills, target title, summary, and custom sections belong to the active document only. "+ Add section" creates a custom additional section. Skills add merges new names unless the edit replaces the list. Clear empties contact or skills; Delete removes an additional section. Those edits use `editFitsBudget` and show "This would not fit on one page. Shorten the text or remove something from the resume first." when refused.
 
-Cards show title, org, tags, archived badge, match score and explanation (when a JD is active), and Add to Resume / On resume / Cannot fit. Expanding a card shows `sourceContext` and a Tailor control per bullet. A date filter hides contact, skills, and placeholder categories. Selected tags hide those same rows; their text still follows the search tokens when no tags are selected.
+Cards show title, org, tags, archived badge, match score and explanation (when a JD is active), and Add to Resume / On resume / Cannot fit. Blocks not on the resume show `+N lines` (`AddCostBadge`) when measured for the current document (same insertion math as §4.1). Expanding a card shows `sourceContext` and a Tailor control per bullet. A date filter hides contact, skills, and placeholder categories. Selected tags hide those same rows; their text still follows the search tokens when no tags are selected.
 
-**JD tab:** top to bottom; everything above the ranked list stays fixed and the ranked list scrolls on its own. The textarea starts with the demo JD.
+**JD tab:** top to bottom; everything above the ranked list stays fixed and the ranked list scrolls on its own. The textarea starts empty unless §7 demo data is enabled.
 - **Input:** a compact JD textarea (about 5 visible lines) and "Analyze & Rank Vault". While `matchLoading` is set, the button shows a spinner and is disabled. After a successful run a status line reads "Ranked {shown} vault entries against {required} required skills." A failed run shows the red error and keeps existing rankings.
 - **Required skills:** a collapsible chip row headed "Required skills" with "{covered} of {total} covered" on the right (the count stays visible when collapsed). Covered skills are sage chips with a check; missing skills are dashed chips with a minus. It is driven by `computeCoverage`, updates live as the canvas changes, and is hidden until a JD is analyzed.
-- **Ranked vault:** header "Ranked vault" with the label "Score, high to low". It lists `selectRankedCards(...)` (top `RELEVANT_TOP_N` non-archived cards, relevant first, then each group by `matchScore`; the order is fixed). Each card shows its rank, title, "organization · dates", the large `matchScore`, a tier label (STRONG sage, PARTIAL amber, WEAK gray) with a bar of the same color filled to the score, the effective text of `bestBulletIndex`, sage chips for `matchedTags` (or "No matching tags"; hovering a chip shows the job requirement it matched), and an "On resume" / "Not on resume" indicator. On hover it shows an "Add to Resume" button (same Add / Cannot fit logic as the vault). A card already on the resume keeps its ranked position and is faded, cannot be dragged, and has the button disabled; removing it from the canvas restores it. Archived cards are not listed.
+- **Ranked vault:** header "Ranked vault" with the label "Score, high to low". It lists `selectRankedCards(...)` (top `RELEVANT_TOP_N` non-archived cards, relevant first, then each group by `matchScore`; the order is fixed). Each card shows its rank, title, "organization · dates", the large `matchScore`, a tier label (STRONG sage, PARTIAL amber, WEAK gray) with a bar of the same color filled to the score, the effective text of `bestBulletIndex`, sage chips for `matchedTags` (or "No matching tags"; hovering a chip shows the job requirement it matched), and an "On resume" / "Not on resume" indicator. Cards not on the resume show `+N lines` when measured (same as vault cards). On hover it shows an "Add to Resume" button (same Add / Cannot fit logic as the vault). A card already on the resume keeps its ranked position and is faded, cannot be dragged, and has the button disabled; removing it from the canvas restores it. Archived cards are not listed.
 
 **Tailoring:** the hover control opens a confirmation dialog ("Tailoring uses an AI request"). Continue calls `POST /api/blocks/tailor`; Cancel, the close button, or Esc leaves no trace and aborts an in-flight request. If the active document or the block changes before the response arrives, the dialog closes and the proposal is dropped. The result shows the original bullet and three full rewrites (Job-focused, Technical, Conversational), selected with radios. Mock mode adds "Sample responses only. Mock mode is enabled." Otherwise the note says to review each suggestion. Warnings are the amber lines in §4.2. Accept writes the selected variant to the active preset (undoable) when it fits; otherwise the status line appears and the dialog stays. Reject leaves no trace.
 
@@ -281,7 +294,7 @@ Cards show title, org, tags, archived badge, match score and explanation (when a
 - The visible sections below the header form their own sortable list. A section drags from its heading or any other point outside its blocks and controls, and its hidden keyboard handle is named "Drag {label} section". The drag moves the whole section, blocks included, and works with pointer and keyboard (Space, arrows, Space). Section drags only collide with other sections, and block drags never land on a section's sortable. The header is not draggable and stays first. A completed section move is one undo step and is saved on the active document only; new documents start with the default order. Print and the Word export follow the arranged order.
 - While a vault card that fits is dragged, its section shows a dashed sage outline and a skeleton placeholder slides into the insertion slot. An empty section of that category reveals its heading. A drag that does not fit rings the page red, shows "Not enough space on the page" in an empty target section, and is refused. The drag overlay is a card of the block.
 - Dropping a canvas block on the sidebar fades and collapses it, then removes it. That removal is one undo step.
-- Hover reveals drag handle, per-bullet tailor, Edit, and Remove from resume. Edit and tailor dialogs are portaled, so they stay usable after the pointer leaves the card. Canvas reorder uses pointer + keyboard (Space to pick up, arrows to move, Space to drop); vault-to-canvas drags are pointer-only.
+- In **Arrange** mode, pointer drags move the block from anywhere outside its buttons; a visually hidden keyboard handle (Space, arrows, Space) remains for keyboard reorder. In **Select text** mode, canvas block drags are off. Hover reveals per-bullet tailor, Edit, and Remove from resume. Edit and tailor dialogs are portaled, so they stay usable after the pointer leaves the card. Canvas reorder uses pointer + keyboard; vault-to-canvas drags are pointer-only.
 - A completed drop creates one history entry; a cancelled drag (Esc) or no-op drop creates none.
 - The header, target title, and summary are edited from the vault and from the hover controls on those canvas rows.
 - Overflow flag per §4.1: amber outline + "Suggested to cut for space". Hidden in print.
@@ -290,25 +303,27 @@ Cards show title, org, tags, archived badge, match score and explanation (when a
 
 **Store requirements:**
 - **History:** `past`/`future` arrays of `{ presets, activePresetId, vaultBlocks }`, limit `HISTORY_LIMIT`. Every document or vault mutation goes through `commit(mutator)`, which pushes the pre-change snapshot, clears `future`, and skips the push if nothing changed. History is not persisted and is cleared after rehydration. Undo restores vault blocks and documents; it does not restore a ranking that an edit or delete already dropped from the session.
-- **Persistence:** `persist` with `skipHydration: true`, partialized to `vaultBlocks`, `presets`, `activePresetId`; rehydrate in a client effect; bump `version` whenever seed data changes. Render the canvas client-only.
+- **Persistence:** `persist` with `skipHydration: true`, partialized to `vaultBlocks`, `presets`, `activePresetId`, `savedReferenceFormats`; rehydrate in a client effect; bump `version` whenever seed data changes. Render the canvas client-only.
 - **Shortcuts:** Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z or Ctrl+Y redo; ignored while typing in inputs, textareas, or contenteditable, and while a dialog is open.
 
 ---
 
 ## 7. Seed data
 
+Loaded only when `NEXT_PUBLIC_ENABLE_DEMO_DATA=1` (see §2). Default installs start with no seed in the vault.
+
 - 25 blocks: 7 experience, 9 project, 4 leadership, 2 education, 3 certification. At least 4 archived (2 experience, 2 project) with deep systems/ML context. Awards and Publications exist as categories and start empty.
 - Everything clearly fictional (employers, schools, person).
 - Experience/project/leadership blocks: 2-4 bullets and a `sourceContext` richer than the bullets (concrete facts and metrics).
 - **Deliberate gaps:** no block mentions Kubernetes, Rust, or Terraform anywhere (tags, bullets, sourceContext), so a live tailor run can return them in `unsupportedFlags`.
-- `demo-jd.ts`: a systems JD mixing skills the seed supports and skills it doesn't. The JD field is initialized from it.
-- Two presets, `frontend-swe` ("Frontend SWE") and `systems-eng` ("Systems Eng"). Both start over the one-page budget, so on a fresh load Add, header growth, and tailor Accept are refused until something is removed.
+- `demo-jd.ts`: a systems JD mixing skills the seed supports and skills it doesn't. The JD field initializes from it when demo data is on.
+- Two presets, `frontend-swe` ("Frontend SWE") and `systems-eng` ("Systems Eng"). Both start over the measured one-page budget, so with demo data on, Add, header growth, and tailor Accept are refused until something is removed. Playwright and unit tests that need the sample workspace use `test/fixtures/` and `test/support/seedWorkspace.ts` instead of the public demo flag.
 
 ---
 
 ## 8. Definition of done (every phase)
 
-Typecheck and lint pass; the phase checklist matches the behavior above; the Vitest `unit` and `llm` projects pass; Playwright covers the UI flows in `test/e2e/`; no secrets in client bundles.
+Typecheck and lint pass; the phase checklist matches the behavior above; CI runs three jobs (typecheck + lint + `test:unit`, `test:llm`, `test:e2e` per `.github/workflows/test.yml`); no secrets in client bundles.
 
 ---
 
@@ -318,7 +333,7 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 
 ### Phase 1: Vault
 - [ ] Types match §3; `strict` typecheck passes
-- [ ] 25 seed blocks per §7
+- [ ] Default workspace is blank; §7 seed loads when `NEXT_PUBLIC_ENABLE_DEMO_DATA=1`
 - [ ] Search, tag filter, section filter, date overlap, and archived toggle work (search unit-tested)
 - [ ] Entries are grouped into the collapsible categories in §6, with Add / Edit / Delete
 - [ ] Source context viewable per card
@@ -326,7 +341,7 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 
 ### Phase 2: Visual composer
 - [ ] "Add to Resume" and Remove work; blocks land in their category's section; over-budget adds show Cannot fit and do not change the canvas
-- [ ] Vault cards and ranked-vault cards drag onto the resume; canvas blocks drag to the sidebar to remove (wide layout)
+- [ ] Vault cards and ranked-vault cards drag onto the resume in Arrange mode; canvas blocks drag to the sidebar to remove (wide layout); Select text mode disables drags but keeps Add to Resume
 - [ ] A fitting vault drag shows a skeleton in the target section and a dashed outline; an empty target section shows its heading; an over-budget drag is refused
 - [ ] Blocks reorder within a section via drag and via keyboard
 - [ ] Whole sections below the header reorder via drag and via keyboard; the header never moves; the order is per document, undoable, persisted, and printed
@@ -334,8 +349,8 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 - [ ] Undo/redo restore document and vault changes; search text, filters, and rankings are unaffected
 - [ ] Document tabs switch, create a blank document, rename, close, and reorder
 - [ ] Template switch restyles without moving content between sections
-- [ ] Line-count meter, overflow flag, and `editFitsBudget` work (Playwright page-parity suite `test/e2e/pageParity.spec.ts`, unit fallback math, and `test/unit/printGeometry.test.ts`; including the no-rankings case and additional sections)
-- [ ] Export PDF is disabled over budget. Print shows only the resume copy, one Letter page, selectable text, no hover UI
+- [ ] Space meter uses measured canvas height (`usePageFit` / `usePageBudget`); vault and ranked cards show `+N lines` when applicable; overflow flag and `editFitsBudget` work (`test/e2e/pageParity.spec.ts`, unit fallback math, `test/unit/printGeometry.test.ts`)
+- [ ] Export PDF is disabled over budget. Print shows only the resume copy, one Letter page at 1:1 (no scaling), selectable text, no hover UI
 
 ### Phase 3: JD matcher
 - [ ] Ranked vault lists the top 8 non-archived cards, relevant first, each with rank, score, tier, best bullet, and matched tags
@@ -345,7 +360,7 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 - [ ] A failed match call shows an error and leaves existing rankings untouched
 - [ ] Rankings survive tab switches and are not in undo history
 - [ ] Works end-to-end with `MOCK_AI=1`
-- [ ] The JD field starts as the demo JD
+- [ ] With demo data on, the JD field starts as the demo JD; with demo off, it starts empty
 
 ### Phase 4: Verifiable tailoring
 - [ ] Tailor asks for confirmation, then requests `POST /api/blocks/tailor` with the effective bullet and the current JD text
@@ -357,8 +372,15 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 - [ ] Editing a block's bullets clears its overrides on every preset
 - [ ] Space meter and required-skill chips react to accepted rewrites
 
+### Phase 5: Reference format and AI allowance
+- [ ] Upload format analyzes PDF/PNG/JPG and previews approximations without importing resume text (`test/e2e/referenceFormat.spec.ts`, `test/llm` format route tests)
+- [ ] Apply saves `referenceFormat` on the preset and in `savedReferenceFormats`; template dropdown and delete behave per §2; apply is undoable; built-in template clears reference styling on that document
+- [ ] Reference styling flows through `referenceFormatStyle` / `pageGeometry` and stays consistent on screen, in the measurer, and in print (`test/unit/printGeometry.test.ts`)
+- [ ] Toolbar shows Space and AI meters with tooltips; AI meter reflects mock, local unlimited, remaining allowance, or unavailable (`test/e2e/aiUsage.spec.ts`)
+- [ ] Live AI routes enforce the shared rate limit; exhausted allowance returns 429 with retry guidance
+
 ---
 
 ## 10. Later
 
-Resume import · embedding-based ranking, or a shortlist step before the model call, for very large vaults (the one-call match sends every block, so the prompt grows with the vault) · preset import/export · Supabase `pgvector` or MongoDB Atlas persistence.
+Resume **content** import (blocks and contact from a file) · embedding-based ranking, or a shortlist step before the model call, for very large vaults (the one-call match sends every block, so the prompt grows with the vault) · preset import/export · Supabase `pgvector` or MongoDB Atlas persistence.
