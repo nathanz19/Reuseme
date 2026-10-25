@@ -181,6 +181,8 @@ export function AppPage() {
   const tailorDialog = useSessionStore((s) => s.tailorDialog);
   const tailorProposal = useSessionStore((s) => s.tailorProposal);
   const tailorLoading = useSessionStore((s) => s.tailorLoading);
+  const dragMode = useSessionStore((s) => s.dragMode);
+  const setDragMode = useSessionStore((s) => s.setDragMode);
 
   const setSearchQuery = useSessionStore((s) => s.setSearchQuery);
   const toggleTag = useSessionStore((s) => s.toggleTag);
@@ -777,6 +779,7 @@ export function AppPage() {
       removingBlockId={removingBlockId}
       placeholder={activeDrag?.origin === "vault" ? placeholder : null}
       dropBlocked={dropBlocked}
+      arrangeMode={dragMode === "arrange"}
       onRemove={removeBlockFromResume}
       onTailorBullet={requestTailorConfirmation}
     />
@@ -827,6 +830,8 @@ export function AppPage() {
               onUndo={undo}
               onRedo={redo}
               onTemplateChange={setTemplate}
+              dragMode={dragMode}
+              onDragModeChange={setDragMode}
               onExportPdf={() => window.print()}
               onExportDocx={() => import("@/lib/exportDocx").then(({ downloadResumeDocx }) => downloadResumeDocx(activePreset, vaultBlocks))}
             />

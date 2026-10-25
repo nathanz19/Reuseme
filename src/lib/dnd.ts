@@ -3,12 +3,31 @@ import {
   pointerWithin,
   rectIntersection,
   type CollisionDetection,
+  type DraggableSyntheticListeners,
   type DroppableContainer,
   type KeyboardCoordinateGetter,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BlockCategory } from "@/types/resume";
+
+/** Controls inside a draggable that a press must not turn into a drag. */
+const NON_DRAG_TARGETS = "button, a, input, select, textarea, [popover]";
+
+/**
+ * Listeners that drag a whole element by pointer. Presses on its own controls
+ * stay clicks. Keyboard drags still start only from the activator handle.
+ */
+export function wholeElementDragListeners(listeners: DraggableSyntheticListeners) {
+  return listeners && {
+    ...listeners,
+    onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
+      if ((event.target as Element).closest(NON_DRAG_TARGETS)) return;
+      listeners.onPointerDown?.(event);
+    },
+  };
+}
 
 export const VAULT_DROP_ID = "vault-drop";
 export const RESUME_DROP_ID = "resume-drop";

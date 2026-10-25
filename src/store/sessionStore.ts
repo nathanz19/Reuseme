@@ -13,6 +13,8 @@ export type TailorDialogState = {
   bulletIndex: number;
 } | null;
 
+export type DragMode = "arrange" | "select";
+
 export interface SessionState {
   searchQuery: string;
   selectedTags: string[];
@@ -32,6 +34,11 @@ export interface SessionState {
   tailorProposal: TailoredProposal | null;
   tailorLoading: boolean;
   tailorDialog: TailorDialogState;
+  /**
+   * "arrange" drags canvas blocks, sections, and vault cards from anywhere on them;
+   * "select" turns those drags off so their text is selectable.
+   */
+  dragMode: DragMode;
   toggleSection: (section: string) => void;
   setDateFrom: (value: string) => void;
   setDateTo: (value: string) => void;
@@ -55,6 +62,7 @@ export interface SessionState {
   setTailorProposal: (proposal: TailoredProposal | null) => void;
   setTailorLoading: (loading: boolean) => void;
   setTailorTone: (tone: Tone) => void;
+  setDragMode: (mode: DragMode) => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -76,6 +84,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   tailorProposal: null,
   tailorLoading: false,
   tailorDialog: null,
+  dragMode: "arrange",
 
   toggleSection: (section) => set((state) => ({
     selectedSections: state.selectedSections.includes(section)
@@ -123,4 +132,5 @@ export const useSessionStore = create<SessionState>((set) => ({
         ? { tailorProposal: { ...s.tailorProposal, selectedTone: tone } }
         : {},
     ),
+  setDragMode: (dragMode) => set({ dragMode }),
 }));

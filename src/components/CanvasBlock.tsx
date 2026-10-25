@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { BlockActions } from "@/components/BlockActions";
+import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
 import { useSortable } from "@dnd-kit/sortable";
 import {
   CANVAS_BLOCK_TRANSITION,
@@ -9,9 +10,9 @@ import {
 } from "@/lib/sortableLayout";
 import { CSS } from "@dnd-kit/utilities";
 import { IconAction } from "@/components/IconAction";
-import { GripVertical, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
-import { PLACEHOLDER_FADE_OUT_MS } from "@/lib/dnd";
+import { PLACEHOLDER_FADE_OUT_MS, wholeElementDragListeners } from "@/lib/dnd";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
 export function resumeTemplateClass(templateId: TemplateId): string {
@@ -108,6 +109,8 @@ interface CanvasBlockProps {
   placeholder?: boolean;
   /** Skeleton is fading out: a vault drag left the canvas, or this block is over the vault. */
   leaving?: boolean;
+  /** Drag the block from anywhere; otherwise it stays put and its text is selectable. */
+  arrangeMode?: boolean;
 }
 
 export function CanvasBlock({
@@ -119,6 +122,7 @@ export function CanvasBlock({
   sortableId,
   placeholder = false,
   leaving = false,
+  arrangeMode = true,
 }: CanvasBlockProps) {
   const {
     attributes,
@@ -131,7 +135,7 @@ export function CanvasBlock({
   } = useSortable({
     id: sortableId ?? block.id,
     data: { origin: "canvas", blockId: block.id, category: block.category },
-    disabled: placeholder ? { draggable: true } : false,
+    disabled: placeholder || !arrangeMode ? { draggable: true } : false,
     animateLayoutChanges: canvasBlockAnimateLayoutChanges,
     transition: CANVAS_BLOCK_TRANSITION,
   });
@@ -181,14 +185,19 @@ export function CanvasBlock({
     [setNodeRef],
   );
 
+  const dragListeners = wholeElementDragListeners(listeners);
+
   return (
     <div
       ref={setRefs}
       style={style}
+      {...dragListeners}
       data-canvas-block-id={placeholder ? undefined : block.id}
       data-removing={fadingOut ? "true" : undefined}
       aria-hidden={placeholder ? true : undefined}
-      className={`group relative mb-2 w-full rounded border px-3 py-2 ${
+      className={`group relative mb-2 w-full rounded border px-3 py-2 ${KEYBOARD_DRAG_FOCUS} ${
+        dragListeners && !skeleton ? "cursor-grab select-none" : ""
+      } ${
         placeholder
           ? `resume-drop-placeholder print:hidden ${
               leaving ? "resume-drop-placeholder-leaving" : ""
@@ -202,19 +211,10 @@ export function CanvasBlock({
             : "border-transparent bg-white"
       }`}
     >
+      {dragListeners && (
+        <KeyboardDragHandle label="Drag to reorder" attributes={attributes} handleRef={setActivatorNodeRef} />
+      )}
       <div className={skeleton ? "pointer-events-none invisible" : undefined}>
-        {!placeholder && (
-          <button
-            type="button"
-            ref={setActivatorNodeRef}
-            className="resume-hover-control drag-handle absolute -left-4 top-2 z-20 cursor-grab text-slate-400 print:hidden"
-            {...attributes}
-            {...listeners}
-            aria-label="Drag to reorder"
-          >
-            <GripVertical size={16} />
-          </button>
-        )}
         <CanvasBlockBody
           block={block}
           preset={preset}

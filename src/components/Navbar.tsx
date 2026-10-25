@@ -4,12 +4,13 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type M
 import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown } from "lucide-react";
+import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown, Move, TextCursor } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
 import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { btnExport, fieldBorder, focusRing, selectToolbar } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
+import type { DragMode } from "@/store/sessionStore";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
 
 interface NavbarProps {
@@ -28,12 +29,14 @@ interface NavbarProps {
   onUndo: () => void;
   onRedo: () => void;
   onTemplateChange: (id: TemplateId) => void;
+  dragMode: DragMode;
+  onDragModeChange: (mode: DragMode) => void;
   onExportPdf: () => void;
   onExportDocx: () => Promise<void>;
 }
 
 export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activePreset,
-  canUndo, canRedo, onPresetChange, onNewDocument, onRenameDocument, onCloseDocument, onReorderDocuments, onUndo, onRedo, onTemplateChange, onExportPdf, onExportDocx,
+  canUndo, canRedo, onPresetChange, onNewDocument, onRenameDocument, onCloseDocument, onReorderDocuments, onUndo, onRedo, onTemplateChange, dragMode, onDragModeChange, onExportPdf, onExportDocx,
 }: NavbarProps) {
   const tabSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
@@ -121,12 +124,31 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
         </label>
         <SpaceMeter preset={activePreset} vaultBlocks={vaultBlocks} />
         <AiUsageMeter />
+        <DragModeToggle mode={dragMode} onChange={onDragModeChange} />
         <ExportControl canExport={canExport} onExportPdf={onExportPdf} onExportDocx={onExportDocx} />
       </div>
       {closingDocument && <DeleteDocumentDialog name={closingDocument.name}
         onCancel={() => setClosingDocument(null)}
         onConfirm={() => { onCloseDocument(closingDocument.id); setClosingDocument(null); }} />}
     </header>
+  );
+}
+
+const DRAG_MODES = [
+  { mode: "arrange", label: "Arrange", title: "Drag resume blocks, sections, and vault cards to move them", Icon: Move },
+  { mode: "select", label: "Select text", title: "Select and copy text on the resume and in the vault", Icon: TextCursor },
+] as const;
+
+function DragModeToggle({ mode, onChange }: { mode: DragMode; onChange: (mode: DragMode) => void }) {
+  return (
+    <div role="group" aria-label="Drag mode" className="ml-auto flex h-8 shrink-0 items-center gap-0.5 rounded-md border border-border-strong bg-surface p-0.5 text-xs">
+      {DRAG_MODES.map(({ mode: option, label, title, Icon }) => (
+        <button key={option} type="button" aria-pressed={mode === option} title={title} onClick={() => onChange(option)}
+          className={`flex h-full items-center gap-1.5 rounded px-2 transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring ${mode === option ? "bg-accent-subtle font-medium text-accent-text" : "text-ink-muted hover:text-ink"}`}>
+          <Icon size={14} aria-hidden="true" />{label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -226,7 +248,7 @@ function ExportControl({ canExport, onExportPdf, onExportDocx }: {
   };
 
   return (
-    <div data-export-control className={`relative ml-auto flex h-8 shrink-0 items-center ${!canExport ? "cursor-not-allowed" : ""}`}
+    <div data-export-control className={`relative flex h-8 shrink-0 items-center ${!canExport ? "cursor-not-allowed" : ""}`}
       tabIndex={!canExport ? 0 : undefined}
       aria-label={!canExport ? "Export unavailable" : undefined}
       aria-describedby={!canExport && showExportHelp ? "export-space-error" : undefined}
