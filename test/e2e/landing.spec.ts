@@ -51,12 +51,16 @@ test("Open editor visibly fades before navigating and the editor fades in", asyn
 test("How it works scrolls gradually to its section", async ({ page }) => {
   await page.goto("/");
   const scroller = page.locator("[data-landing-scroll]");
+  await scroller.evaluate((element) => {
+    element.setAttribute("data-saw-scroll-step", "false");
+    element.addEventListener("scroll", () => {
+      const max = element.scrollHeight - element.clientHeight;
+      if (element.scrollTop > 0 && element.scrollTop < max * 0.8) element.setAttribute("data-saw-scroll-step", "true");
+    }, { passive: true });
+  });
   await page.getByRole("link", { name: "How it works", exact: true }).click();
-  await page.waitForTimeout(80);
-  const during = await scroller.evaluate((element) => ({ top: element.scrollTop, max: element.scrollHeight - element.clientHeight }));
-  expect(during.top).toBeGreaterThan(0);
-  expect(during.top).toBeLessThan(during.max * 0.8);
   await expect.poll(() => scroller.evaluate((element) => Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop))).toBeLessThan(2);
+  await expect(scroller).toHaveAttribute("data-saw-scroll-step", "true");
 });
 
 test("green circle grows with scrolling and returns at the top", async ({ page }) => {

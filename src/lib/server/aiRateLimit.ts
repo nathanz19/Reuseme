@@ -28,6 +28,12 @@ export async function getAiUsage(request: Request): Promise<Response> {
 }
 
 async function rateLimit(request: Request, consume: boolean): Promise<Response | null> {
+  const localBypass = process.env.NODE_ENV === "development" && process.env.VERCEL !== "1" &&
+    process.env.DISABLE_AI_RATE_LIMIT_LOCAL === "1";
+  if (localBypass) return consume ? null : Response.json(
+    { mock: process.env.MOCK_AI === "1", unlimited: true, limit: AI_REQUEST_LIMIT, remaining: AI_REQUEST_LIMIT, resetAt: null },
+    { headers: { "Cache-Control": "no-store" } },
+  );
   if (process.env.MOCK_AI === "1") return consume ? null : Response.json(
     { mock: true, limit: AI_REQUEST_LIMIT, remaining: AI_REQUEST_LIMIT, resetAt: null },
     { headers: { "Cache-Control": "no-store" } },

@@ -18,13 +18,19 @@ export const LIVE_AI_ENV = {
   // Off Vercel, the limiter uses one loopback identity outside production.
   VERCEL: "",
   VERCEL_ENV: "",
+  DISABLE_AI_RATE_LIMIT_LOCAL: "",
 } as const;
 
 const GEMINI_ORIGIN = "https://generativelanguage.googleapis.com";
 
+interface GeminiPart {
+  text?: string;
+  inlineData?: { mimeType: string; data: string };
+}
+
 interface GeminiRequestBody {
-  contents: { role: string; parts: { text?: string }[] }[];
-  systemInstruction?: { parts: { text?: string }[] };
+  contents: { role: string; parts: GeminiPart[] }[];
+  systemInstruction?: { parts: GeminiPart[] };
   generationConfig?: {
     maxOutputTokens?: number;
     responseMimeType?: string;
@@ -39,6 +45,7 @@ export interface GeminiCall {
   body: GeminiRequestBody;
   system: string;
   prompt: string;
+  attachments: { mimeType: string; data: string }[];
   signal: AbortSignal | null;
 }
 
@@ -80,12 +87,14 @@ export function fakeAi({ used = 0 }: { used?: number } = {}) {
     }
     if (url.origin === GEMINI_ORIGIN) {
       const body = JSON.parse(String(init.body)) as GeminiRequestBody;
+      const parts = body.contents.flatMap((content) => content.parts);
       const call: GeminiCall = {
         model: url.pathname.match(/\/models\/([^:]+):generateContent$/)?.[1] ?? url.pathname,
         apiKey: new Headers(init.headers).get("x-goog-api-key"),
         body,
         system: body.systemInstruction?.parts.map((part) => part.text ?? "").join("\n") ?? "",
-        prompt: body.contents.flatMap((content) => content.parts.map((part) => part.text ?? "")).join("\n"),
+        prompt: parts.flatMap((part) => (part.text === undefined ? [] : [part.text])).join("\n"),
+        attachments: parts.flatMap((part) => (part.inlineData ? [part.inlineData] : [])),
         signal: init.signal ?? null,
       };
       gemini.push(call);

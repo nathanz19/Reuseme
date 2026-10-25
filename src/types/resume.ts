@@ -1,3 +1,5 @@
+import type { ReferenceFormat } from "@/schemas/referenceFormat";
+
 export type BlockCategory =
   | "experience"
   | "project"
@@ -42,6 +44,8 @@ export interface ResumePreset {
   id: string;
   name: string;
   templateId: TemplateId;
+  referenceFormat?: ReferenceFormat;
+  referenceFormatId?: string;
   header: {
     fullName: string;
     email: string;

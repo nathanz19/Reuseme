@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
 import { buildResumeDocument, resumeDocxFilename } from "@/lib/exportDocx";
 import type { ResumePreset } from "@/types/resume";
+import { DEMO_REFERENCE_FORMAT } from "@/schemas/referenceFormat";
 import { docxPlainText, readZipText } from "../support/docxZip";
+import { COMPACT_SERIF_FORMAT, MODERN_PARAGRAPH_FORMAT } from "../fixtures/referenceFormat";
 
 async function packed(preset: ResumePreset, blocks = SEED_BLOCKS) {
   const buffer = await Packer.toBuffer(buildResumeDocument(preset, blocks));
@@ -22,6 +24,34 @@ describe("resumeDocxFilename", () => {
 });
 
 describe("buildResumeDocument", () => {
+  it("exports a modern paragraph reference with uppercase name, metadata above roles, and column skills", async () => {
+    const preset: ResumePreset = { ...structuredClone(SEED_PRESETS[0]), referenceFormat: MODERN_PARAGRAPH_FORMAT };
+    const { documentXml, text } = await packed(preset);
+    expect(text).toContain(preset.header.fullName.toUpperCase());
+    expect(text.indexOf("Lumen Cartography")).toBeLessThan(text.indexOf("Software Engineer"));
+    expect(documentXml).not.toContain("<w:numPr>");
+    expect(text).toContain("• React");
+    expect(documentXml).toContain('w:val="center"');
+  });
+  it("exports measured styles with stacked entries, right date tabs, and rules above headings", async () => {
+    const preset: ResumePreset = { ...structuredClone(SEED_PRESETS[0]), referenceFormat: COMPACT_SERIF_FORMAT };
+    const { documentXml, text } = await packed(preset);
+    expect(documentXml).toContain('w:val="right"');
+    expect(documentXml).toContain('<w:top w:val="single"');
+    expect(documentXml).toContain('w:color="888888"');
+    expect(documentXml).toContain('w:ascii="Times New Roman"');
+    expect(text).toContain("WORK EXPERIENCE");
+    expect(text).toContain("TECHNICAL SKILLS");
+  });
+  it("carries the reference font, alignment, accent, and margins into Word", async () => {
+    const preset: ResumePreset = { ...structuredClone(SEED_PRESETS[0]), referenceFormat: DEMO_REFERENCE_FORMAT };
+    const { documentXml, text } = await packed(preset);
+    expect(documentXml).toContain('w:ascii="Arial"');
+    expect(documentXml).toContain('w:jc w:val="center"');
+    expect(documentXml).toContain('w:color w:val="075985"');
+    expect(documentXml).toContain('w:top="480"');
+    expect(text).toContain(preset.header.fullName);
+  });
   it("writes the active resume, effective bullets, and a letter-size page", async () => {
     const preset = structuredClone(SEED_PRESETS[0]);
     preset.bulletOverrides = { "exp-1": { 0: "Rewritten dashboard bullet" } };
