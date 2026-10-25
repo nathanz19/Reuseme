@@ -6,6 +6,7 @@ import { IconAction } from "@/components/IconAction";
 import { SectionActions } from "@/components/SectionActions";
 import { AddEntryDialog } from "@/components/AddEntryDialog";
 import { useResumeStore } from "@/store/resumeStore";
+import type { AddCost } from "@/components/AddCostBadge";
 import { BlockCard } from "@/components/BlockCard";
 import {
   DEFAULT_OPEN_VAULT_CATEGORIES,
@@ -30,6 +31,7 @@ interface VaultCategoryListProps {
   activeBlockIds: string[];
   rankings: Record<string, SemanticRanking>;
   canAddBlock: (blockId: string) => boolean;
+  addCost: (blockId: string) => AddCost | null;
   onAdd: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
 }
@@ -68,6 +70,7 @@ export function VaultCategoryList({
   activeBlockIds,
   rankings,
   canAddBlock,
+  addCost,
   onAdd,
   onTailorBullet,
 }: VaultCategoryListProps) {
@@ -153,6 +156,7 @@ export function VaultCategoryList({
             activeBlockIds={activeBlockIds}
             rankings={rankings}
             canAddBlock={canAddBlock}
+            addCost={addCost}
             onAdd={onAdd}
             onTailorBullet={onTailorBullet}
           />
@@ -184,6 +188,7 @@ function VaultCategorySection({
   activeBlockIds,
   rankings,
   canAddBlock,
+  addCost,
   onAdd,
   onTailorBullet,
 }: {
@@ -200,6 +205,7 @@ function VaultCategorySection({
   activeBlockIds: string[];
   rankings: Record<string, SemanticRanking>;
   canAddBlock: (blockId: string) => boolean;
+  addCost: (blockId: string) => AddCost | null;
   onAdd: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
 }) {
@@ -258,6 +264,7 @@ function VaultCategorySection({
                   onResume={activeBlockIds.includes(block.id)}
                   ranking={rankings[block.id]}
                   canAdd={canAddBlock(block.id)}
+                  addCost={addCost(block.id)}
                   onAdd={() => onAdd(block.id)}
                   onTailorBullet={(index) => onTailorBullet(block.id, index)}
                 />

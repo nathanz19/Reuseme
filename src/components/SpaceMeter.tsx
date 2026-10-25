@@ -1,5 +1,7 @@
-import { estimateLineCount, spaceMeterState } from "@/lib/lineCount";
-import { MAX_LINES } from "@/lib/tunables";
+"use client";
+
+import { spaceMeterState } from "@/lib/lineCount";
+import { usePageBudget } from "@/lib/usePageBudget";
 import type { AccomplishmentBlock, ResumePreset } from "@/types/resume";
 import { MeterBadge } from "@/components/MeterBadge";
 
@@ -9,9 +11,8 @@ interface SpaceMeterProps {
 }
 
 export function SpaceMeter({ preset, vaultBlocks }: SpaceMeterProps) {
-  const total = estimateLineCount(preset, vaultBlocks);
-  const display = Math.ceil(total);
-  const state = spaceMeterState(total);
+  const budget = usePageBudget(preset, vaultBlocks);
+  const state = spaceMeterState(budget);
 
   const color =
     state === "over"
@@ -24,9 +25,9 @@ export function SpaceMeter({ preset, vaultBlocks }: SpaceMeterProps) {
     <MeterBadge
       className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-xs leading-none font-medium ${color}`}
       label="Estimated lines vs one-page budget"
-      help={`Space shows how much of your one-page resume is used: ${display} of ${MAX_LINES} estimated lines. If you go over the limit, shorten or remove content before exporting.`}
+      help={`Space shows how much of your one-page resume is used: ${budget.usedLines} of ${budget.maxLines} lines, measured on the page. If you go over the limit, shorten or remove content before exporting.`}
     >
-      Space {display}/{MAX_LINES}
+      Space {budget.usedLines}/{budget.maxLines}
     </MeterBadge>
   );
 }

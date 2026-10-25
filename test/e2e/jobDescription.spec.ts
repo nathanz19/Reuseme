@@ -162,7 +162,10 @@ test("a failed match keeps the previous rankings", async ({ page }) => {
 test("accepting a tailored bullet updates only the canvas and is undoable", async ({
   page,
 }) => {
-  await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");
+  // The longer rewrite needs a line of room on the measured page.
+  for (const id of ["proj-4", "lead-4"]) {
+    await hoverClick(canvasBlock(page, id), "Remove from resume");
+  }
   await analyzeDemoJd(page);
 
   const block = canvasBlock(page, "exp-1");

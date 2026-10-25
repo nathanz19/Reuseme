@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import type { AddCost } from "@/components/AddCostBadge";
 import { RankedVaultList, type RankedEntry } from "@/components/RankedVaultList";
 import { RequiredSkills } from "@/components/RequiredSkills";
 import type { CoverageResult } from "@/lib/coverage";
@@ -19,6 +20,7 @@ interface JDPanelProps {
   tagMatches: TagMatch[];
   preset: ResumePreset;
   canAddBlock: (blockId: string) => boolean;
+  addCost: (blockId: string) => AddCost | null;
   onJdTextChange: (text: string) => void;
   onAnalyze: () => void;
   onAddBlock: (blockId: string) => boolean;
@@ -34,6 +36,7 @@ export function JDPanel({
   tagMatches,
   preset,
   canAddBlock,
+  addCost,
   onJdTextChange,
   onAnalyze,
   onAddBlock,
@@ -79,6 +82,7 @@ export function JDPanel({
         preset={preset}
         tagMatches={tagMatches}
         canAddBlock={canAddBlock}
+        addCost={addCost}
         onAdd={onAddBlock}
       />
     </div>

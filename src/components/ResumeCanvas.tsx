@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { resumeTemplateClass } from "@/components/CanvasBlock";
 import { SectionActions } from "@/components/SectionActions";
 import { SortableSection } from "@/components/SortableSection";
@@ -10,9 +10,12 @@ import { VAULT_CATEGORIES } from "@/lib/vaultCategories";
 import { ResumeHeader } from "@/components/ResumeHeader";
 import { ResumeSection, type SectionItem } from "@/components/ResumeSection";
 import { RESUME_DROP_ID, sectionSortableId, type CanvasPlaceholder } from "@/lib/dnd";
-import { isWithinLineBudget, pickOverflowBlockId } from "@/lib/lineCount";
+import { pickOverflowBlockId } from "@/lib/lineCount";
+import { usePageFitObserver } from "@/lib/pageFit";
+import { usePageBudget } from "@/lib/usePageBudget";
+import { pageGeometry } from "@/lib/pageGeometry";
 import { isBlockSection, resolveSectionOrder, SKILLS_SECTION_ID } from "@/lib/sectionOrder";
-import { MAX_LINES, PAGE_HEIGHT, PAGE_WIDTH } from "@/lib/tunables";
+import { PAGE_HEIGHT, PAGE_WIDTH } from "@/lib/tunables";
 import type {
   AccomplishmentBlock,
   BlockCategory,
@@ -21,6 +24,16 @@ import type {
 } from "@/types/resume";
 import { SECTION_LABELS, SECTION_ORDER } from "@/types/resume";
 import { referenceFormatStyle } from "@/lib/referenceFormat";
+
+/**
+ * Hover controls sit in the page margin. Imported formats set these from their
+ * margin (`referenceFormatStyle`); the built-in templates use the 32px padding.
+ */
+const BUILTIN_MARGIN_STYLE = {
+  "--reference-rail-width": "28px",
+  "--reference-actions-direction": "column",
+  "--reference-control-size": "18px",
+} as CSSProperties;
 
 function sectionItems(
   category: BlockCategory,
@@ -72,6 +85,11 @@ interface ResumeCanvasProps {
   arrangeMode: boolean;
   onRemove: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
+  /**
+   * Render for the offscreen page measurer: no live fit, no overflow flag.
+   * The layout is identical to the live canvas.
+   */
+  measuring?: boolean;
 }
 
 export function ResumeCanvas({
@@ -87,8 +105,15 @@ export function ResumeCanvas({
   arrangeMode,
   onRemove,
   onTailorBullet,
+  measuring = false,
 }: ResumeCanvasProps) {
   const { setNodeRef } = useDroppable({ id: RESUME_DROP_ID });
+  // A drag adds a temporary skeleton; the fit keeps its last value until it ends.
+  const contentRef = usePageFitObserver(
+    measuring || placeholder !== null || vaultDragCategory !== null,
+  );
+  const budget = usePageBudget(preset, vaultBlocks, !measuring);
+  const geometry = pageGeometry(preset);
 
   const byId = useMemo(
     () => new Map(vaultBlocks.map((b) => [b.id, b])),
@@ -109,10 +134,11 @@ export function ResumeCanvas({
     return map;
   }, [byId, preset.activeBlockIds]);
 
-  const withinBudget = isWithinLineBudget(preset, vaultBlocks);
-  const overflowBlockId = withinBudget
-    ? null
-    : pickOverflowBlockId(preset, vaultBlocks, rankings);
+  // The live canvas height decides (see `usePageBudget`); the measurer's own canvas never flags.
+  const over = !measuring && !budget.fits;
+  const overflowBlockId = over
+    ? pickOverflowBlockId(preset, vaultBlocks, rankings, true)
+    : null;
 
   const templateId = preset.templateId;
   const templateClass = resumeTemplateClass(templateId);
@@ -157,11 +183,11 @@ export function ResumeCanvas({
             <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">
               {preset.referenceFormat?.details?.skillsHeading ?? "Skills"}
             </h2>
-            <div className="relative pt-1">
+            <div className="resume-rail relative pt-1">
               {preset.referenceFormat?.layout && preset.referenceFormat.layout.skillsStyle !== "inline" ? <ul data-skills-style={preset.referenceFormat.layout.skillsStyle} className="reference-skills list-disc pl-4 text-sm">
                 {preset.customSkillsSection.map((skill, index) => <li key={index}>{skill}</li>)}
-              </ul> : <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>}
-              <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+              </ul> : <p className="text-sm">{preset.customSkillsSection.join(", ")}</p>}
+              <div className="resume-hover-control resume-margin-control absolute top-0 print:hidden">
                 <SectionActions category={{ id: "skills", label: "Skills & Interests", kind: "skills" }} />
               </div>
             </div>
@@ -176,8 +202,8 @@ export function ResumeCanvas({
         id,
         label: section.title || vaultCategory?.label || "Custom",
         content: vaultCategory ? (
-          <section className="group relative my-2 pr-16 print:pr-0">
-            <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+          <section className="group resume-rail relative my-2">
+            <div className="resume-hover-control resume-margin-control absolute top-0 print:hidden">
               <SectionActions category={vaultCategory} />
             </div>
             {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">{section.id === "summary" ? preset.referenceFormat?.layout?.summaryHeading ?? section.title : section.title}</h2>}
@@ -209,10 +235,11 @@ export function ResumeCanvas({
           ? "ring-2 ring-red-500"
           : "ring-1 ring-border"
       }`}
-      style={{ ...(preset.referenceFormat ? referenceFormatStyle(preset.referenceFormat) : {}), width: PAGE_WIDTH, height: PAGE_HEIGHT }}
+      style={{ ...(preset.referenceFormat ? referenceFormatStyle(preset.referenceFormat) : BUILTIN_MARGIN_STYLE), width: PAGE_WIDTH, height: PAGE_HEIGHT }}
       role="region"
-      aria-label={`Resume canvas, US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), about ${MAX_LINES} estimated lines`}
+      aria-label={`Resume canvas, US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), about ${geometry.maxLines} lines`}
     >
+      <div ref={contentRef} data-resume-content className="flow-root">
       <ResumeHeader
         header={preset.header}
         templateId={templateId}
@@ -226,6 +253,7 @@ export function ResumeCanvas({
           </SortableSection>
         ))}
       </SortableContext>
+      </div>
     </div>
   );
 }

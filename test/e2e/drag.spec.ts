@@ -5,7 +5,7 @@ test.use({ reducedMotion: "no-preference" });
 
 test("vault drag outlines the valid section and the skeleton follows the pointer", async ({ page }) => {
   await openApp(page);
-  for (const id of ["cert-3", "proj-4", "lead-4"]) {
+  for (const id of ["proj-4", "lead-4", "lead-1"]) {
     await hoverClick(canvasBlock(page, id), "Remove from resume");
   }
   const dragFrom = vaultCard(page, "Backend Engineer").getByRole("heading", { name: "Backend Engineer", exact: true });
@@ -43,7 +43,7 @@ test("vault drag outlines the valid section and the skeleton follows the pointer
 
 test("dropping into an emptied section leaves no skeleton behind", async ({ page }) => {
   await openApp(page);
-  for (const id of ["exp-1", "exp-3", "cert-3"]) {
+  for (const id of ["exp-1", "exp-3"]) {
     await hoverClick(canvasBlock(page, id), "Remove from resume");
   }
   const dragFrom = vaultCard(page, "Backend Engineer").getByRole("heading", { name: "Backend Engineer", exact: true });

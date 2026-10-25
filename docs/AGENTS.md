@@ -21,7 +21,7 @@ There are three suites. Each one is a separate job in `.github/workflows/test.ym
 - `npm test` runs both Vitest projects. `npm run test:all` runs typecheck, lint, Vitest, and Playwright. Run it before finishing a change.
 - First run on a fresh machine: `npx playwright install --with-deps chromium`.
 
-Both seed presets start over the 45-line budget, so on a fresh load every add, header edit, and tailor accept is refused. E2E tests that change the canvas remove `proj-4` first. Each Playwright test gets a fresh browser context, so `localStorage` starts empty.
+The seed presets start over the one-page budget (measured on the rendered page), so on a fresh load every add, header edit, and tailor accept is refused. E2E tests that change the canvas remove `proj-4` first, and a few remove more blocks to make room for longer text. Remove or add blocks only after measuring: heights come from the real layout, not from a character formula. Each Playwright test gets a fresh browser context, so `localStorage` starts empty.
 
 ### Cursor Cloud specific instructions
 

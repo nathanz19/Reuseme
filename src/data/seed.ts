@@ -431,7 +431,6 @@ export const SEED_PRESETS: ResumePreset[] = [
       "proj-4",
       "lead-1",
       "lead-4",
-      "cert-3",
     ],
     bulletOverrides: {},
     customSkillsSection: [

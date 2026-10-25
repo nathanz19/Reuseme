@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown } from "lucide-react";
+import type { AddCost } from "@/components/AddCostBadge";
 import { RankedVaultCard } from "@/components/RankedVaultCard";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
 import type {
@@ -20,6 +21,7 @@ interface RankedVaultListProps {
   preset: ResumePreset;
   tagMatches: TagMatch[];
   canAddBlock: (blockId: string) => boolean;
+  addCost: (blockId: string) => AddCost | null;
   onAdd: (blockId: string) => void;
 }
 
@@ -28,6 +30,7 @@ export function RankedVaultList({
   preset,
   tagMatches,
   canAddBlock,
+  addCost,
   onAdd,
 }: RankedVaultListProps) {
   if (ranked.length === 0) return null;
@@ -57,6 +60,7 @@ export function RankedVaultList({
               tagMatches={tagMatches}
               onResume={preset.activeBlockIds.includes(block.id)}
               canAdd={canAddBlock(block.id)}
+              addCost={addCost(block.id)}
               onAdd={() => onAdd(block.id)}
             />
           </li>

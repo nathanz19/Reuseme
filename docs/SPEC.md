@@ -31,7 +31,7 @@ Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib
 | Documents | Each preset is a document tab. "New document" copies the active header and template onto a blank canvas (no blocks, skills, overrides, or additional sections). Tabs rename, close, and reorder. Closing the last tab leaves one blank document. |
 | Scoring | One structured-output call (`generateText` + `Output.object`; `generateObject` is deprecated in AI SDK 6) receives the JD, the vault's full tag list, and all vault blocks. It returns `parsedJD`, a requirement-to-tag mapping (`tagMatches`), and per block: `relevant`, `semanticScore`, `matchedTags`, `bestBulletIndex`, and `matchExplanation`. Code drops unknown tags and IDs, then combines the final score (§4.1). |
 | Drag and drop | One shared `@dnd-kit` context: drag vault cards onto the resume to add/insert by section when the result fits the page; drag canvas blocks to the sidebar to remove; reorder within a section on canvas; drag whole sections to reorder them below the header. Vault cards, canvas blocks, and sections have no visible grip: a pointer drags them from any point that is not one of their own buttons, and a press inside a canvas block moves the block, not its section. Each draggable has a visually hidden keyboard handle (Space, arrows, Space) that outlines the draggable while it has keyboard focus. A toolbar toggle next to Export switches between "Arrange" (all of these drags on, their text not selectable) and "Select text" (all of these drags off, including vault cards, so text on the resume and in the vault is selectable; "Add to Resume" still works). "Add to Resume" / "Cannot fit" / Remove stay available at every width. Cross-pane drag only at ≥1320px (two-pane layout). One completed drop = one undo step; Esc or a no-op drop adds no history. |
-| Page budget | Inserts and accepted rewrites are refused when the estimate would exceed `MAX_LINES`. Header, skills, additional-section, and vault-bullet edits are allowed when the result fits, or when an already over-budget resume does not get longer (`editFitsBudget`). Export PDF is disabled while over budget. |
+| Page budget | Inserts and accepted rewrites are refused when `measurePage` reports `!fits` (`usedPx > availablePx + 1`). Header, skills, additional-section, and vault-bullet edits are allowed when the result fits, or when an already over-budget resume does not grow (`editFitsBudget`). Export PDF is disabled while over budget. |
 | AI trust | Tailoring asks for confirmation before the request. The user then picks one of three rewrites. Grounding warnings are non-blocking text. Accept is refused only when the chosen rewrite would exceed the page budget. |
 | Demo safety | `MOCK_AI=1` makes `/api/jd/match` return the deterministic fixture and `/api/blocks/tailor` return the in-app sample (`createTailorPreview`). Playwright sets it. The JD field starts filled with the demo JD. |
 
@@ -116,7 +116,7 @@ export interface TailoredProposal {
 }
 ```
 
-`getEffectiveBullets(block, preset)` applies `bulletOverrides`. Canvas, line count, coverage, and the tailor request's `bulletText` must all use it.
+`getEffectiveBullets(block, preset)` applies `bulletOverrides`. Canvas, page budget (`measurePage`), coverage, and the tailor request's `bulletText` must all use it.
 
 ---
 
@@ -124,7 +124,15 @@ export interface TailoredProposal {
 
 ### 4.1 Pure logic (`src/lib`)
 
-**Line count** (an estimate, not a guarantee of one printed page):
+**Page geometry** (`pageGeometry(preset)` in `src/lib/pageGeometry.ts`): `{ paddingPx, availablePx, contentWidthPx, bodyPx, lineHeightPx, maxLines }`. Built-in templates use 32 px padding, `text-sm` body (14 px) with 20 px line height, so `availablePx = 1056 − 64 = 992` and `maxLines = 49`. Imported reference formats take padding from `details.marginPx` or `margins` (narrow 24, standard 32, wide 48); line height is `bodyPx × leading` (same inputs as `referenceFormatStyle`, shared via `referenceFormatMetrics`); `maxLines = floor(availablePx / lineHeightPx)`.
+
+**Page measurement** (`measurePage(preset, vaultBlocks, { estimate? })` in `src/lib/lineCount.ts`): the single entry point for budget decisions. In the browser it renders the real `ResumeCanvas` offscreen (816 px wide, via `src/lib/pageMeasurer.tsx`, registered on mount after `document.fonts.ready`; cache keyed by template, format, header, skills, additional sections, section order, and active blocks with effective bullets; cleared when more fonts load) and reads the height of `[data-resume-content]`. Without a registered measurer (jsdom unit tests, server code) it falls back to the character formula below, extended with `pageGeometry` for imported formats and converted to pixels. **Fits** when `usedPx <= availablePx + 1`. The space meter shows lines: `ceil(usedPx / lineHeightPx)` of `maxLines` (clamped to `maxLines` while it still fits). Sage while comfortably under, amber when `usedLines >= maxLines − 3`, red when over. When over budget, flag the on-canvas block with the lowest `matchScore` (ties: later in order). With no rankings, flag the last block of the last non-empty section. "Order" follows the document's section order.
+
+`measurePage` runs the DOM measurer synchronously (`flushSync`); call it only from event handlers and effects, never during React render (render-time callers pass `{ estimate: true }`). Add-button enabled state is computed in an effect after render; drop-target outline at drag start. **Live fit** (`usePageFitObserver` / `usePageFit` in `src/lib/pageFit.ts`) observes the live `[data-resume-content]` with a `ResizeObserver` and publishes `{ usedPx, availablePx }` for the space meter, Export gate, and canvas overflow flag, so the meter matches what the user sees. It pauses during a vault drag (the skeleton adds height). `usePageBudget` (`src/lib/usePageBudget.ts`) picks the source: the live canvas height; else, when the canvas is hidden (the vault pane on small screens), the offscreen measurer; else the formula fallback until either is ready. **Add cost:** vault cards and ranked cards show `+N lines` (`AddCostBadge`) for each block not on the resume: `ceil(draggedBlockHeight / lineHeightPx)` from `measureCanvasInsertion`, with the exact px and the free page height in the tooltip. `AppPage` computes it in the same post-render effect as the Add button state, and shows it only when it was measured for the current document and vault.
+
+All budget checks go through `measurePage`: `isWithinLineBudget`, `measureCanvasInsertion` (heights in px), `canInsertBlockOnResume`, `canApplyTailorOverride`, `canApplyHeaderAndSkills`, `editFitsBudget`, `pickOverflowBlockId`, and `spaceMeterState`.
+
+**Fallback line estimate** (only when the DOM measurer is unavailable): not a guarantee of one printed page.
 ```
 total = 4 (header)
       + 2 per non-empty section (Skills counts if non-empty; Awards and Publications count when they have blocks)
@@ -133,11 +141,17 @@ total = 4 (header)
       + per additional section whose content is non-blank:
           2 + Σ max(1, ceil(len(line) / CHARS_PER_LINE[template]))
 ```
-Meter shows `ceil(total) / MAX_LINES`. Sage while comfortably under, amber when `ceil(total) >= MAX_LINES - 3`, red when over. When `total > MAX_LINES`, flag the on-canvas block with the lowest `matchScore` (ties: later in order). With no rankings, flag the last block of the last non-empty section. "Order" follows the document's section order. Section order does not change the total.
+Converted to px via `pageGeometry` and `FALLBACK_PX_PER_ESTIMATED_LINE`. Section order does not change the total.
 
 **Page budget:**
-- `canInsertBlockOnResume` / `canApplyTailorOverride`: the result must be `<= MAX_LINES`. A refused add shows "Cannot fit" (or a red drop state) and a status line: "That change would exceed the one-page line budget (45 estimated lines on US Letter)." A refused Accept leaves the dialog open.
-- `editFitsBudget(before, after)`: allow the edit when `after <= MAX_LINES` or `after <= before`. Used for header, skills, additional sections, and edits to a vault block that is already on the active resume. A new vault block is not on the canvas, so creating one does not check the budget.
+- `canInsertBlockOnResume` / `canApplyTailorOverride`: the measured result must fit (`fits`). A refused add shows "Cannot fit" (or a red drop state) and a status line: "That change would exceed the one-page line budget ({maxLines} lines on US Letter)." (`maxLines` comes from the active template; 49 on built-in templates.) A refused Accept leaves the dialog open.
+- `editFitsBudget(before, after)`: allow when `after.fits` or `after.usedPx <= before.usedPx + 1`. Used for header, skills, additional sections, and edits to a vault block that is already on the active resume. A new vault block is not on the canvas, so creating one does not check the budget.
+
+**Imported reference formats:** `applyReferenceFormat` always applies the chosen format. `ReferenceFormatDialog` shows an over-budget status line before applying: "This template makes the resume longer than one page. Remove or shorten content before exporting." The meter and overflow flag then mark the block to cut.
+
+**Template field contract:** a new `ReferenceFormat` field must reach the layout only through `referenceFormatStyle` CSS variables or `.resume-reference` rules that apply on screen and in print. If it changes line height or page margin, it must also update `pageGeometry` (via `referenceFormatMetrics`). A `print:` rule may change only visibility or color, never size, padding, margin, or font (guarded by `test/unit/printGeometry.test.ts`).
+
+**Canvas layout:** page children sit in `div[data-resume-content]` (`display: flow-root`). One layout for screen and print; hover controls sit in absolute positions in the page margin. Overflow uses an `outline` (no layout space); the overflow label is absolutely positioned.
 
 **Coverage:** a required JD skill is covered if any on-canvas block has it in `tags`, `title`, or effective bullets, after lowercase/punctuation normalization and alias expansion (`k8s` ≡ `kubernetes`, etc.). `sourceContext` does not count. Coverage % uses required skills only; preferred skills are not shown (they still count in `keywordOverlap`).
 
@@ -229,8 +243,9 @@ Warnings render as amber text under the three rewrites. They do not disable Acce
 | `W_SEM` / `W_KW` | 0.6 / 0.4 | Run 3+ real JDs; relevant blocks should rank on top |
 | `RELEVANT_TOP_N` | 8 | Number of cards in the JD tab's ranked vault |
 | `STRONG_THRESHOLD` | 75 | `matchScore` at which a relevant card becomes STRONG |
-| `CHARS_PER_LINE` | classic 95, modern 85 | Print a full page and measure (modern is a guess) |
-| `MAX_LINES` | 45 | Calibrate with the above |
+| `CHARS_PER_LINE` | classic 95, modern 85 | **Fallback only** (DOM measurer unavailable); print a full page and measure (modern is a guess) |
+| `MAX_LINES` | 45 | **Fallback only**; real `maxLines` comes from `pageGeometry` |
+| `FALLBACK_PX_PER_ESTIMATED_LINE` | (see `tunables.ts`) | **Fallback only**; converts the character formula to px when not measuring the canvas |
 | `CONCISE_MAX_CHARS` | 110 | |
 | `HISTORY_LIMIT` | 100 | |
 
@@ -246,7 +261,7 @@ Style: dense and utilitarian, like a document editor. Chrome uses the warm studi
 
 **Documents:** a tab strip above the editing toolbar. Each tab shows the preset name. Click selects it; double-click, the pencil, or F2 renames it (Enter commits, Esc cancels, empty name is ignored). Arrow keys, Home, and End move the selected tab. Tabs drag horizontally to reorder. The plus button creates a blank document named `Untitled document {n}`. Close removes that document; the last one is replaced by a blank "Untitled document" that keeps the closed document's header and template. Switching, creating, renaming, closing, and reordering are undoable.
 
-**Toolbar:** undo, redo, template select, space meter (sage, then amber within 3 lines of full, then red), Export. Export is a filled sage button, disabled while the estimate is over `MAX_LINES`, with the tooltip "Remove or shorten content to fit one page before exporting." It opens a menu with PDF (the browser print dialog) and Word (a `.docx` download of the same resume: header, then every section in the document's arranged order, with effective bullets).
+**Toolbar:** undo, redo, template select, space meter (sage, then amber within 3 lines of full, then red), Export. Export is a filled sage button, disabled while measured content does not fit one page (`usedPx > availablePx + 1`), with the tooltip "Remove or shorten content to fit one page before exporting." It opens a menu with PDF (the browser print dialog) and Word (a `.docx` download of the same resume: header, then every section in the document's arranged order, with effective bullets).
 
 **Vault tab:** search box plus a Filters button that shows the active filter count. The panel adds Tags, Date, and Sections filters; Include Archived and Clear all live in the panel. Entries are grouped into collapsible categories, in order: Contact Information, Skills & Interests, Target Title, Professional Summary, Work Experience, Education, Certifications, Awards & Scholarships, Projects, Volunteering & Leadership, Publications, then any custom sections. Contact, experience, education, skills, certifications, projects, and leadership start open. While a search or filter is active, a category opens when it has visible rows.
 
@@ -271,7 +286,7 @@ Cards show title, org, tags, archived badge, match score and explanation (when a
 - The header, target title, and summary are edited from the vault and from the hover controls on those canvas rows.
 - Overflow flag per §4.1: amber outline + "Suggested to cut for space". Hidden in print.
 
-**Print:** `beforeprint` clones `#resume-print-root` to `#resume-print-copy`, strips buttons, hover controls, the overflow label, and placeholders, and scales that copy down (never up) so the content fits the Letter page. Print CSS hides everything except the copy. Output is real selectable text with semantic markup (`h1`, `h2`, `ul/li`), single column, no text in images. The Word export uses the same text, not the print stylesheet: US Letter, one column, section headings, and the effective bullets.
+**Print:** `beforeprint` clones `#resume-print-root` to `#resume-print-copy` at 1:1 (no `transform` or scaling), strips buttons, hover controls, the overflow label, and placeholders. The clone keeps the canvas padding; `@media print` may not override geometry on `#resume-print-copy`. Print CSS hides everything except the copy. When the resume is over budget, the PDF clips exactly like the on-screen canvas (`overflow: hidden`, Letter `@page`). Output is real selectable text with semantic markup (`h1`, `h2`, `ul/li`), single column, no text in images. The Word export uses the same text, not the print stylesheet: US Letter, one column, section headings, and the effective bullets.
 
 **Store requirements:**
 - **History:** `past`/`future` arrays of `{ presets, activePresetId, vaultBlocks }`, limit `HISTORY_LIMIT`. Every document or vault mutation goes through `commit(mutator)`, which pushes the pre-change snapshot, clears `future`, and skips the push if nothing changed. History is not persisted and is cleared after rehydration. Undo restores vault blocks and documents; it does not restore a ranking that an edit or delete already dropped from the session.
@@ -287,7 +302,7 @@ Cards show title, org, tags, archived badge, match score and explanation (when a
 - Experience/project/leadership blocks: 2-4 bullets and a `sourceContext` richer than the bullets (concrete facts and metrics).
 - **Deliberate gaps:** no block mentions Kubernetes, Rust, or Terraform anywhere (tags, bullets, sourceContext), so a live tailor run can return them in `unsupportedFlags`.
 - `demo-jd.ts`: a systems JD mixing skills the seed supports and skills it doesn't. The JD field is initialized from it.
-- Two presets, `frontend-swe` ("Frontend SWE") and `systems-eng` ("Systems Eng"). Both start over the 45-line budget, so on a fresh load Add, header growth, and tailor Accept are refused until something is removed.
+- Two presets, `frontend-swe` ("Frontend SWE") and `systems-eng` ("Systems Eng"). Both start over the one-page budget, so on a fresh load Add, header growth, and tailor Accept are refused until something is removed.
 
 ---
 
@@ -319,7 +334,7 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 - [ ] Undo/redo restore document and vault changes; search text, filters, and rankings are unaffected
 - [ ] Document tabs switch, create a blank document, rename, close, and reorder
 - [ ] Template switch restyles without moving content between sections
-- [ ] Line-count meter, overflow flag, and `editFitsBudget` work (math unit-tested, including the no-rankings case and additional sections)
+- [ ] Line-count meter, overflow flag, and `editFitsBudget` work (Playwright page-parity suite `test/e2e/pageParity.spec.ts`, unit fallback math, and `test/unit/printGeometry.test.ts`; including the no-rankings case and additional sections)
 - [ ] Export PDF is disabled over budget. Print shows only the resume copy, one Letter page, selectable text, no hover UI
 
 ### Phase 3: JD matcher

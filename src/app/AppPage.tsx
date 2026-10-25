@@ -17,6 +17,10 @@ import {
   canInsertBlockOnResume,
   measureCanvasInsertion,
 } from "@/lib/lineCount";
+import { addCostFromCheck, type AddCost } from "@/components/AddCostBadge";
+import { usePageMeasurerVersion } from "@/lib/pageFit";
+import { pageGeometry } from "@/lib/pageGeometry";
+import { registerPageMeasurer } from "@/lib/pageMeasurer";
 import { AppShell } from "@/components/AppShell";
 import { CanvasBlockOverlay } from "@/components/CanvasBlock";
 import { JDPanel } from "@/components/JDPanel";
@@ -68,8 +72,9 @@ import type {
 import { useResumeStore } from "@/store/resumeStore";
 import { useSessionStore } from "@/store/sessionStore";
 
-const SPACE_LIMIT_MESSAGE =
-  "That change would exceed the one-page line budget (45 estimated lines on US Letter).";
+function spaceLimitMessage(maxLines: number) {
+  return `That change would exceed the one-page line budget (${maxLines} lines on US Letter).`;
+}
 
 function placeholdersEqual(
   a: CanvasPlaceholder | null,
@@ -131,6 +136,9 @@ function highlightedVaultSection(
 }
 
 export function AppPage() {
+  // The offscreen measurer lets every budget check use the real rendered height.
+  useEffect(() => registerPageMeasurer(), []);
+
   useEffect(() => {
     window.addEventListener("beforeprint", prepareResumePrint);
     window.addEventListener("afterprint", clearResumePrint);
@@ -282,14 +290,10 @@ export function AppPage() {
       ? activeDrag.blockId
       : null);
 
-  const vaultDropTarget = useMemo(() => {
-    if (!activeDrag || activeDrag.origin !== "vault" || !vaultDragCategory) {
-      return null;
-    }
-    return canInsertBlockOnResume(activePreset, vaultBlocks, activeDrag.blockId)
-      ? vaultDragCategory
-      : null;
-  }, [activeDrag, activePreset, vaultBlocks, vaultDragCategory]);
+  // Measured when the drag starts (an event handler). The offscreen measurer
+  // renders synchronously and cannot run during this component's render.
+  const [vaultDropFits, setVaultDropFits] = useState(false);
+  const vaultDropTarget = vaultDropFits && vaultDragCategory ? vaultDragCategory : null;
 
   const highlightedSection = useMemo(
     () => highlightedVaultSection(activeDrag, overTargetId, vaultBlocks),
@@ -352,6 +356,7 @@ export function AppPage() {
     pointerYRef.current = null;
     setActiveDrag(null);
     setActiveSection(null);
+    setVaultDropFits(false);
     setOverTargetId(null);
     assignPlaceholder(null);
     assignDropBlocked(false);
@@ -363,15 +368,60 @@ export function AppPage() {
     return () => document.body.classList.remove("resume-drop-blocked");
   }, [dropBlocked]);
 
+  const spaceMessage = spaceLimitMessage(pageGeometry(activePreset).maxLines);
+
   const flashSpaceWarning = useCallback(() => {
-    setSpaceWarning(SPACE_LIMIT_MESSAGE);
+    setSpaceWarning(spaceMessage);
     window.setTimeout(() => setSpaceWarning(null), 4500);
-  }, []);
+  }, [spaceMessage]);
+
+  // Whether each vault block fits is measured after render (an effect, on a
+  // later task, because the measurer cannot run while React renders). Until
+  // that result matches the current document, the formula answers.
+  const measurerVersion = usePageMeasurerVersion();
+  const [addable, setAddable] = useState<{
+    preset: typeof activePreset;
+    blocks: typeof vaultBlocks;
+    fits: Map<string, boolean>;
+    costs: Map<string, AddCost>;
+  } | null>(null);
+  useEffect(() => {
+    if (measurerVersion === 0) return;
+    const timer = window.setTimeout(() => {
+      const fits = new Map<string, boolean>();
+      const costs = new Map<string, AddCost>();
+      const { lineHeightPx } = pageGeometry(activePreset);
+      for (const block of vaultBlocks) {
+        const check = measureCanvasInsertion(activePreset, vaultBlocks, block.id, null);
+        fits.set(block.id, check.fits);
+        // A block already on the resume has no add cost.
+        if (!activePreset.activeBlockIds.includes(block.id)) {
+          costs.set(block.id, addCostFromCheck(check, lineHeightPx));
+        }
+      }
+      setAddable({ preset: activePreset, blocks: vaultBlocks, fits, costs });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [activePreset, vaultBlocks, measurerVersion]);
+
+  // Shown on the cards only when it was measured for the current document.
+  const addCost = useCallback(
+    (blockId: string): AddCost | null =>
+      addable?.preset === activePreset && addable.blocks === vaultBlocks
+        ? (addable.costs.get(blockId) ?? null)
+        : null,
+    [addable, activePreset, vaultBlocks],
+  );
 
   const canAddBlock = useCallback(
-    (blockId: string) =>
-      canInsertBlockOnResume(activePreset, vaultBlocks, blockId, null),
-    [activePreset, vaultBlocks],
+    (blockId: string) => {
+      if (addable?.preset === activePreset && addable.blocks === vaultBlocks) {
+        const fits = addable.fits.get(blockId);
+        if (fits !== undefined) return fits;
+      }
+      return canInsertBlockOnResume(activePreset, vaultBlocks, blockId, null, { estimate: true });
+    },
+    [addable, activePreset, vaultBlocks],
   );
 
   const tryAddBlock = useCallback(
@@ -403,6 +453,10 @@ export function AppPage() {
         return;
       }
       const data = event.active.data.current as DragItemData | undefined;
+      setVaultDropFits(
+        data?.origin === "vault" &&
+          canInsertBlockOnResume(activePreset, vaultBlocks, data.blockId),
+      );
       const page = document.getElementById("resume-print-root");
       dragLayoutRef.current = data?.origin === "vault" && page ? {
         top: page.getBoundingClientRect().top,
@@ -413,7 +467,7 @@ export function AppPage() {
       );
       if (data) setActiveDrag(data);
     },
-    [assignPlaceholder, assignDropBlocked, activePreset.activeBlockIds],
+    [assignPlaceholder, assignDropBlocked, activePreset, vaultBlocks],
   );
 
   const handleDragOver = useCallback(
@@ -745,6 +799,7 @@ export function AppPage() {
             activeBlockIds={activePreset.activeBlockIds}
             rankings={rankings}
             canAddBlock={canAddBlock}
+            addCost={addCost}
             onAdd={tryAddBlock}
             onTailorBullet={requestTailorConfirmation}
           />
@@ -762,6 +817,7 @@ export function AppPage() {
           onJdTextChange={setJdText}
           onAnalyze={() => void runAnalyze()}
           canAddBlock={canAddBlock}
+          addCost={addCost}
           onAddBlock={tryAddBlock}
         />
       )}
@@ -798,7 +854,7 @@ export function AppPage() {
           }`}
           role="status"
         >
-          {dropBlocked ? SPACE_LIMIT_MESSAGE : spaceWarning}
+          {dropBlocked ? spaceMessage : spaceWarning}
         </p>
       )}
       <DndContext
