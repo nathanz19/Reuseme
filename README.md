@@ -73,3 +73,9 @@ Applying saves the style by filename in a browser-local template library. It rem
 Each new upload also detects entry row structure, inline vs right-aligned dates, regular vs bold metadata, paragraph vs bullet descriptions, spread contacts, uppercase names, subtitle placement, and column skills. Open **Adjust detected layout** in the preview to correct a detected setting before applying; corrections do not use another AI request. These are supported layout settings, so custom graphics, exact commercial fonts, arbitrary multi-column body layouts, and exact page geometry can still differ from the original.
 
 To delete an uploaded template, select it in the template dropdown, click the trash icon beside the dropdown, and confirm. Documents already using that template keep their applied style snapshot; the saved template is removed from the browser-local library and stays removed after a reload.
+
+## Starter data for testing
+
+Fresh users start with one blank document, an empty vault, and no prefilled job description. To enable the sample resumes, vault blocks, contact details, skills, and demo JD during testing, set `NEXT_PUBLIC_ENABLE_DEMO_DATA=1` in `.env.local` and restart `npm run dev`. Leave it unset or set it to `0` for an empty start. This is separate from `MOCK_AI`, which controls real vs sample AI responses. The public flag is embedded at build time, so Vercel changes require a new deployment.
+
+Demo saves use `reuseme-resume-demo` in localStorage; normal documents use `reuseme-resume-user`. Switching modes preserves both sets of saved documents. The old `reuseme-resume` workspace is left untouched as a backup, but is no longer opened automatically because it can contain the old starter content. New normal workspaces start empty even in browsers that previously saved the demo. Unit and browser tests enable the demo flag explicitly.
