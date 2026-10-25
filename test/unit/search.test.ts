@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { searchBlocks } from "@/lib/search";
-import { SEED_BLOCKS } from "@/data/seed";
+import { SEED_BLOCKS } from "../fixtures/seed";
 
 describe("searchBlocks", () => {
   it("requires every query token", () => {

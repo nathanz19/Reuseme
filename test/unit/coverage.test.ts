@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeCoverage } from "@/lib/coverage";
-import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
+import { SEED_BLOCKS, SEED_PRESETS } from "../fixtures/seed";
 import type { ParsedJobDescription } from "@/types/resume";
 
 const parsed: ParsedJobDescription = {

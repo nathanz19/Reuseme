@@ -8,7 +8,7 @@ export default defineConfig({
     },
   },
   test: {
-    env: { NEXT_PUBLIC_ENABLE_DEMO_DATA: "1" },
+    env: { NEXT_PUBLIC_ENABLE_DEMO_DATA: "0" },
     environment: "node",
     projects: [
       {

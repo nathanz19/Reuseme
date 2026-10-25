@@ -36,6 +36,6 @@ export default defineConfig({
         timeout: 180_000,
         reuseExistingServer: !process.env.CI,
         stdout: "pipe",
-        env: { MOCK_AI: "1", NEXT_PUBLIC_ENABLE_DEMO_DATA: "1" },
+        env: { MOCK_AI: "1", NEXT_PUBLIC_ENABLE_DEMO_DATA: "0" },
       },
 });

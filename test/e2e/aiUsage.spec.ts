@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { analyzeDemoJd, canvasBlock, confirmTailor, hoverClick, openApp } from "./helpers";
 
 test("Space and AI show explanations only on hover or focus", async ({ page }) => {

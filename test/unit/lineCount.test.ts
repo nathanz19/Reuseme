@@ -7,7 +7,7 @@ import {
   pickOverflowBlockId,
 } from "@/lib/lineCount";
 import { MAX_LINES } from "@/lib/tunables";
-import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
+import { SEED_BLOCKS, SEED_PRESETS } from "../fixtures/seed";
 
 describe("line count", () => {
   it("editFitsBudget allows fitting edits and edits that do not grow an overflowing resume", () => {

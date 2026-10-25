@@ -74,8 +74,10 @@ Each new upload also detects entry row structure, inline vs right-aligned dates,
 
 To delete an uploaded template, select it in the template dropdown, click the trash icon beside the dropdown, and confirm. Documents already using that template keep their applied style snapshot; the saved template is removed from the browser-local library and stays removed after a reload.
 
-## Starter data for testing
+## Sample data
 
-Fresh users start with one blank document, an empty vault, and no prefilled job description. To enable the sample resumes, vault blocks, contact details, skills, and demo JD during testing, set `NEXT_PUBLIC_ENABLE_DEMO_DATA=1` in `.env.local` and restart `npm run dev`. Leave it unset or set it to `0` for an empty start. This is separate from `MOCK_AI`, which controls real vs sample AI responses. The public flag is embedded at build time, so Vercel changes require a new deployment.
+With `NEXT_PUBLIC_ENABLE_DEMO_DATA` unset or set to `0`, a new workspace has one blank document, an empty vault, and no job description. Set `NEXT_PUBLIC_ENABLE_DEMO_DATA=1` in `.env` or `.env.local`, then restart `npm run dev`, to open the sample resumes, vault blocks, and sample job description. This flag is separate from `MOCK_AI`. `MOCK_AI` selects sample AI responses.
 
-Demo saves use `reuseme-resume-demo` in localStorage; normal documents use `reuseme-resume-user`. Switching modes preserves both sets of saved documents. The old `reuseme-resume` workspace is left untouched as a backup, but is no longer opened automatically because it can contain the old starter content. New normal workspaces start empty even in browsers that previously saved the demo. Unit and browser tests enable the demo flag explicitly.
+Sample saves use `reuseme-resume-demo` in localStorage. Normal saves use `reuseme-resume-user`. The old `reuseme-resume` save stays in the browser and is not opened.
+
+Automated tests load the same sample data from `test/fixtures/`. They do not use the flag in `.env`.

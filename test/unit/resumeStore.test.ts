@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { SEED_PRESETS } from "@/data/seed";
+import { SEED_PRESETS } from "../fixtures/seed";
 import { RESUME_STORAGE_KEY } from "@/data/starterData";
 import { useResumeStore } from "@/store/resumeStore";
+import { seedResumeState } from "../support/seedWorkspace";
 
 const store = useResumeStore;
 const active = () => store.getState().getActivePreset();
@@ -21,6 +22,7 @@ function useTrimmedFrontendPreset() {
 beforeEach(() => {
   localStorage.clear();
   store.setState(store.getInitialState(), true);
+  store.setState(seedResumeState());
   useTrimmedFrontendPreset();
 });
 

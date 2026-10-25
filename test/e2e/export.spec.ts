@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { inflateSync } from "node:zlib";
 import { docxPlainText, readZipText } from "../support/docxZip";
 import { canvasBlock, hoverClick, openApp } from "./helpers";

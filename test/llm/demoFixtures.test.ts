@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_JD_TEXT } from "@/data/demo-jd";
+import { DEMO_JD_TEXT } from "../fixtures/demoJd";
 import { matchVault } from "@/data/fixtures";
-import { SEED_BLOCKS } from "@/data/seed";
+import { SEED_BLOCKS } from "../fixtures/seed";
 
 function demoMatch() {
   const result = matchVault(DEMO_JD_TEXT, SEED_BLOCKS);

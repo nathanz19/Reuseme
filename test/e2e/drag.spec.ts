@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { canvasBlock, hoverClick, openApp, vaultCard } from "./helpers";
 
 test.use({ reducedMotion: "no-preference" });
