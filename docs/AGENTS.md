@@ -12,13 +12,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Requires Node 20.9+ (`.nvmrc`). On Node 18, Vitest fails to load its config with `ERR_REQUIRE_ESM`.
 
-- `npm run test` runs Vitest unit tests in `test/**/*.test.ts` (node by default; files that touch `localStorage` opt into jsdom with `// @vitest-environment jsdom`).
-- `npm run test:e2e` runs Playwright specs in `test/e2e/`. The config builds the app and serves it on port 3100 (`E2E_PORT` overrides), so a `next dev` on 3000 does not conflict. Set `E2E_BASE_URL` to test an already running server instead.
-- `npm run test:all` runs typecheck, unit, and e2e tests. Run it before finishing a change.
+There are three suites. Each one is a separate job in `.github/workflows/test.yml`.
+
+- `npm run test:unit` runs the Vitest `unit` project in `test/unit/`: pure functions in `src/lib` and the stores. Tests run in node by default; files that touch `localStorage` opt into jsdom with `// @vitest-environment jsdom`.
+- `npm run test:llm` runs the Vitest `llm` project in `test/llm/`: the AI routes (`/api/jd/match`, `/api/blocks/tailor`), the shared rate limiter, and the demo fixture. Tests call the real route handlers and the real AI SDK Google provider. `test/llm/support/fakeAi.ts` answers Gemini and Upstash HTTP calls and fails any other request, and `test/llm/support/setup.ts` replaces the AI environment variables with fake values before every test, so no key, quota, or network is used. Script model output with `fakeAi().reply(geminiJson(...))` and assert on the outgoing request through `ai.gemini`.
+- `npm run test:e2e` runs Playwright specs in `test/e2e/`. The config builds the app and serves it on port 3100 (`E2E_PORT` overrides) with `MOCK_AI=1`, so a `next dev` on 3000 does not conflict. Set `E2E_BASE_URL` to test an already running server instead. Pages default to reduced motion so flows do not wait on animations; specs that check motion (landing, drag, sidebar handle) opt back in with `test.use({ reducedMotion: "no-preference" })`.
+- `npm test` runs both Vitest projects. `npm run test:all` runs typecheck, lint, Vitest, and Playwright. Run it before finishing a change.
 - First run on a fresh machine: `npx playwright install --with-deps chromium`.
 
 Both seed presets start over the 45-line budget, so on a fresh load every add, header edit, and tailor accept is refused. E2E tests that change the canvas remove `proj-4` first. Each Playwright test gets a fresh browser context, so `localStorage` starts empty.
 
 ### Cursor Cloud specific instructions
 
-The cloud environment is configured in the Cursor dashboard. It must provide Node 20.9+ and run `npx playwright install --with-deps chromium` after `npm ci`. Use the scripts above; no API keys are needed. Playwright starts the app with `MOCK_AI=1`, so `/api/jd/match` returns its fixture; tailor calls use in-app fixtures.
+The cloud environment is configured in the Cursor dashboard. It must provide Node 20.9+ and run `npx playwright install --with-deps chromium` after `npm ci`. Use the scripts above; no API keys are needed. Playwright starts the app with `MOCK_AI=1`, so `/api/jd/match` returns its fixture; tailor calls use in-app fixtures. The `llm` suite uses fake credentials and a fake Gemini endpoint.
