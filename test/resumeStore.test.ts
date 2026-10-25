@@ -127,7 +127,30 @@ describe("resume store", () => {
     expect(active().activeBlockIds).toEqual(["edu-1", "exp-3", "exp-1"]);
   });
 
+  it("reorders whole sections on the active document as one undo step", () => {
+    store.getState().reorderSections("project", "education");
+    expect(active().sectionOrder?.slice(0, 3)).toEqual(["project", "education", "experience"]);
+    expect(active().activeBlockIds).toEqual(["edu-1", "exp-1", "exp-3", "proj-1"]);
+    expect(
+      store.getState().presets.find((p) => p.id === "systems-eng")?.sectionOrder,
+    ).toBeUndefined();
+    expect(store.getState().past).toHaveLength(1);
+
+    store.getState().undo();
+    expect(active().sectionOrder).toBeUndefined();
+    store.getState().redo();
+    expect(active().sectionOrder?.[0]).toBe("project");
+  });
+
+  it("starts new documents with the default section order", () => {
+    store.getState().reorderSections("skills", "education");
+    store.getState().createDocument();
+    expect(active().sectionOrder).toBeUndefined();
+  });
+
   it("does not record history for no-op changes", () => {
+    store.getState().reorderSections("project", "project");
+    store.getState().reorderSections("project", "not-a-section");
     store.getState().reorderInSection("experience", "exp-1", "exp-1");
     store.getState().removeBlockFromResume("not-on-canvas");
     store.getState().switchPreset("missing-preset");

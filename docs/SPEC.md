@@ -26,11 +26,11 @@ Layout: `src/app` (page + 2 API routes), `src/components`, `src/store`, `src/lib
 | AI edits | Accepted rewrites go in the **active preset's `bulletOverrides`**. A rewrite never changes the vault bullet, so tailoring one document does not change another. Editing a vault block's bullets clears that block's overrides on every preset. |
 | Stores | Persisted store: `vaultBlocks`, `presets`, `activePresetId`. Separate non-persisted session store: search, tag/section/date filters, include-archived, left tab, mobile pane, JD text, rankings, tag matches, tailor dialog. |
 | Undo | Snapshots of `{ presets, activePresetId, vaultBlocks }` via `commit` (§6). Document edits and vault create/update/delete are undoable. Search, filters, JD text, and rankings are not. |
-| Sections | Block order on the canvas: Education, Experience, Projects, Leadership, Certifications, Awards & Scholarships, Publications, then Skills. Target title and professional summary, when set, render under the header. Other additional sections render after the block sections. A block's section follows its `category`. |
+| Sections | Default order under the header: target title and professional summary (when set), then Education, Experience, Projects, Leadership, Certifications, Awards & Scholarships, Publications, then other additional sections, then Skills. Each document can rearrange every section below the header (`sectionOrder`, resolved by `resolveSectionOrder`); the header is always first and never moves. A section missing from the saved order goes after its nearest default-order predecessor. A block's section follows its `category`. |
 | Templates | Both single-column, ATS-safe; differ in font, accent color, header layout only. |
 | Documents | Each preset is a document tab. "New document" copies the active header and template onto a blank canvas (no blocks, skills, overrides, or additional sections). Tabs rename, close, and reorder. Closing the last tab leaves one blank document. |
 | Scoring | One structured-output call (`generateText` + `Output.object`; `generateObject` is deprecated in AI SDK 6) receives the JD, the vault's full tag list, and all vault blocks. It returns `parsedJD`, a requirement-to-tag mapping (`tagMatches`), and per block: `relevant`, `semanticScore`, `matchedTags`, `bestBulletIndex`, and `matchExplanation`. Code drops unknown tags and IDs, then combines the final score (§4.1). |
-| Drag and drop | One shared `@dnd-kit` context: drag vault cards (grip) onto the resume to add/insert by section when the result fits the page; drag canvas blocks to the sidebar to remove; reorder within a section on canvas. "Add to Resume" / "Cannot fit" / Remove stay available at every width. Cross-pane drag only at ≥1320px (two-pane layout). One completed drop = one undo step; Esc or a no-op drop adds no history. |
+| Drag and drop | One shared `@dnd-kit` context: drag vault cards (grip) onto the resume to add/insert by section when the result fits the page; drag canvas blocks to the sidebar to remove; reorder within a section on canvas; drag whole sections (section grip) to reorder them below the header. "Add to Resume" / "Cannot fit" / Remove stay available at every width. Cross-pane drag only at ≥1320px (two-pane layout). One completed drop = one undo step; Esc or a no-op drop adds no history. |
 | Page budget | Inserts and accepted rewrites are refused when the estimate would exceed `MAX_LINES`. Header, skills, additional-section, and vault-bullet edits are allowed when the result fits, or when an already over-budget resume does not get longer (`editFitsBudget`). Export PDF is disabled while over budget. |
 | AI trust | Tailoring asks for confirmation before the request. The user then picks one of three rewrites. Grounding warnings are non-blocking text. Accept is refused only when the chosen rewrite would exceed the page budget. |
 | Demo safety | `MOCK_AI=1` makes `/api/jd/match` return the deterministic fixture and `/api/blocks/tailor` return the in-app sample (`createTailorPreview`). Playwright sets it. The JD field starts filled with the demo JD. |
@@ -79,6 +79,7 @@ export interface ResumePreset {
   bulletOverrides: Record<string, Record<number, string>>; // blockId -> bulletIndex -> text
   customSkillsSection: string[];
   additionalSections?: AdditionalSection[];
+  sectionOrder?: string[];  // block categories, "skills", and additional-section ids; never the header
 }
 
 export interface ParsedJobDescription {
@@ -132,7 +133,7 @@ total = 4 (header)
       + per additional section whose content is non-blank:
           2 + Σ max(1, ceil(len(line) / CHARS_PER_LINE[template]))
 ```
-Meter shows `ceil(total) / MAX_LINES`. Sage while comfortably under, amber when `ceil(total) >= MAX_LINES - 3`, red when over. When `total > MAX_LINES`, flag the on-canvas block with the lowest `matchScore` (ties: later in order). With no rankings, flag the last block of the last non-empty section.
+Meter shows `ceil(total) / MAX_LINES`. Sage while comfortably under, amber when `ceil(total) >= MAX_LINES - 3`, red when over. When `total > MAX_LINES`, flag the on-canvas block with the lowest `matchScore` (ties: later in order). With no rankings, flag the last block of the last non-empty section. "Order" follows the document's section order. Section order does not change the total.
 
 **Page budget:**
 - `canInsertBlockOnResume` / `canApplyTailorOverride`: the result must be `<= MAX_LINES`. A refused add shows "Cannot fit" (or a red drop state) and a status line: "That change would exceed the one-page line budget (45 estimated lines on US Letter)." A refused Accept leaves the dialog open.
@@ -245,7 +246,7 @@ Style: dense and utilitarian, like a document editor. Chrome uses the warm studi
 
 **Documents:** a tab strip above the editing toolbar. Each tab shows the preset name. Click selects it; double-click, the pencil, or F2 renames it (Enter commits, Esc cancels, empty name is ignored). Arrow keys, Home, and End move the selected tab. Tabs drag horizontally to reorder. The plus button creates a blank document named `Untitled document {n}`. Close removes that document; the last one is replaced by a blank "Untitled document" that keeps the closed document's header and template. Switching, creating, renaming, closing, and reordering are undoable.
 
-**Toolbar:** undo, redo, template select, space meter (sage, then amber within 3 lines of full, then red), Export. Export is a filled sage button, disabled while the estimate is over `MAX_LINES`, with the tooltip "Remove or shorten content to fit one page before exporting." It opens a menu with PDF (the browser print dialog) and Word (a `.docx` download of the same resume: header, extra sections, category blocks with effective bullets, then skills).
+**Toolbar:** undo, redo, template select, space meter (sage, then amber within 3 lines of full, then red), Export. Export is a filled sage button, disabled while the estimate is over `MAX_LINES`, with the tooltip "Remove or shorten content to fit one page before exporting." It opens a menu with PDF (the browser print dialog) and Word (a `.docx` download of the same resume: header, then every section in the document's arranged order, with effective bullets).
 
 **Vault tab:** search box plus a Filters button that shows the active filter count. The panel adds Tags, Date, and Sections filters; Include Archived and Clear all live in the panel. Entries are grouped into collapsible categories, in order: Contact Information, Target Title, Professional Summary, Work Experience, Education, Skills & Interests, Certifications, Awards & Scholarships, Projects, Volunteering & Leadership, Publications, then any custom sections. Contact, experience, education, skills, certifications, projects, and leadership start open. While a search or filter is active, a category opens when it has visible rows.
 
@@ -261,7 +262,8 @@ Cards show title, org, tags, archived badge, match score and explanation (when a
 **Tailoring:** the hover control opens a confirmation dialog ("Tailoring uses an AI request"). Continue calls `POST /api/blocks/tailor`; Cancel, the close button, or Esc leaves no trace and aborts an in-flight request. If the active document or the block changes before the response arrives, the dialog closes and the proposal is dropped. The result shows the original bullet and three full rewrites (Job-focused, Technical, Conversational), selected with radios. Mock mode adds "Sample responses only. Mock mode is enabled." Otherwise the note says to review each suggestion. Warnings are the amber lines in §4.2. Accept writes the selected variant to the active preset (undoable) when it fits; otherwise the status line appears and the dialog stays. Reject leaves no trace.
 
 **Canvas:**
-- `#resume-print-root`, 816 × 1056 px; one sortable list per non-empty section (`SortableContext` each). Dropping a vault block always lands in the section for its `category` (insert before the block under the pointer, otherwise append). Reordering across sections is not supported.
+- `#resume-print-root`, 816 × 1056 px; one sortable list per non-empty section (`SortableContext` each). Dropping a vault block always lands in the section for its `category` (insert before the block under the pointer, otherwise append). Moving a block across sections is not supported.
+- The visible sections below the header form their own sortable list. Hovering a section reveals a grip in the left margin ("Drag {label} section"); dragging it moves the whole section, blocks included, and works with pointer and keyboard (Space, arrows, Space). Section drags only collide with other sections, and block drags never land on a section's sortable. The header has no grip and stays first. A completed section move is one undo step and is saved on the active document only; new documents start with the default order. Print and the Word export follow the arranged order.
 - While a vault card that fits is dragged, its section shows a dashed sage outline and a skeleton placeholder slides into the insertion slot. An empty section of that category reveals its heading. A drag that does not fit rings the page red, shows "Not enough space on the page" in an empty target section, and is refused. The drag overlay is a card of the block.
 - Dropping a canvas block on the sidebar fades and collapses it, then removes it. That removal is one undo step.
 - Hover reveals drag handle, per-bullet tailor, Edit, and Remove from resume. Edit and tailor dialogs are portaled, so they stay usable after the pointer leaves the card. Canvas reorder uses pointer + keyboard (Space to pick up, arrows to move, Space to drop); vault-to-canvas drags are pointer-only.
@@ -312,6 +314,7 @@ Acceptance criteria for the shipped app. The prose in §2–§7 wins if a checkb
 - [ ] Vault cards and ranked-vault cards drag onto the resume; canvas blocks drag to the sidebar to remove (wide layout)
 - [ ] A fitting vault drag shows a skeleton in the target section and a dashed outline; an empty target section shows its heading; an over-budget drag is refused
 - [ ] Blocks reorder within a section via drag and via keyboard
+- [ ] Whole sections below the header reorder via drag and via keyboard; the header never moves; the order is per document, undoable, persisted, and printed
 - [ ] A completed drag is one undo step; a cancelled drag adds none
 - [ ] Undo/redo restore document and vault changes; search text, filters, and rankings are unaffected
 - [ ] Document tabs switch, create a blank document, rename, close, and reorder
