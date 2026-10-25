@@ -1,17 +1,33 @@
 import { expect, test } from "@playwright/test";
+import { SEED_BLOCKS } from "@/data/seed";
 import { canvasBlock, hoverClick, openApp, spaceMeter, vaultCard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await openApp(page);
 });
 
-test("flags the over-budget seed preset and blocks adds", async ({ page }) => {
-  await expect(page.getByText("Suggested to cut for space")).toBeVisible();
-  await expect(
-    vaultCard(page, "Backend Engineer").getByRole("button", {
-      name: "Cannot fit",
-    }),
-  ).toBeDisabled();
+test("block dates sit on the title row, right-aligned at the title's inset", async ({ page }) => {
+  for (const template of ["classic-ats", "modern-tech"]) {
+    await page.getByLabel("Template").selectOption(template);
+    const ids = await page.locator("[data-canvas-block-id]").evaluateAll((blocks) =>
+      blocks.map((block) => block.getAttribute("data-canvas-block-id")!),
+    );
+    const dateEdges: number[] = [];
+    for (const id of ids) {
+      const { title, startDate, endDate } = SEED_BLOCKS.find((block) => block.id === id)!;
+      const block = canvasBlock(page, id);
+      const card = (await block.boundingBox())!;
+      const heading = (await block.getByText(title, { exact: true }).boundingBox())!;
+      const dates = (await block.getByText(`${startDate} – ${endDate}`, { exact: true }).boundingBox())!;
+      expect(Math.abs(dates.y - heading.y), `${id} date row`).toBeLessThan(1);
+      const titleInset = heading.x - card.x;
+      const dateInset = card.x + card.width - (dates.x + dates.width);
+      expect(Math.abs(dateInset - titleInset), `${id} insets`).toBeLessThan(1);
+      dateEdges.push(dates.x + dates.width);
+    }
+    // The over-budget flag's thicker border moves its date in by 1px.
+    expect(Math.max(...dateEdges) - Math.min(...dateEdges)).toBeLessThanOrEqual(1);
+  }
 });
 
 test("remove, undo, redo, and re-add blocks on the canvas", async ({

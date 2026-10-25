@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { canvasBlock, hoverClick, openApp, vaultCard } from "./helpers";
 
+test.use({ reducedMotion: "no-preference" });
+
 test("vault drag outlines the valid section and the skeleton follows the pointer", async ({ page }) => {
   await openApp(page);
   for (const id of ["cert-3", "proj-4", "lead-4"]) {

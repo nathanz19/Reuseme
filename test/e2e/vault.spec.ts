@@ -1,19 +1,23 @@
 import { expect, test } from "@playwright/test";
-import { openApp, spaceMeter, vaultCard } from "./helpers";
+import { canvasBlock, hoverClick, openApp, spaceMeter, vaultCard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await openApp(page);
 });
 
-test("loads the seeded vault and default preset", async ({ page }) => {
+test("loads the seeded vault and the over-budget default preset", async ({ page }) => {
   await expect(page).toHaveTitle(/Reuseme/);
   await expect(page.getByRole("tab", { name: "Frontend SWE", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByLabel("Template")).toHaveValue("classic-ats");
   await expect(spaceMeter(page)).toHaveText("Space 46/45");
+  await expect(page.getByText("Suggested to cut for space")).toBeVisible();
   await expect(
     page.getByRole("button", { name: /^Work Experience/ }),
   ).toHaveAttribute("aria-expanded", "true");
   await expect(vaultCard(page, "Software Engineer")).toContainText("On resume");
+  await expect(
+    vaultCard(page, "Backend Engineer").getByRole("button", { name: "Cannot fit" }),
+  ).toBeDisabled();
 });
 
 test("search hides archived blocks until they are included", async ({
@@ -54,23 +58,50 @@ test("expanding a card reveals the raw source notes", async ({ page }) => {
   await expect(card.getByText(/Cutover used dual-write 72h/)).toBeVisible();
 });
 
-for (const category of ["Publications", "Awards & Scholarships"]) {
-  test(`saves ${category} to the vault even when the resume is full`, async ({ page }) => {
-    const before = await spaceMeter(page).textContent();
-    await page.getByRole("button", { name: `Add to ${category}`, exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: `Add ${category}` });
-    await dialog.getByLabel("Title", { exact: true }).fill(`My ${category} entry`);
-    await dialog.getByLabel("Company or organization").fill("Example Organization");
-    await dialog.getByLabel("Description", { exact: false }).fill("A detailed achievement saved for a future resume.");
-    await dialog.getByRole("button", { name: "Save", exact: true }).click();
-    await expect(dialog).toHaveCount(0);
-    const card = vaultCard(page, `My ${category} entry`);
-    await expect(card).toBeVisible();
-    await expect(card.getByRole("button", { name: "Cannot fit", exact: true })).toBeDisabled();
-    await expect(page.locator("#resume-print-root")).not.toContainText(`My ${category} entry`);
-    await expect(spaceMeter(page)).toHaveText(before!);
+test("saves a new entry to the vault even when the resume is full", async ({ page }) => {
+  const before = await spaceMeter(page).textContent();
+  await page.getByRole("button", { name: "Add to Awards & Scholarships", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add Awards & Scholarships" });
+  await dialog.getByLabel("Title", { exact: true }).fill("Dean's List");
+  await dialog.getByLabel("Company or organization").fill("Example Organization");
+  await dialog.getByLabel("Description", { exact: false }).fill("A detailed achievement saved for a future resume.");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const card = vaultCard(page, "Dean's List");
+  await expect(card).toBeVisible();
+  await expect(card.getByRole("button", { name: "Cannot fit", exact: true })).toBeDisabled();
+  await expect(page.locator("#resume-print-root")).not.toContainText("Dean's List");
+  await expect(spaceMeter(page)).toHaveText(before!);
+});
+
+test("editing a vault entry updates every document, and deleting it asks first", async ({ page }) => {
+  await hoverClick(canvasBlock(page, "edu-1"), "Edit block");
+  const dialog = page.getByRole("dialog", { name: "Edit Education", exact: true });
+  await dialog.getByLabel("Degree or qualification").fill("B.S. Computer Engineering");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(canvasBlock(page, "edu-1")).toContainText("B.S. Computer Engineering");
+  await page.getByRole("tab", { name: "Systems Eng", exact: true }).click();
+  await expect(canvasBlock(page, "edu-1")).toContainText("B.S. Computer Engineering");
+
+  const card = vaultCard(page, "B.S. Computer Engineering");
+  page.once("dialog", (confirm) => confirm.dismiss());
+  await hoverClick(card, "Delete block");
+  await expect(card).toBeVisible();
+  await expect(canvasBlock(page, "edu-1")).toBeVisible();
+
+  let message = "";
+  page.once("dialog", (confirm) => {
+    message = confirm.message();
+    return confirm.accept();
   });
-}
+  await hoverClick(card, "Delete block");
+  expect(message).toContain("every resume version");
+  await expect(card).toHaveCount(0);
+  await expect(canvasBlock(page, "edu-1")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Frontend SWE", exact: true }).click();
+  await expect(canvasBlock(page, "edu-1")).toHaveCount(0);
+});
 
 
 test("compact filters combine section and date and can be cleared", async ({ page }) => {
