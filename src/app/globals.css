@@ -467,3 +467,146 @@ body.resume-drop-blocked * {
     scroll-behavior: auto;
   }
 }
+
+/* Bounded style choices extracted from a reference; shared by preview and PDF. */
+.resume-reference p,
+.resume-reference ul,
+.resume-reference li {
+  font-size: var(--reference-body);
+  line-height: var(--reference-leading);
+}
+.resume-reference header {
+  text-align: var(--reference-align);
+}
+.resume-reference header h1 {
+  font-size: var(--reference-name);
+  line-height: 1.2;
+  color: var(--reference-accent);
+  padding-right: 0;
+}
+.resume-reference h2 {
+  color: var(--reference-accent);
+  font-size: var(--reference-body);
+  text-transform: var(--reference-case);
+  letter-spacing: 0.04em;
+  border-bottom: var(--reference-rule) solid var(--reference-accent);
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.resume-reference section {
+  margin-top: 0;
+  margin-bottom: var(--reference-section-gap);
+}
+.resume-reference [data-canvas-block-id] {
+  margin-bottom: var(--reference-block-gap);
+}
+
+.resume-reference h2 {
+  font-size: var(--reference-heading);
+  border-top: var(--reference-above-rule) solid var(--reference-rule-color);
+  border-bottom-width: var(--reference-below-rule);
+  border-bottom-color: var(--reference-rule-color);
+  padding-top: 3px;
+  margin-bottom: var(--reference-heading-gap);
+}
+.resume-reference [data-canvas-block-id] {
+  padding: var(--reference-card-padding);
+  border-color: transparent;
+}
+.resume-reference [data-canvas-block-id] .drag-handle {
+  position: absolute;
+  left: -22px;
+}
+.resume-reference [data-resume-section] section > .pt-1,
+.resume-reference .reference-entry-heading + ul {
+  padding-top: 0;
+  margin-top: 2px;
+}
+.resume-reference header p {
+  padding-bottom: 6px;
+}
+
+/* Keep reference-format controls in continuous margin rails, outside the text. */
+.resume-reference [data-canvas-block-id]::before,
+.resume-reference [data-canvas-block-id]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+}
+.resume-reference [data-canvas-block-id]::before {
+  left: -28px;
+  width: 28px;
+}
+.resume-reference [data-canvas-block-id]::after {
+  right: calc(-1 * var(--reference-rail-width) - 4px);
+  width: calc(var(--reference-rail-width) + 4px);
+}
+.resume-reference [data-canvas-block-id] .drag-handle {
+  left: -28px;
+  top: 0;
+  width: 28px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  z-index: 2;
+}
+.resume-reference .reference-block-actions {
+  right: calc(-1 * var(--reference-rail-width));
+  top: 0;
+  z-index: 2;
+}
+.resume-reference .reference-block-actions > div {
+  gap: 0;
+  flex-direction: var(--reference-actions-direction);
+}
+.resume-reference .reference-block-actions .icon-action {
+  width: var(--reference-control-size);
+  height: var(--reference-control-size);
+}
+.resume-reference [data-canvas-block-id] li {
+  padding-right: 0;
+}
+.resume-reference [data-canvas-block-id] li > .icon-action {
+  right: calc(-1 * min(25px, var(--reference-rail-width)));
+  width: var(--reference-control-size);
+  height: var(--reference-control-size);
+  z-index: 2;
+}
+@media print {
+  .resume-reference [data-canvas-block-id]::before,
+  .resume-reference [data-canvas-block-id]::after {
+    display: none;
+  }
+}
+
+/* Layout choices are detected separately for each reference document. */
+.resume-reference header h1 { text-transform: var(--reference-name-case); }
+.resume-reference h2 { letter-spacing: var(--reference-heading-tracking); }
+.resume-reference .reference-subtitle {
+  margin: 2px 0 8px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.resume-reference .reference-contacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 12px;
+  padding: 4px 0 8px;
+  font-size: calc(var(--reference-body) * 0.8);
+  line-height: 1.3;
+}
+.resume-reference [data-description-style="paragraphs"] {
+  list-style: none;
+  padding-left: 0;
+}
+.resume-reference .reference-skills[data-skills-style="columns"] {
+  display: grid;
+  grid-template-columns: repeat(var(--reference-skills-columns), minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 0;
+}

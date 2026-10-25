@@ -17,6 +17,25 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("shared AI rate limit", () => {
+  it("can bypass Redis only during explicitly enabled local development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("VERCEL", "");
+    vi.stubEnv("DISABLE_AI_RATE_LIMIT_LOCAL", "1");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    expect(await enforceAiRateLimit(request())).toBeNull();
+    expect(await (await getAiUsage(request())).json()).toMatchObject({ mock: false, unlimited: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("never bypasses protection in production or on Vercel", async () => {
+    vi.stubEnv("DISABLE_AI_RATE_LIMIT_LOCAL", "1");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL", "");
+    expect((await enforceAiRateLimit(request()))?.status).toBe(503);
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("VERCEL", "1");
+    expect((await enforceAiRateLimit(request()))?.status).toBe(503);
+  });
   it("reads remaining requests and reset time without reserving an attempt", async () => {
     fetchMock.mockResolvedValueOnce(Response.json({ result: [4, 3600] }));
     const before = Date.now();

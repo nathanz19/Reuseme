@@ -20,6 +20,7 @@ import type {
   SemanticRanking,
 } from "@/types/resume";
 import { SECTION_LABELS, SECTION_ORDER } from "@/types/resume";
+import { referenceFormatStyle } from "@/lib/referenceFormat";
 
 function sectionItems(
   category: BlockCategory,
@@ -118,6 +119,7 @@ export function ResumeCanvas({
   );
   const sections: { id: string; label: string; content: ReactNode }[] = [];
   for (const id of resolveSectionOrder(preset)) {
+    if (id === "target-title" && preset.referenceFormat?.layout?.subtitle === "under-name") continue;
     if (isBlockSection(id)) {
       const items = sectionItems(id, blocksBySection.get(id) ?? [], placeholder, byId);
       // An empty section only appears while a vault block of its category is dragged.
@@ -149,10 +151,12 @@ export function ResumeCanvas({
         content: (
           <section className="group mb-3" aria-label="Resume skills">
             <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">
-              Skills
+              {preset.referenceFormat?.details?.skillsHeading ?? "Skills"}
             </h2>
             <div className="relative pt-1">
-              <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>
+              {preset.referenceFormat?.layout && preset.referenceFormat.layout.skillsStyle !== "inline" ? <ul data-skills-style={preset.referenceFormat.layout.skillsStyle} className="reference-skills list-disc pl-4 text-sm">
+                {preset.customSkillsSection.map((skill, index) => <li key={index}>{skill}</li>)}
+              </ul> : <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>}
               <div className="resume-hover-control absolute right-0 top-0 print:hidden">
                 <SectionActions category={{ id: "skills", label: "Skills & Interests", kind: "skills" }} />
               </div>
@@ -172,7 +176,7 @@ export function ResumeCanvas({
             <div className="resume-hover-control absolute right-0 top-0 print:hidden">
               <SectionActions category={vaultCategory} />
             </div>
-            {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">{section.title}</h2>}
+            {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">{section.id === "summary" ? preset.referenceFormat?.layout?.summaryHeading ?? section.title : section.title}</h2>}
             <p className="whitespace-pre-wrap pt-1 text-sm">{section.content}</p>
           </section>
         ) : (
@@ -196,17 +200,20 @@ export function ResumeCanvas({
     <div
       ref={setNodeRef}
       id="resume-print-root"
-      className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-[var(--shadow-soft)] ${templateClass} print:shadow-none ${
+      className={`resume-page mx-auto box-border overflow-hidden bg-white p-8 shadow-[var(--shadow-soft)] ${preset.referenceFormat ? "resume-reference" : ""} ${templateClass} print:shadow-none ${
         dropBlocked
           ? "ring-2 ring-red-500"
           : "ring-1 ring-border"
       }`}
-      style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT }}
-      title={`US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), ~${MAX_LINES} estimated lines`}
+      style={{ ...(preset.referenceFormat ? referenceFormatStyle(preset.referenceFormat) : {}), width: PAGE_WIDTH, height: PAGE_HEIGHT }}
+      role="region"
+      aria-label={`Resume canvas, US Letter (${PAGE_WIDTH}×${PAGE_HEIGHT}px), about ${MAX_LINES} estimated lines`}
     >
       <ResumeHeader
         header={preset.header}
         templateId={templateId}
+        referenceFormat={preset.referenceFormat}
+        subtitle={preset.referenceFormat?.layout?.subtitle === "under-name" ? preset.additionalSections?.find((section) => section.id === "target-title")?.content : undefined}
       />
       <SortableContext items={sortableSectionIds} strategy={verticalListSortingStrategy}>
         {sections.map((section) => (

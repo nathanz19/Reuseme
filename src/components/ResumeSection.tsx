@@ -74,7 +74,7 @@ export function ResumeSection({
       } ${ringClass}`}
     >
       <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">
-        {SECTION_LABELS[category]}
+        {category === "experience" ? preset.referenceFormat?.details?.experienceHeading ?? SECTION_LABELS[category] : SECTION_LABELS[category]}
       </h2>
       {showBlocked && (
         <p className="mb-3 rounded border border-dashed border-red-300 bg-red-50 px-2 py-3 text-center text-xs text-red-700 print:hidden">
