@@ -27,6 +27,8 @@ interface CanvasBlockBodyProps {
   handle: ReactNode;
   actions?: ReactNode;
   onTailorBullet?: (bulletIndex: number) => void;
+  /** Stretch the date to the card’s outer edge so it meets the section rule. */
+  flushDates?: boolean;
 }
 
 function CanvasBlockBody({
@@ -36,12 +38,19 @@ function CanvasBlockBody({
   handle,
   actions,
   onTailorBullet,
+  flushDates = false,
 }: CanvasBlockBodyProps) {
   const bullets = getEffectiveBullets(block, preset);
   const dateLine = [block.startDate, block.endDate].filter(Boolean).join(" – ");
-  const meta = [block.organization, block.location, dateLine]
+  const subtitle = [block.organization, block.location]
     .filter(Boolean)
     .join(" · ");
+  // Card padding is 0.5rem; the border is 1px, or 2px on the overflow flag.
+  const dateInset = flushDates
+    ? overflow
+      ? "w-[calc(100%+0.5rem+2px)]"
+      : "w-[calc(100%+0.5rem+1px)]"
+    : "";
 
   return (
     <>
@@ -53,12 +62,20 @@ function CanvasBlockBody({
       <div className="flex items-start gap-1">
         {handle}
         <div className="min-w-0 flex-1">
-          <p className="pr-16 font-semibold text-sm print:pr-0">
-            {block.title}
-            {meta && (
-              <span className="font-normal text-slate-700"> — {meta}</span>
-            )}
-          </p>
+          <div className={`relative ${dateInset}`}>
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="min-w-0 font-semibold text-sm">{block.title}</p>
+              {dateLine ? (
+                <p className="shrink-0 text-right text-sm text-slate-700 tabular-nums">
+                  {dateLine}
+                </p>
+              ) : null}
+            </div>
+            {subtitle ? (
+              <p className="pr-16 text-sm text-slate-700 print:pr-0">{subtitle}</p>
+            ) : null}
+            {actions}
+          </div>
           <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
             {bullets.map((bullet, index) => (
               <li key={index} className="group/bullet relative pr-8 print:pr-0">
@@ -72,7 +89,6 @@ function CanvasBlockBody({
             ))}
           </ul>
         </div>
-        {actions}
       </div>
     </>
   );
@@ -190,6 +206,7 @@ export function CanvasBlock({
           preset={preset}
           overflow={overflow}
           onTailorBullet={onTailorBullet}
+          flushDates
           handle={
             <button
               type="button"
@@ -203,7 +220,7 @@ export function CanvasBlock({
             </button>
           }
           actions={
-            <div className="resume-hover-control absolute right-1 top-1 print:hidden">
+            <div className="resume-hover-control absolute right-0 top-5 z-10 origin-top-right scale-75 print:hidden">
               {!placeholder && <BlockActions block={block} onRemove={onRemove} />}
             </div>
           }
