@@ -22,7 +22,7 @@ export function SpaceMeter({ preset, vaultBlocks }: SpaceMeterProps) {
 
   return (
     <MeterBadge
-      className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium ${color}`}
+      className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-xs leading-none font-medium ${color}`}
       label="Estimated lines vs one-page budget"
       help={`Space shows how much of your one-page resume is used: ${display} of ${MAX_LINES} estimated lines. If you go over the limit, shorten or remove content before exporting.`}
     >
