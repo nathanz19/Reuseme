@@ -20,6 +20,7 @@ import type {
   TemplateId,
 } from "@/types/resume";
 import { SECTION_ORDER } from "@/types/resume";
+import { ReferenceFormatSchema, type ReferenceFormat } from "@/schemas/referenceFormat";
 
 function invalidateBlockSession(blockId: string) {
   useSessionStore.setState((state) => {
@@ -63,6 +64,7 @@ function presetsEqual(a: ResumePreset[], b: ResumePreset[]): boolean {
 }
 
 export interface ResumeState {
+  savedReferenceFormats: { id: string; name: string; format: ReferenceFormat }[];
   vaultBlocks: AccomplishmentBlock[];
   presets: ResumePreset[];
   activePresetId: string;
@@ -88,6 +90,8 @@ export interface ResumeState {
   updateHeader: (header: ResumePreset["header"]) => void;
   updateCustomSkills: (skills: string[]) => void;
   setTemplate: (templateId: TemplateId) => void;
+  applyReferenceFormat: (presetId: string, format: ReferenceFormat, name?: string) => void;
+  deleteReferenceFormat: (id: string) => void;
   switchPreset: (presetId: string) => void;
   duplicatePreset: () => void;
   createDocument: () => void;
@@ -108,6 +112,7 @@ export interface ResumeState {
 export const useResumeStore = create<ResumeState>()(
   persist(
     (set, get) => ({
+      savedReferenceFormats: [],
       vaultBlocks: SEED_BLOCKS,
       presets: clonePresets(SEED_PRESETS),
       activePresetId: DEFAULT_PRESET_ID,
@@ -117,7 +122,16 @@ export const useResumeStore = create<ResumeState>()(
 
       rehydrate: async () => {
         await useResumeStore.persist.rehydrate();
-        set({ past: [], future: [], _hasHydrated: true });
+        const state = get();
+        const library = [...state.savedReferenceFormats];
+        const presets = state.presets.map((preset) => {
+          if (!preset.referenceFormat || preset.referenceFormatId) return preset;
+          const known = library.find((entry) => entry.id === preset.referenceFormatId || JSON.stringify(entry.format) === JSON.stringify(preset.referenceFormat));
+          const saved = known ?? { id: crypto.randomUUID(), name: `${preset.name} format`, format: preset.referenceFormat };
+          if (!known) library.push(saved);
+          return { ...preset, referenceFormatId: saved.id };
+        });
+        set({ presets, savedReferenceFormats: library, past: [], future: [], _hasHydrated: true });
       },
 
       updateVaultBlock: (block) => {
@@ -329,8 +343,37 @@ export const useResumeStore = create<ResumeState>()(
           const preset = draft.presets.find(
             (p) => p.id === draft.activePresetId,
           );
-          if (preset) preset.templateId = templateId;
+          if (preset) { preset.templateId = templateId; delete preset.referenceFormat; delete preset.referenceFormatId; }
         });
+      },
+
+      applyReferenceFormat: (presetId, input, name) => {
+        const format = ReferenceFormatSchema.parse(input);
+        if (!get().presets.some((entry) => entry.id === presetId)) return;
+        const cleanName = name?.replace(/\.(pdf|png|jpe?g)$/i, "").replace(/[\u0000-\u001f]/g, "").trim().slice(0, 80);
+        const existingFormat = get().savedReferenceFormats.find((entry) => JSON.stringify(entry.format) === JSON.stringify(format) && (!cleanName || entry.name === cleanName));
+        const saved = existingFormat ?? {
+          id: crypto.randomUUID(),
+          name: cleanName || "Uploaded format",
+          format,
+        };
+        // The template library survives document Undo and switching templates.
+        if (!existingFormat) set({ savedReferenceFormats: [...get().savedReferenceFormats, saved] });
+        get().commit((draft) => {
+          const preset = draft.presets.find((entry) => entry.id === presetId);
+          if (!preset) return;
+          preset.referenceFormat = format;
+          preset.referenceFormatId = saved.id;
+          preset.templateId = "classic-ats";
+          const existing = resolveSectionOrder(preset);
+          const ordered: string[] = [...new Set(format.sectionOrder)].filter((id) => existing.includes(id));
+          preset.sectionOrder = [...ordered, ...existing.filter((id) => !ordered.includes(id))];
+        });
+      },
+
+      deleteReferenceFormat: (id) => {
+        // Documents retain their style snapshot; only remove it from the library.
+        set({ savedReferenceFormats: get().savedReferenceFormats.filter((entry) => entry.id !== id) });
       },
 
       switchPreset: (presetId) => {
@@ -451,6 +494,7 @@ export const useResumeStore = create<ResumeState>()(
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
+        savedReferenceFormats: state.savedReferenceFormats,
         vaultBlocks: state.vaultBlocks,
         presets: state.presets,
         activePresetId: state.activePresetId,
