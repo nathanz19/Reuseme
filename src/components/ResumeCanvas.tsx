@@ -152,8 +152,8 @@ export function ResumeCanvas({
               Skills
             </h2>
             <div className="relative pt-1">
-              <p className="pr-16 text-sm print:pr-0">{preset.customSkillsSection.join(", ")}</p>
-              <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+              <p className="text-sm">{preset.customSkillsSection.join(", ")}</p>
+              <div className="resume-hover-control absolute -right-8 top-0 print:hidden">
                 <SectionActions category={{ id: "skills", label: "Skills & Interests", kind: "skills" }} />
               </div>
             </div>
@@ -168,8 +168,8 @@ export function ResumeCanvas({
         id,
         label: section.title || vaultCategory?.label || "Custom",
         content: vaultCategory ? (
-          <section className="group relative my-2 pr-16 print:pr-0">
-            <div className="resume-hover-control absolute right-0 top-0 print:hidden">
+          <section className="group relative my-2">
+            <div className="resume-hover-control absolute -right-8 top-0 print:hidden">
               <SectionActions category={vaultCategory} />
             </div>
             {section.id !== "target-title" && <h2 className="mb-2 border-b border-slate-300 pb-0.5 text-sm font-bold uppercase tracking-wide">{section.title}</h2>}

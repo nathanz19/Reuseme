@@ -63,6 +63,34 @@ test("document tabs, templates, and new documents switch the canvas", async ({
   await expect(page.getByLabel("Template")).toHaveValue("classic-ats");
 });
 
+test("canvas text wraps on the same line width as the printed page", async ({ page }) => {
+  await openApp(page);
+  const text =
+    "Built React dashboards consumed by 40k monthly active analysts and " +
+    "x".repeat(40);
+  const bullet = page.locator("#resume-print-root [data-canvas-block-id='exp-1'] li").first();
+  await bullet.evaluate((node, text) => {
+    const textNode = [...node.childNodes].find((child) => child.nodeType === Node.TEXT_NODE);
+    if (!textNode) throw new Error("bullet text missing");
+    textNode.textContent = text;
+  }, text);
+  const screen = Math.round(await bullet.evaluate((node) => node.getBoundingClientRect().height));
+  await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+  await page.emulateMedia({ media: "print" });
+  const print = await page.evaluate(() => {
+    const copy = document.getElementById("resume-print-copy");
+    const content = copy?.querySelector(".resume-print-content");
+    const printBullet = copy?.querySelector("[data-canvas-block-id='exp-1'] li");
+    if (!(content instanceof HTMLElement) || !(printBullet instanceof HTMLElement)) {
+      throw new Error("printed bullet missing");
+    }
+    const scale = new DOMMatrix(getComputedStyle(content).transform).a || 1;
+    return Math.round(printBullet.getBoundingClientRect().height / scale);
+  });
+  expect(screen).toBe(print);
+  expect(screen).toBeLessThan(30);
+});
+
 test("header edits update the resume", async ({ page }) => {
   // Make room before exercising the contact editor.
   await hoverClick(canvasBlock(page, "proj-4"), "Remove from resume");

@@ -58,16 +58,16 @@ function CanvasBlockBody({
           ) : null}
         </div>
         {subtitle ? (
-          <p className="pr-16 text-sm text-slate-700 print:pr-0">{subtitle}</p>
+          <p className="text-sm text-slate-700">{subtitle}</p>
         ) : null}
         {actions}
       </div>
       <ul className="mt-1 list-disc pl-5 text-sm text-slate-900">
         {bullets.map((bullet, index) => (
-          <li key={index} className="group/bullet relative pr-8 print:pr-0">
+          <li key={index} className="group/bullet relative">
             {bullet}
             {onTailorBullet && (
-              <IconAction label="Tailor bullet" className="resume-hover-control absolute right-0 top-0 print:hidden" onClick={() => onTailorBullet(index)}>
+              <IconAction label="Tailor bullet" className="resume-hover-control absolute -right-8 top-0 print:hidden" onClick={() => onTailorBullet(index)}>
                 <RefreshCw size={14} aria-hidden="true" />
               </IconAction>
             )}
@@ -80,7 +80,7 @@ function CanvasBlockBody({
   return (
     <>
       {overflow && (
-        <p className="overflow-label mb-1 text-xs font-medium text-amber-800">
+        <p className="overflow-label pointer-events-none absolute top-0 left-0 z-10 -translate-y-full pb-0.5 text-[11px] leading-none font-medium text-amber-800">
           Suggested to cut for space
         </p>
       )}
@@ -222,7 +222,7 @@ export function CanvasBlock({
           onTailorBullet={onTailorBullet}
           detachedGrip
           actions={
-            <div className="resume-hover-control absolute right-0 top-5 z-10 origin-top-right scale-75 print:hidden">
+            <div className="resume-hover-control absolute -right-8 top-5 z-10 origin-top-right scale-75 print:hidden">
               {!placeholder && <BlockActions block={block} onRemove={onRemove} />}
             </div>
           }
