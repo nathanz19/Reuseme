@@ -234,6 +234,28 @@ body.resume-drop-blocked * {
   }
 }
 
+/*
+ * Not a `.group`: hovering a section must not reveal every block control inside it.
+ * The grip sits in the page margin outside the section box, so it stays
+ * hit-testable while transparent; otherwise the pointer could never reach it.
+ */
+.resume-section > .resume-section-handle {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.resume-section:hover > .resume-section-handle,
+.resume-section[data-dragging="true"] > .resume-section-handle,
+.resume-section > .resume-section-handle:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .resume-section > .resume-section-handle {
+    opacity: 1;
+  }
+}
+
 #resume-print-copy {
   display: none;
 }

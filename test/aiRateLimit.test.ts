@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { enforceAiRateLimit } from "@/lib/server/aiRateLimit";
+import { enforceAiRateLimit, getAiUsage } from "@/lib/server/aiRateLimit";
 
 const fetchMock = vi.fn<typeof fetch>();
 const request = (ip = "203.0.113.8") => new Request("https://reuseme.test/api", {
@@ -17,6 +17,31 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("shared AI rate limit", () => {
+  it("reads remaining requests and reset time without reserving an attempt", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ result: [4, 3600] }));
+    const before = Date.now();
+    const response = await getAiUsage(request());
+    const data = await response.json();
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(data).toMatchObject({ mock: false, limit: 10, remaining: 6 });
+    expect(data.resetAt).toBeGreaterThanOrEqual(before + 3600000);
+    const command = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(command.at(-1)).toBe("read");
+  });
+  it("shows a full allowance without a window and zero when exhausted", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ result: [0, 0] }));
+    expect(await (await getAiUsage(request())).json()).toMatchObject({ remaining: 10, resetAt: null });
+    fetchMock.mockResolvedValueOnce(Response.json({ result: [10, 120] }));
+    expect(await (await getAiUsage(request())).json()).toMatchObject({ remaining: 0 });
+    fetchMock.mockResolvedValueOnce(Response.json({ result: ["bad", 120] }));
+    expect((await getAiUsage(request())).status).toBe(503);
+  });
+  it("reports demo mode without contacting Redis", async () => {
+    vi.stubEnv("MOCK_AI", "1");
+    expect(await (await getAiUsage(request())).json()).toMatchObject({ mock: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it("allows ten reservations and returns a retry time for the eleventh", async () => {
     for (let index = 0; index < 10; index++) {
       fetchMock.mockResolvedValueOnce(Response.json({ result: [1, 86400 - index] }));
@@ -40,7 +65,7 @@ describe("shared AI rate limit", () => {
     expect(commands[0][3]).toBe(commands[1][3]);
     expect(commands[0][3]).not.toBe(commands[2][3]);
     expect(commands[0][3]).not.toBe(commands[3][3]);
-    expect(commands[0]).toEqual(["EVAL", expect.any(String), "1", expect.stringMatching(/^reuseme:ai:production:[a-f0-9]{64}$/), "10", "86400"]);
+    expect(commands[0]).toEqual(["EVAL", expect.any(String), "1", expect.stringMatching(/^reuseme:ai:production:[a-f0-9]{64}$/), "10", "86400", "consume"]);
     expect(JSON.stringify(commands)).not.toContain("203.0.113.8");
   });
   it("blocks live calls when storage is missing, fails, or returns invalid data", async () => {

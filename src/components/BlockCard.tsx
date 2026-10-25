@@ -41,7 +41,7 @@ export function BlockCard({
         isDragging ? "opacity-60" : ""
       }`}
     >
-      <div className="flex items-start gap-2 p-3">
+      <div className="flex items-start gap-2 p-2">
         <button
           type="button"
           className="mt-0.5 shrink-0 cursor-grab text-slate-400 disabled:cursor-default disabled:opacity-30"
@@ -105,7 +105,7 @@ export function BlockCard({
         </div>
       </div>
       {open && (
-        <div className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-xs">
+        <div className="border-t border-slate-100 bg-slate-50 px-2 py-1.5 text-xs">
           <p className="whitespace-pre-wrap text-slate-700">{block.sourceContext}</p>
           <ul className="mt-2 space-y-1">
             {block.bullets.map((bullet, index) => (

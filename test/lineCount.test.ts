@@ -42,6 +42,24 @@ describe("line count", () => {
     expect(overflow).toBeTruthy();
   });
 
+  it("flags the last block of the last section in the arranged order", () => {
+    const preset = {
+      ...SEED_PRESETS[0],
+      activeBlockIds: ["edu-1", "exp-1", "proj-1"],
+      customSkillsSection: Array.from({ length: 400 }, (_, i) =>
+        `Skill category ${i} with extended label text for line budget`,
+      ),
+    };
+    expect(pickOverflowBlockId(preset, SEED_BLOCKS, {})).toBe("proj-1");
+    expect(
+      pickOverflowBlockId(
+        { ...preset, sectionOrder: ["project", "education", "experience"] },
+        SEED_BLOCKS,
+        {},
+      ),
+    ).toBe("exp-1");
+  });
+
   it("picks lowest match score with tie-break later in order", () => {
     const preset = {
       ...SEED_PRESETS[0],

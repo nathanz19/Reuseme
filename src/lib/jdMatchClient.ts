@@ -4,6 +4,7 @@ import {
   type JDMatchResponse,
 } from "@/schemas/jdMatch";
 import type { AccomplishmentBlock } from "@/types/resume";
+import { notifyAiUsageChanged } from "@/lib/aiUsage";
 
 export type JDMatchOutcome = JDMatchResponse | { error: string };
 
@@ -31,6 +32,8 @@ export async function requestJdMatch(
     });
   } catch {
     return { error: "Could not reach the match service. Check your connection." };
+  } finally {
+    notifyAiUsageChanged();
   }
 
   let payload: unknown;

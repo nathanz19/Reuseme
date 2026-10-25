@@ -100,7 +100,7 @@ test("printing preserves canvas margins and does not push Skills lower", async (
   const original = page.locator("#resume-print-root");
   const measure = (element: HTMLElement | SVGElement) => {
     const root = element.getBoundingClientRect();
-    const skills = element.querySelector("section:last-child p")!.getBoundingClientRect();
+    const skills = element.querySelector('section[aria-label="Resume skills"] p')!.getBoundingClientRect();
     return {
       padding: getComputedStyle(element).padding,
       skillsBottom: skills.bottom - root.top,
@@ -117,14 +117,14 @@ test("printing preserves canvas margins and does not push Skills lower", async (
 test("print fits the entire Skills section inside the page instead of clipping", async ({ page }) => {
   await openApp(page);
   // Reproduce a document with more physical content than the line estimate predicts.
-  await page.locator("#resume-print-root section:last-child p").evaluate((skills) => {
+  await page.locator('#resume-print-root section[aria-label="Resume skills"] p').evaluate((skills) => {
     skills.textContent += ", " + "Additional skill ".repeat(100);
   });
   await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
   await page.emulateMedia({ media: "print" });
   const layout = await page.locator("#resume-print-copy").evaluate((copy) => {
     const page = copy.getBoundingClientRect();
-    const skills = copy.querySelector("section:last-child p")!.getBoundingClientRect();
+    const skills = copy.querySelector('section[aria-label="Resume skills"] p')!.getBoundingClientRect();
     const padding = parseFloat(getComputedStyle(copy).paddingBottom);
     return { bottom: skills.bottom, pageBottom: page.bottom - padding };
   });

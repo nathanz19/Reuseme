@@ -11,6 +11,7 @@ import {
   type ParagraphChild,
 } from "docx";
 import { getEffectiveBullets } from "@/lib/getEffectiveBullets";
+import { isBlockSection, resolveSectionOrder, SKILLS_SECTION_ID } from "@/lib/sectionOrder";
 import {
   SECTION_LABELS,
   SECTION_ORDER,
@@ -70,34 +71,31 @@ export function buildResumeDocument(
   const contact = contactParagraph(preset, font, muted);
   if (contact) children.push(contact);
 
-  const extras = preset.additionalSections ?? [];
-  for (const section of extras.filter((item) => item.id === "target-title" || item.id === "summary")) {
-    children.push(...additionalParagraphs(section, font, section.id !== "target-title"));
-  }
-
+  const extras = new Map((preset.additionalSections ?? []).map((section) => [section.id, section]));
   const byId = new Map(vaultBlocks.map((block) => [block.id, block]));
   const bySection = new Map(SECTION_ORDER.map((category) => [category, [] as AccomplishmentBlock[]]));
   for (const id of preset.activeBlockIds) {
     const block = byId.get(id);
     if (block) bySection.get(block.category)?.push(block);
   }
-  for (const category of SECTION_ORDER) {
-    const blocks = bySection.get(category) ?? [];
-    if (!blocks.length) continue;
-    children.push(sectionHeading(SECTION_LABELS[category], font));
-    for (const block of blocks) children.push(...blockParagraphs(block, preset, font, muted));
-  }
 
-  for (const section of extras.filter((item) => item.id !== "target-title" && item.id !== "summary")) {
-    children.push(...additionalParagraphs(section, font, true));
-  }
-
-  if (preset.customSkillsSection.length > 0) {
-    children.push(sectionHeading("Skills", font));
-    children.push(new Paragraph({
-      spacing: { after: 60 },
-      children: [run(preset.customSkillsSection.join(", "), font)],
-    }));
+  for (const id of resolveSectionOrder(preset)) {
+    if (isBlockSection(id)) {
+      const blocks = bySection.get(id) ?? [];
+      if (!blocks.length) continue;
+      children.push(sectionHeading(SECTION_LABELS[id], font));
+      for (const block of blocks) children.push(...blockParagraphs(block, preset, font, muted));
+    } else if (id === SKILLS_SECTION_ID) {
+      if (preset.customSkillsSection.length === 0) continue;
+      children.push(sectionHeading("Skills", font));
+      children.push(new Paragraph({
+        spacing: { after: 60 },
+        children: [run(preset.customSkillsSection.join(", "), font)],
+      }));
+    } else {
+      const section = extras.get(id);
+      if (section) children.push(...additionalParagraphs(section, font, section.id !== "target-title"));
+    }
   }
 
   if (!children.length) children.push(new Paragraph({ children: [run("", font)] }));

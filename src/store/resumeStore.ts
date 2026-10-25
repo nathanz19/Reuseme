@@ -12,6 +12,7 @@ import {
   canApplyTailorOverride,
   canInsertBlockOnResume,
 } from "@/lib/lineCount";
+import { moveSection, resolveSectionOrder } from "@/lib/sectionOrder";
 import { HISTORY_LIMIT, PERSIST_VERSION } from "@/lib/tunables";
 import type {
   AccomplishmentBlock,
@@ -83,6 +84,7 @@ export interface ResumeState {
     activeId: string,
     overId: string,
   ) => void;
+  reorderSections: (activeId: string, overId: string) => void;
   updateHeader: (header: ResumePreset["header"]) => void;
   updateCustomSkills: (skills: string[]) => void;
   setTemplate: (templateId: TemplateId) => void;
@@ -293,6 +295,17 @@ export const useResumeStore = create<ResumeState>()(
         });
       },
 
+      reorderSections: (activeId, overId) => {
+        get().commit((draft) => {
+          const preset = draft.presets.find(
+            (p) => p.id === draft.activePresetId,
+          );
+          if (!preset) return;
+          const next = moveSection(resolveSectionOrder(preset), activeId, overId);
+          if (next) preset.sectionOrder = next;
+        });
+      },
+
       updateHeader: (header) => {
         get().commit((draft) => {
           const preset = draft.presets.find(
@@ -359,6 +372,7 @@ export const useResumeStore = create<ResumeState>()(
               ...clonePresets([closed])[0],
               id: crypto.randomUUID(), name: "Untitled document",
               activeBlockIds: [], bulletOverrides: {}, customSkillsSection: [], additionalSections: [],
+              sectionOrder: undefined,
             };
             draft.presets.push(blank);
           }
@@ -380,6 +394,7 @@ export const useResumeStore = create<ResumeState>()(
             bulletOverrides: {},
             customSkillsSection: [],
             additionalSections: [],
+            sectionOrder: undefined,
           };
           draft.presets.push(document);
           draft.activePresetId = document.id;

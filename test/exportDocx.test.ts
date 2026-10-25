@@ -52,6 +52,21 @@ describe("buildResumeDocument", () => {
     expect(text).toContain("GitHub");
   });
 
+  it("writes sections in the document's arranged order below the header", async () => {
+    const preset = structuredClone(SEED_PRESETS[0]);
+    preset.additionalSections = [
+      { id: "summary", title: "Summary", content: "Builds accessible interfaces." },
+    ];
+    preset.sectionOrder = ["skills", "project", "education", "summary", "experience"];
+    const { text } = await packed(preset);
+
+    expect(text.indexOf("Alex Morgan")).toBeLessThan(text.indexOf("SKILLS"));
+    expect(text.indexOf("SKILLS")).toBeLessThan(text.indexOf("PROJECTS"));
+    expect(text.indexOf("PROJECTS")).toBeLessThan(text.indexOf("EDUCATION"));
+    expect(text.indexOf("EDUCATION")).toBeLessThan(text.indexOf("SUMMARY"));
+    expect(text.indexOf("SUMMARY")).toBeLessThan(text.indexOf("EXPERIENCE"));
+  });
+
   it("uses the modern font and omits empty sections", async () => {
     const preset = structuredClone(SEED_PRESETS[1]);
     preset.customSkillsSection = [];

@@ -12,7 +12,6 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   canInsertBlockOnResume,
@@ -23,6 +22,11 @@ import { CanvasBlockOverlay } from "@/components/CanvasBlock";
 import { JDPanel } from "@/components/JDPanel";
 import { Navbar } from "@/components/Navbar";
 import { ResumeCanvas } from "@/components/ResumeCanvas";
+import {
+  SectionOverlay,
+  snapshotSection,
+  type SectionSnapshot,
+} from "@/components/SortableSection";
 import { TailorDialog } from "@/components/TailorDialog";
 import { VaultCategoryList } from "@/components/VaultCategoryList";
 import { VaultToolbar } from "@/components/VaultToolbar";
@@ -43,15 +47,19 @@ import {
   dragPointerY,
   insertionBeforeBlockId,
   isResumeDropTarget,
+  isSectionDragData,
   parsePlaceholderId,
   parseSectionDroppableId,
+  parseSectionSortableId,
   parseVaultDraggableId,
   placeholderId,
   resumeDropCollision,
+  resumeKeyboardCoordinates,
   DND_CONTEXT_ID,
 } from "@/lib/dnd";
 import { RELEVANT_TOP_N } from "@/lib/tunables";
 import { requestJdMatch } from "@/lib/jdMatchClient";
+import { notifyAiUsageChanged } from "@/lib/aiUsage";
 import { selectRankedCards } from "@/lib/relevance";
 import type {
   AccomplishmentBlock,
@@ -145,6 +153,7 @@ export function AppPage() {
   const addBlockToResume = useResumeStore((s) => s.addBlockToResume);
   const removeBlockFromResume = useResumeStore((s) => s.removeBlockFromResume);
   const reorderInSection = useResumeStore((s) => s.reorderInSection);
+  const reorderSections = useResumeStore((s) => s.reorderSections);
   const insertBlockOnResume = useResumeStore((s) => s.insertBlockOnResume);
   const setTemplate = useResumeStore((s) => s.setTemplate);
   const switchPreset = useResumeStore((s) => s.switchPreset);
@@ -235,6 +244,7 @@ export function AppPage() {
     : undefined;
 
   const [activeDrag, setActiveDrag] = useState<DragItemData | null>(null);
+  const [activeSection, setActiveSection] = useState<SectionSnapshot | null>(null);
   const [spaceWarning, setSpaceWarning] = useState<string | null>(null);
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
   const [placeholder, setPlaceholder] = useState<CanvasPlaceholder | null>(null);
@@ -250,7 +260,7 @@ export function AppPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      coordinateGetter: resumeKeyboardCoordinates,
     }),
   );
 
@@ -339,6 +349,7 @@ export function AppPage() {
     dragLayoutRef.current = null;
     pointerYRef.current = null;
     setActiveDrag(null);
+    setActiveSection(null);
     setOverTargetId(null);
     assignPlaceholder(null);
     assignDropBlocked(false);
@@ -375,6 +386,20 @@ export function AppPage() {
       setSpaceWarning(null);
       assignPlaceholder(null);
       assignDropBlocked(false);
+      const sectionData = event.active.data.current;
+      if (isSectionDragData(sectionData)) {
+        dragLayoutRef.current = null;
+        setOverlayWidth(undefined);
+        setActiveSection(
+          snapshotSection(
+            sectionData.sectionId,
+            document.querySelector<HTMLElement>(
+              `[data-resume-section="${CSS.escape(sectionData.sectionId)}"]`,
+            ),
+          ),
+        );
+        return;
+      }
       const data = event.active.data.current as DragItemData | undefined;
       const page = document.getElementById("resume-print-root");
       dragLayoutRef.current = data?.origin === "vault" && page ? {
@@ -473,14 +498,24 @@ export function AppPage() {
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const { active, over } = event;      const activeData = active.data.current as DragItemData | undefined;
+      const { active, over } = event;
       const pendingPlaceholder = placeholderRef.current;
       const blocked = dropBlockedRef.current;
       clearDragState();
 
-      if (!over || active.id === over.id || !activeData) return;
+      if (!over || active.id === over.id) return;
 
       const overId = String(over.id);
+
+      const sectionData = active.data.current;
+      if (isSectionDragData(sectionData)) {
+        const overSectionId = parseSectionSortableId(overId);
+        if (overSectionId) reorderSections(sectionData.sectionId, overSectionId);
+        return;
+      }
+
+      const activeData = active.data.current as DragItemData | undefined;
+      if (!activeData) return;
 
       if (activeData.origin === "vault") {
         const blockIds = vaultBlocks.map((block) => block.id);
@@ -533,6 +568,7 @@ export function AppPage() {
       insertBlockOnResume,
       removeBlockFromResume,
       reorderInSection,
+      reorderSections,
       vaultBlocks,
       flashSpaceWarning,
       activePreset,
@@ -613,6 +649,7 @@ export function AppPage() {
         setTailorError(error instanceof Error ? error.message : "Unable to connect. Please retry.");
       } finally {
         if (!controller.signal.aborted && tailorRequest.current === controller) setTailorLoading(false);
+        notifyAiUsageChanged();
       }
     },
     [vaultBlocks, parsedJD, jdText, activePreset, openTailorDialog, setTailorProposal, setTailorLoading, closeTailoring],
@@ -805,7 +842,9 @@ export function AppPage() {
           className={dropBlocked ? "cursor-not-allowed" : undefined}
           dropAnimation={resumeDropAnimation}
         >
-          {overlayBlock && activeDrag ? (
+          {activeSection ? (
+            <SectionOverlay snapshot={activeSection} />
+          ) : overlayBlock && activeDrag ? (
             <CanvasBlockOverlay
               block={overlayBlock}
               preset={activePreset}

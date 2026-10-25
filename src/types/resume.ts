@@ -53,6 +53,8 @@ export interface ResumePreset {
   bulletOverrides: Record<string, Record<number, string>>;
   customSkillsSection: string[];
   additionalSections?: AdditionalSection[];
+  /** Canvas order of the sections below the header (see `resolveSectionOrder`). */
+  sectionOrder?: string[];
 }
 
 export interface ParsedJobDescription {

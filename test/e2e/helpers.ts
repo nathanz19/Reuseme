@@ -6,7 +6,7 @@ export async function openApp(page: Page) {
 }
 
 export function spaceMeter(page: Page): Locator {
-  return page.getByTitle("Estimated lines vs one-page budget");
+  return page.getByLabel("Estimated lines vs one-page budget", { exact: true });
 }
 
 export function canvasBlock(page: Page, blockId: string): Locator {

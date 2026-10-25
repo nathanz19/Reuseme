@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { FileText, Plus, Undo2, Redo2, Download, Pencil, X, ChevronDown } from "lucide-react";
 import { IconAction } from "@/components/IconAction";
 import { SpaceMeter } from "@/components/SpaceMeter";
+import { AiUsageMeter } from "@/components/AiUsageMeter";
 import { btnExport, fieldBorder, focusRing, selectToolbar } from "@/lib/theme";
 import { isWithinLineBudget } from "@/lib/lineCount";
 import type { AccomplishmentBlock, ResumePreset, TemplateId } from "@/types/resume";
@@ -119,6 +120,7 @@ export function Navbar({ presets, activePresetId, templateId, vaultBlocks, activ
           </span>
         </label>
         <SpaceMeter preset={activePreset} vaultBlocks={vaultBlocks} />
+        <AiUsageMeter />
         <ExportControl canExport={canExport} onExportPdf={onExportPdf} onExportDocx={onExportDocx} />
       </div>
       {closingDocument && <DeleteDocumentDialog name={closingDocument.name}
