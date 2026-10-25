@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { DEMO_JD_TEXT } from "../fixtures/demoJd";
 
 export async function openApp(page: Page) {
   await page.goto("/editor");
@@ -28,9 +29,9 @@ export async function hoverClick(block: Locator, name: string, nth = 0) {
 
 export async function analyzeDemoJd(page: Page) {
   await page.getByRole("button", { name: "Job Description", exact: true }).click();
-  await expect(page.getByPlaceholder("Paste job description…")).toHaveValue(
-    /Nimbus Analytics/,
-  );
+  const jd = page.getByPlaceholder("Paste job description…");
+  await jd.fill(DEMO_JD_TEXT);
+  await expect(jd).toHaveValue(/Nimbus Analytics/);
   await page.getByRole("button", { name: "Analyze & Rank Vault" }).click();
   await expect(page.getByText(/\d+ of \d+ covered/)).toBeVisible();
 }

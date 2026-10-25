@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/jd/match/route";
-import { DEMO_JD_TEXT } from "@/data/demo-jd";
+import { DEMO_JD_TEXT } from "../fixtures/demoJd";
 import { FIXTURE_MATCH_FAIL_TOKEN } from "@/data/fixtures";
-import { SEED_BLOCKS } from "@/data/seed";
+import { SEED_BLOCKS } from "../fixtures/seed";
 import { MATCH_SYSTEM_PROMPT } from "@/lib/jdMatch";
 import {
   JDMatchResponseSchema,

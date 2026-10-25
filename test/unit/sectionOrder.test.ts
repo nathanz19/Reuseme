@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SEED_PRESETS } from "@/data/seed";
+import { SEED_PRESETS } from "../fixtures/seed";
 import {
   defaultSectionOrder,
   moveSection,

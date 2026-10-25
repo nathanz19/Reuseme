@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { openApp } from "./helpers";
 import { COMPACT_SERIF_FORMAT, MODERN_PARAGRAPH_FORMAT } from "../fixtures/referenceFormat";
 

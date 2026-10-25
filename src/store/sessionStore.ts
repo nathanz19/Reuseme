@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
+import { DEMO_DATA_ENABLED } from "@/data/starterData";
 import type {
   ParsedJobDescription,
   SemanticRanking,
@@ -74,7 +75,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   dateTo: "",
   leftTab: "vault",
   mobilePane: "vault",
-  jdText: DEMO_JD_TEXT,
+  jdText: DEMO_DATA_ENABLED ? DEMO_JD_TEXT : "",
   parsedJD: null,
   rankings: {},
   rankingsList: [],

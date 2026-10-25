@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { DEMO_JD_TEXT } from "@/data/demo-jd";
+import { DEMO_JD_TEXT } from "../fixtures/demoJd";
 import { matchVault } from "@/data/fixtures";
-import { SEED_BLOCKS } from "@/data/seed";
+import { SEED_BLOCKS } from "../fixtures/seed";
 import { createTailorPreview } from "@/lib/tailorPreview";
 import { useSessionStore } from "@/store/sessionStore";
 
@@ -12,8 +12,9 @@ beforeEach(() => {
 });
 
 describe("session store", () => {
-  it("starts with the demo JD but allows it to stay cleared", () => {
-    expect(store.getState().jdText).toBe(DEMO_JD_TEXT);
+  it("starts with an empty job description and keeps a cleared value", () => {
+    expect(store.getState().jdText).toBe("");
+    store.getState().setJdText(DEMO_JD_TEXT);
     store.getState().setJdText("");
     store.getState().setLeftTab("vault");
     store.getState().setLeftTab("jd");

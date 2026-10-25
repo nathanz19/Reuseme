@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { canvasBlock, hoverClick, openApp, spaceMeter, vaultCard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {

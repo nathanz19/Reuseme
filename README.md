@@ -73,3 +73,11 @@ Applying saves the style by filename in a browser-local template library. It rem
 Each new upload also detects entry row structure, inline vs right-aligned dates, regular vs bold metadata, paragraph vs bullet descriptions, spread contacts, uppercase names, subtitle placement, and column skills. Open **Adjust detected layout** in the preview to correct a detected setting before applying; corrections do not use another AI request. These are supported layout settings, so custom graphics, exact commercial fonts, arbitrary multi-column body layouts, and exact page geometry can still differ from the original.
 
 To delete an uploaded template, select it in the template dropdown, click the trash icon beside the dropdown, and confirm. Documents already using that template keep their applied style snapshot; the saved template is removed from the browser-local library and stays removed after a reload.
+
+## Sample data
+
+With `NEXT_PUBLIC_ENABLE_DEMO_DATA` unset or set to `0`, a new workspace has one blank document, an empty vault, and no job description. Set `NEXT_PUBLIC_ENABLE_DEMO_DATA=1` in `.env` or `.env.local`, then restart `npm run dev`, to open the sample resumes, vault blocks, and sample job description. This flag is separate from `MOCK_AI`. `MOCK_AI` selects sample AI responses.
+
+Sample saves use `reuseme-resume-demo` in localStorage. Normal saves use `reuseme-resume-user`. The old `reuseme-resume` save stays in the browser and is not opened.
+
+Automated tests load the same sample data from `test/fixtures/`. They do not use the flag in `.env`.

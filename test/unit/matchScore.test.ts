@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeKeywordOverlap, computeMatchScore } from "@/lib/matchScore";
-import { SEED_BLOCKS } from "@/data/seed";
+import { SEED_BLOCKS } from "../fixtures/seed";
 import type { ParsedJobDescription } from "@/types/resume";
 
 const parsed: ParsedJobDescription = {

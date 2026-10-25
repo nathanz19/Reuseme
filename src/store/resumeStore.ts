@@ -2,11 +2,7 @@ import { cleanBlockReferences } from "@/lib/vaultEditing";
 import { useSessionStore } from "@/store/sessionStore";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import {
-  DEFAULT_PRESET_ID,
-  SEED_BLOCKS,
-  SEED_PRESETS,
-} from "@/data/seed";
+import { createStarterData, RESUME_STORAGE_KEY } from "@/data/starterData";
 import {
   activeBlockIdsAfterInsert,
   canApplyTailorOverride,
@@ -113,9 +109,7 @@ export const useResumeStore = create<ResumeState>()(
   persist(
     (set, get) => ({
       savedReferenceFormats: [],
-      vaultBlocks: SEED_BLOCKS,
-      presets: clonePresets(SEED_PRESETS),
-      activePresetId: DEFAULT_PRESET_ID,
+      ...createStarterData(),
       past: [],
       future: [],
       _hasHydrated: false,
@@ -490,7 +484,7 @@ export const useResumeStore = create<ResumeState>()(
       },
     }),
     {
-      name: "reuseme-resume",
+      name: RESUME_STORAGE_KEY,
       version: PERSIST_VERSION,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
@@ -502,10 +496,13 @@ export const useResumeStore = create<ResumeState>()(
       skipHydration: true,
       migrate: (persisted) => {
         const p = persisted as Partial<ResumeState>;
+        const starter = createStarterData();
+        const presets = Array.isArray(p.presets) && p.presets.length > 0 ? p.presets : starter.presets;
         return {
-          vaultBlocks: SEED_BLOCKS,
-          presets: clonePresets(SEED_PRESETS),
-          activePresetId: p.activePresetId ?? DEFAULT_PRESET_ID,
+          vaultBlocks: Array.isArray(p.vaultBlocks) ? p.vaultBlocks : starter.vaultBlocks,
+          presets,
+          activePresetId: presets.some((preset) => preset.id === p.activePresetId) ? p.activePresetId : presets[0].id,
+          savedReferenceFormats: Array.isArray(p.savedReferenceFormats) ? p.savedReferenceFormats : [],
         };
       },
     },

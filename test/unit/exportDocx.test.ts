@@ -1,6 +1,6 @@
 import { Packer } from "docx";
 import { describe, expect, it } from "vitest";
-import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
+import { SEED_BLOCKS, SEED_PRESETS } from "../fixtures/seed";
 import { buildResumeDocument, resumeDocxFilename } from "@/lib/exportDocx";
 import type { ResumePreset } from "@/types/resume";
 import { DEMO_REFERENCE_FORMAT } from "@/schemas/referenceFormat";

@@ -54,7 +54,7 @@ export function AiUsageMeter() {
     : usage?.unlimited ? "The app's request limit is disabled for local testing. Live requests still use your Google quota."
     : `AI shows your remaining free requests. You get 10 attempts every 24 hours, shared between tailoring, job matching, and copying a resume format. People on the same network share this allowance.${reset}`;
   return <MeterBadge status label="AI request allowance" help={help}
-    className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${exhausted ? "border-red-200 bg-red-50 text-red-700" : unavailable ? "border-amber-200 bg-amber-50 text-amber-800" : "border-accent-border bg-accent-subtle text-accent-text"}`}>
+    className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2.5 text-xs leading-none font-medium ${exhausted ? "border-red-200 bg-red-50 text-red-700" : unavailable ? "border-amber-200 bg-amber-50 text-amber-800" : "border-accent-border bg-accent-subtle text-accent-text"}`}>
     {label}
   </MeterBadge>;
 }

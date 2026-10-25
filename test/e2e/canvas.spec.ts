@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { SEED_BLOCKS } from "@/data/seed";
+import { expect, test } from "./test";
+import { SEED_BLOCKS } from "../fixtures/seed";
 import { canvasBlock, hoverClick, openApp, spaceMeter, vaultCard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/blocks/tailor/route";
-import { DEMO_JD_TEXT } from "@/data/demo-jd";
-import { SEED_BLOCKS } from "@/data/seed";
+import { DEMO_JD_TEXT } from "../fixtures/demoJd";
+import { SEED_BLOCKS } from "../fixtures/seed";
 import { TailorResponseSchema, type TailorRequest } from "@/schemas/tailor";
 import {
   FAKE_GOOGLE_KEY,

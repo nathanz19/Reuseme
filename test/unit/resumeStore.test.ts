@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { SEED_PRESETS } from "@/data/seed";
+import { SEED_PRESETS } from "../fixtures/seed";
+import { RESUME_STORAGE_KEY } from "@/data/starterData";
 import { useResumeStore } from "@/store/resumeStore";
+import { seedResumeState } from "../support/seedWorkspace";
 
 const store = useResumeStore;
 const active = () => store.getState().getActivePreset();
@@ -20,6 +22,7 @@ function useTrimmedFrontendPreset() {
 beforeEach(() => {
   localStorage.clear();
   store.setState(store.getInitialState(), true);
+  store.setState(seedResumeState());
   useTrimmedFrontendPreset();
 });
 
@@ -207,7 +210,7 @@ describe("resume store", () => {
 
   it("persists presets to localStorage and rehydrates without history", async () => {
     store.getState().removeBlockFromResume("proj-1");
-    const raw = localStorage.getItem("reuseme-resume") ?? "{}";
+    const raw = localStorage.getItem(RESUME_STORAGE_KEY) ?? "{}";
     const saved = JSON.parse(raw);
     expect(saved.state.activePresetId).toBe("frontend-swe");
     expect(
@@ -218,7 +221,7 @@ describe("resume store", () => {
 
     // Resetting writes through persist, so restore the saved payload like a page reload would see it.
     store.setState(store.getInitialState(), true);
-    localStorage.setItem("reuseme-resume", raw);
+    localStorage.setItem(RESUME_STORAGE_KEY, raw);
     await store.getState().rehydrate();
     expect(active().activeBlockIds).not.toContain("proj-1");
     expect(store.getState().past).toEqual([]);
