@@ -1,6 +1,30 @@
 import { expect, test } from "@playwright/test";
 import { analyzeDemoJd, canvasBlock, confirmTailor, hoverClick, openApp } from "./helpers";
 
+test("Space and AI show explanations only on hover or focus", async ({ page }) => {
+  await page.route("**/api/ai/usage", (route) => route.fulfill({
+    json: { mock: false, limit: 10, remaining: 9, resetAt: Date.now() + 3600000 },
+  }));
+  await openApp(page);
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toHaveCount(0);
+  const space = page.getByLabel("Estimated lines vs one-page budget", { exact: true });
+  await space.hover();
+  await expect(tooltip).toContainText("one-page resume");
+  await page.mouse.move(0, 0);
+  await expect(tooltip).toHaveCount(0);
+  const ai = page.getByRole("status", { name: "AI request allowance", exact: true });
+  await expect(ai).toHaveText("AI 9/10 left");
+  await ai.hover();
+  await expect(tooltip).toContainText("remaining free requests");
+  await expect(tooltip).toContainText("Resets at");
+  await page.mouse.move(0, 0);
+  await space.focus();
+  await expect(tooltip).toContainText("estimated lines");
+  await space.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+});
+
 test("AI allowance loads next to Space and refreshes after both AI actions and reload", async ({ page }) => {
   let remaining = 10;
   await page.route("**/api/ai/usage", (route) => route.fulfill({
