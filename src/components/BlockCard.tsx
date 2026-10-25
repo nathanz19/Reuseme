@@ -2,11 +2,13 @@
 
 import { BlockActions } from "@/components/BlockActions";
 import { IconAction } from "@/components/IconAction";
+import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
 import { useDraggable } from "@dnd-kit/core";
-import { ChevronDown, ChevronRight, GripVertical, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { vaultDraggableId } from "@/lib/dnd";
+import { vaultDraggableId, wholeElementDragListeners } from "@/lib/dnd";
 import { btnOutlineSm } from "@/lib/theme";
+import { useSessionStore } from "@/store/sessionStore";
 import type { AccomplishmentBlock, SemanticRanking } from "@/types/resume";
 
 interface BlockCardProps {
@@ -27,31 +29,27 @@ export function BlockCard({
   onTailorBullet,
 }: BlockCardProps) {
   const [open, setOpen] = useState(false);
+  const arrange = useSessionStore((s) => s.dragMode === "arrange");
 
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: vaultDraggableId(block.id),
     data: { origin: "vault", blockId: block.id, category: block.category },
-    disabled: onResume,
+    disabled: onResume || !arrange,
   });
+  const dragListeners = wholeElementDragListeners(listeners);
 
   return (
     <article
       ref={setNodeRef}
-      className={`group relative rounded border border-slate-200 bg-white text-sm shadow-sm ${
-        isDragging ? "opacity-60" : ""
-      }`}
+      {...dragListeners}
+      className={`group relative rounded border border-slate-200 text-sm shadow-sm ${KEYBOARD_DRAG_FOCUS} ${
+        onResume ? "bg-slate-50" : "bg-white"
+      } ${dragListeners ? "cursor-grab select-none" : ""} ${isDragging ? "opacity-60" : ""}`}
     >
+      {dragListeners && (
+        <KeyboardDragHandle label="Drag to resume" attributes={attributes} handleRef={setActivatorNodeRef} />
+      )}
       <div className="flex items-start gap-2 p-2">
-        <button
-          type="button"
-          className="mt-0.5 shrink-0 cursor-grab text-slate-400 disabled:cursor-default disabled:opacity-30"
-          disabled={onResume}
-          aria-label="Drag to resume"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical size={16} />
-        </button>
         <button
           type="button"
           className="mt-0.5 text-slate-500"
