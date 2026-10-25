@@ -2,7 +2,7 @@
 
 A local-first web app. Users keep career achievements as tagged **blocks** (with raw source notes), compose role-specific resumes on a live canvas, match blocks against a pasted job description (JD), and tailor bullets with AI rewrites grounded in the user's own notes.
 
-**For agents:** this file describes the shipped app. Follow §2. **Tunable** values (§5) are starting points. §9 is the acceptance checklist for that behavior. Vitest covers pure functions in `src/lib`: `getEffectiveBullets`, line-count and page-budget math, coverage, search, match sanitizing, and grounding.
+**For agents:** this file describes the shipped app. Follow §2. **Tunable** values (§5) are starting points. §9 is the acceptance checklist for that behavior. The Vitest `unit` project covers pure functions in `src/lib` (`getEffectiveBullets`, line-count and page-budget math, coverage, search, match sanitizing, and grounding) and the stores. The Vitest `llm` project covers the AI routes against a fake Gemini API, with no key.
 
 **Non-goals:** accounts or sync, importing a resume, multi-page resumes (overflow is flagged, not paginated), DOCX export. Adding, editing, and deleting vault entries is in scope.
 
@@ -293,7 +293,7 @@ Cards show title, org, tags, archived badge, match score and explanation (when a
 
 ## 8. Definition of done (every phase)
 
-Typecheck and lint pass; the phase checklist matches the behavior above; Vitest passes for the pure functions listed above; Playwright covers the UI flows in `test/e2e/`; no secrets in client bundles.
+Typecheck and lint pass; the phase checklist matches the behavior above; the Vitest `unit` and `llm` projects pass; Playwright covers the UI flows in `test/e2e/`; no secrets in client bundles.
 
 ---
 

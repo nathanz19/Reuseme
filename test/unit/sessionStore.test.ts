@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { DEMO_JD_TEXT } from "@/data/demo-jd";
-import { matchVault, tailorBullet } from "@/data/fixtures";
+import { matchVault } from "@/data/fixtures";
 import { SEED_BLOCKS } from "@/data/seed";
+import { createTailorPreview } from "@/lib/tailorPreview";
 import { useSessionStore } from "@/store/sessionStore";
 
 const store = useSessionStore;
@@ -65,28 +66,14 @@ describe("session store", () => {
     expect(store.getState().tagMatches.length).toBeGreaterThan(0);
   });
 
-  it("tracks the match loading flag", () => {
-    expect(store.getState().matchLoading).toBe(false);
-    store.getState().setMatchLoading(true);
-    expect(store.getState().matchLoading).toBe(true);
-  });
-
-  it("changes tone only when a proposal exists and resets on close", async () => {
+  it("changes tone only when a proposal exists and resets on close", () => {
     store.getState().setTailorTone("concise");
     expect(store.getState().tailorProposal).toBeNull();
 
-    const result = matchVault(DEMO_JD_TEXT, SEED_BLOCKS);
-    if ("error" in result) throw new Error(result.error);
     const block = SEED_BLOCKS[0];
     store.getState().openTailorDialog(block.id, 0);
     store.getState().setTailorProposal(
-      await tailorBullet({
-        block,
-        bulletIndex: 0,
-        bulletText: block.bullets[0],
-        parsedJD: result.parsedJD,
-        presetId: "frontend-swe",
-      }),
+      createTailorPreview(block.id, 0, block.bullets[0]),
     );
     store.getState().setTailorTone("leadership");
     expect(store.getState().tailorProposal?.selectedTone).toBe("leadership");

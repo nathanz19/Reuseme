@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openApp } from "./helpers";
 
+test.use({ reducedMotion: "no-preference" });
+
 function sectionOrder(page: Page) {
   return page
     .locator("#resume-print-root [data-resume-section]")
@@ -26,7 +28,37 @@ test("dragging a section by its heading moves the whole section, and undo restor
   await page.mouse.move(x, fromBox.y - 10, { steps: 4 });
   await page.mouse.move(x, targetBox.y + 4, { steps: 20 });
   await page.waitForTimeout(250);
+
+  // The section stays in the page as a hidden skeleton that reaches equally into
+  // both page margins, while an elevated copy follows the pointer.
+  const skeleton = page.locator('[data-resume-section="project"][data-dragging="true"]');
+  const overlay = page.locator("[data-dragging]:not([data-resume-section])");
+  await expect(skeleton).toBeVisible();
+  await expect(skeleton.locator("[data-section-content]")).toHaveCSS("visibility", "hidden");
+  await expect(overlay).toContainText("Projects");
+  const layout = await skeleton.evaluate((section) => {
+    const box = (element: Element) => element.getBoundingClientRect();
+    const sheet = box(section.closest("#resume-print-root")!);
+    const shell = box(section);
+    const heading = box(section.querySelector("h2")!);
+    return {
+      margins: [shell.left - sheet.left, sheet.right - shell.right],
+      gutters: [heading.left - shell.left, shell.right - heading.right],
+    };
+  });
+  expect(Math.abs(layout.margins[0] - layout.margins[1])).toBeLessThan(1);
+  expect(layout.gutters[0]).toBeGreaterThan(0);
+  expect(Math.abs(layout.gutters[0] - layout.gutters[1])).toBeLessThan(1);
+  const overlayStart = (await overlay.boundingBox())!;
+  await page.mouse.move(x + 30, targetBox.y + 44, { steps: 5 });
+  await expect.poll(async () => {
+    const moved = (await overlay.boundingBox())!;
+    return [Math.round(moved.x - overlayStart.x), Math.round(moved.y - overlayStart.y)];
+  }).toEqual([30, 40]);
+  await page.mouse.move(x, targetBox.y + 4, { steps: 5 });
+  await page.waitForTimeout(250);
   await page.mouse.up();
+  await expect(page.locator("[data-dragging]")).toHaveCount(0);
 
   await expect.poll(() => sectionOrder(page)).not.toEqual(before);
   const after = await sectionOrder(page);

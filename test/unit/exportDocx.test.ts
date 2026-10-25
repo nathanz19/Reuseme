@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { SEED_BLOCKS, SEED_PRESETS } from "@/data/seed";
 import { buildResumeDocument, resumeDocxFilename } from "@/lib/exportDocx";
 import type { ResumePreset } from "@/types/resume";
-import { docxPlainText, readZipText } from "./docxZip";
 import { DEMO_REFERENCE_FORMAT } from "@/schemas/referenceFormat";
-import { COMPACT_SERIF_FORMAT, MODERN_PARAGRAPH_FORMAT } from "./fixtures/referenceFormat";
+import { docxPlainText, readZipText } from "../support/docxZip";
+import { COMPACT_SERIF_FORMAT, MODERN_PARAGRAPH_FORMAT } from "../fixtures/referenceFormat";
 
 async function packed(preset: ResumePreset, blocks = SEED_BLOCKS) {
   const buffer = await Packer.toBuffer(buildResumeDocument(preset, blocks));

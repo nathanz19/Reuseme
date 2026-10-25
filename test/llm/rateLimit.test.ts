@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { enforceAiRateLimit, getAiUsage } from "@/lib/server/aiRateLimit";
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -14,7 +14,6 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
 });
-afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("shared AI rate limit", () => {
   it("can bypass Redis only during explicitly enabled local development", async () => {

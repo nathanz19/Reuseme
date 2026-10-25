@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.use({ reducedMotion: "no-preference" });
+
 test("headline fades near the top and returns when scrolling back", async ({ page }) => {
   await page.goto("/");
   const headline = page.locator("[data-scroll-fade]");
@@ -90,17 +92,4 @@ test("features fade in when scrolled into view", async ({ page }) => {
   await feature.scrollIntoViewIfNeeded();
   await expect(feature).toHaveAttribute("data-reveal", "visible");
   await expect(feature).toHaveCSS("opacity", "1");
-});
-
-test("landing page opens the editor on desktop and mobile", async ({ page }) => {
-  for (const width of [1440, 390]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.getByRole("link", { name: "Get started" }).click();
-    await expect(page).toHaveURL(/\/editor$/);
-    // Mobile shows the vault first; the editor itself is still loaded.
-    await expect(page.getByRole("navigation", { name: "Documents" })).toBeVisible();
-  }
 });

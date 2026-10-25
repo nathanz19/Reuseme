@@ -12,12 +12,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI
-    ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]]
+    ? [["github"], ["list"], ["html", { open: "never", outputFolder: "playwright-report" }]]
     : "list",
   use: {
     baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Flows don't wait on animations. Specs that check motion opt back in with
+    // `test.use({ reducedMotion: "no-preference" })`.
+    reducedMotion: "reduce",
   },
   projects: [
     {
