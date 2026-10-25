@@ -234,28 +234,6 @@ body.resume-drop-blocked * {
   }
 }
 
-/*
- * Not a `.group`: hovering a section must not reveal every block control inside it.
- * The grip sits in the page margin outside the section box, so it stays
- * hit-testable while transparent; otherwise the pointer could never reach it.
- */
-.resume-section > .resume-section-handle {
-  opacity: 0;
-  transition: opacity 120ms ease-out;
-}
-
-.resume-section:hover > .resume-section-handle,
-.resume-section[data-dragging="true"] > .resume-section-handle,
-.resume-section > .resume-section-handle:focus-visible {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .resume-section > .resume-section-handle {
-    opacity: 1;
-  }
-}
-
 #resume-print-copy {
   display: none;
 }
@@ -514,10 +492,6 @@ body.resume-drop-blocked * {
   padding: var(--reference-card-padding);
   border-color: transparent;
 }
-.resume-reference [data-canvas-block-id] .drag-handle {
-  position: absolute;
-  left: -22px;
-}
 .resume-reference [data-resume-section] section > .pt-1,
 .resume-reference .reference-entry-heading + ul {
   padding-top: 0;
@@ -543,17 +517,6 @@ body.resume-drop-blocked * {
 .resume-reference [data-canvas-block-id]::after {
   right: calc(-1 * var(--reference-rail-width) - 4px);
   width: calc(var(--reference-rail-width) + 4px);
-}
-.resume-reference [data-canvas-block-id] .drag-handle {
-  left: -28px;
-  top: 0;
-  width: 28px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  z-index: 2;
 }
 .resume-reference .reference-block-actions {
   right: calc(-1 * var(--reference-rail-width));

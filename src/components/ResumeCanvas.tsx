@@ -68,6 +68,8 @@ interface ResumeCanvasProps {
   removingBlockId: string | null;
   placeholder: CanvasPlaceholder | null;
   dropBlocked: boolean;
+  /** Blocks and sections can be dragged; when off, the page text is selectable. */
+  arrangeMode: boolean;
   onRemove: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
 }
@@ -82,6 +84,7 @@ export function ResumeCanvas({
   removingBlockId,
   placeholder,
   dropBlocked,
+  arrangeMode,
   onRemove,
   onTailorBullet,
 }: ResumeCanvasProps) {
@@ -138,6 +141,7 @@ export function ResumeCanvas({
             dropTarget={dropTargetSection === id}
             removingBlockId={removingBlockId}
             dropBlocked={dropBlocked}
+            arrangeMode={arrangeMode}
             onRemove={onRemove}
             onTailorBullet={onTailorBullet}
           />
@@ -217,7 +221,7 @@ export function ResumeCanvas({
       />
       <SortableContext items={sortableSectionIds} strategy={verticalListSortingStrategy}>
         {sections.map((section) => (
-          <SortableSection key={section.id} sectionId={section.id} label={section.label}>
+          <SortableSection key={section.id} sectionId={section.id} label={section.label} draggable={arrangeMode}>
             {section.content}
           </SortableSection>
         ))}

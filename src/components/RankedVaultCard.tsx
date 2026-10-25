@@ -1,10 +1,12 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Check, GripVertical } from "lucide-react";
-import { vaultDraggableId } from "@/lib/dnd";
+import { Check } from "lucide-react";
+import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
+import { vaultDraggableId, wholeElementDragListeners } from "@/lib/dnd";
 import { btnOutlineSm } from "@/lib/theme";
 import { matchTier, requirementsForTag, type MatchTier } from "@/lib/relevance";
+import { useSessionStore } from "@/store/sessionStore";
 import type {
   AccomplishmentBlock,
   SemanticRanking,
@@ -60,11 +62,13 @@ export function RankedVaultCard({
   canAdd,
   onAdd,
 }: RankedVaultCardProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const arrange = useSessionStore((s) => s.dragMode === "arrange");
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: vaultDraggableId(block.id),
     data: { origin: "vault", blockId: block.id, category: block.category },
-    disabled: onResume,
+    disabled: onResume || !arrange,
   });
+  const dragListeners = wholeElementDragListeners(listeners);
 
   const tier = TIER_STYLES[matchTier(ranking)];
   const score = Math.min(Math.max(ranking.matchScore, 0), 100);
@@ -73,12 +77,16 @@ export function RankedVaultCard({
   return (
     <article
       ref={setNodeRef}
+      {...dragListeners}
       data-ranked-block-id={block.id}
       data-on-resume={onResume}
-      className={`group relative rounded border border-slate-200 bg-white p-3 pl-6 text-sm shadow-sm transition-opacity ${
-        onResume ? "opacity-50" : isDragging ? "opacity-60" : ""
-      }`}
+      className={`group relative rounded border border-slate-200 bg-white p-3 text-sm shadow-sm transition-opacity ${KEYBOARD_DRAG_FOCUS} ${
+        dragListeners ? "cursor-grab select-none" : ""
+      } ${onResume ? "opacity-50" : isDragging ? "opacity-60" : ""}`}
     >
+      {dragListeners && (
+        <KeyboardDragHandle label="Drag to resume" attributes={attributes} handleRef={setActivatorNodeRef} />
+      )}
       <div className="flex items-start gap-2">
         <span
           aria-label={`Rank ${rank}`}
@@ -163,19 +171,6 @@ export function RankedVaultCard({
             {onResume ? "On resume" : "Not on resume"}
           </span>
         </div>
-      </div>
-
-      <div className="resume-hover-control absolute left-1 top-3 print:hidden">
-        <button
-          type="button"
-          className="cursor-grab rounded bg-white/95 p-0.5 text-slate-400 hover:text-slate-700 disabled:cursor-default disabled:opacity-30"
-          disabled={onResume}
-          aria-label="Drag to resume"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical size={14} />
-        </button>
       </div>
     </article>
   );

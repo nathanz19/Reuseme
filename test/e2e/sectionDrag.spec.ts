@@ -9,29 +9,24 @@ function sectionOrder(page: Page) {
     .evaluateAll((sections) => sections.map((section) => section.getAttribute("data-resume-section")));
 }
 
-function sectionGrip(page: Page, label: string) {
+function sectionHandle(page: Page, label: string) {
   return page.getByRole("button", { name: `Drag ${label} section`, exact: true });
 }
 
-test("dragging a section's grip moves the whole section, and undo restores it", async ({ page }) => {
+test("dragging a section by its heading moves the whole section, and undo restores it", async ({ page }) => {
   await openApp(page);
   const before = await sectionOrder(page);
   expect(before.indexOf("experience")).toBeLessThan(before.indexOf("project"));
 
   const experience = page.locator('[data-resume-section="experience"]');
   const projects = page.locator('[data-resume-section="project"]');
-  await projects.hover();
-  const grip = sectionGrip(page, "Projects");
-  await expect(grip).toBeVisible();
-  const gripBox = (await grip.boundingBox())!;
+  const fromBox = (await projects.getByRole("heading").first().boundingBox())!;
   const targetBox = (await experience.boundingBox())!;
-  // Approach the grip gradually across the margin, as a person would.
-  await page.mouse.move(gripBox.x + 120, gripBox.y + gripBox.height / 2);
-  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2, { steps: 15 });
-  await expect(grip).toHaveCSS("opacity", "1");
+  const x = fromBox.x + 40;
+  await page.mouse.move(x, fromBox.y + fromBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y - 10, { steps: 4 });
-  await page.mouse.move(gripBox.x + gripBox.width / 2, targetBox.y + 4, { steps: 20 });
+  await page.mouse.move(x, fromBox.y - 10, { steps: 4 });
+  await page.mouse.move(x, targetBox.y + 4, { steps: 20 });
   await page.waitForTimeout(250);
 
   // The section stays in the page as a hidden skeleton that reaches equally into
@@ -86,7 +81,10 @@ test("sections reorder from the keyboard and the order survives a reload", async
   const projectIndex = before.indexOf("project");
   expect(projectIndex).toBeGreaterThan(0);
 
-  await sectionGrip(page, "Projects").focus();
+  const projects = page.locator('[data-resume-section="project"]');
+  await page.keyboard.press("Tab");
+  await sectionHandle(page, "Projects").focus();
+  await expect(projects).toHaveCSS("outline-style", "solid");
   await page.keyboard.press("Space");
   await page.keyboard.press("ArrowUp");
   await page.waitForTimeout(250);
@@ -102,7 +100,7 @@ test("sections reorder from the keyboard and the order survives a reload", async
   await expect.poll(() => sectionOrder(page)).toEqual(expected);
 });
 
-test("the header stays pinned at the top and has no section grip", async ({ page }) => {
+test("the header stays pinned at the top and has no section handle", async ({ page }) => {
   await openApp(page);
   const header = page.locator("#resume-print-root header");
   await header.hover();
@@ -114,13 +112,12 @@ test("the header stays pinned at the top and has no section grip", async ({ page
   // Dropping the first section above the header still leaves it below the header.
   const first = page.locator("#resume-print-root [data-resume-section]").first();
   const firstId = await first.getAttribute("data-resume-section");
-  await first.hover();
-  const grip = first.getByRole("button", { name: /^Drag .* section$/ });
-  const gripBox = (await grip.boundingBox())!;
+  const fromBox = (await first.getByRole("heading").first().boundingBox())!;
   const headerBox = (await header.boundingBox())!;
-  await page.mouse.move(gripBox.x + gripBox.width / 2, gripBox.y + gripBox.height / 2);
+  const x = fromBox.x + 40;
+  await page.mouse.move(x, fromBox.y + fromBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(gripBox.x + gripBox.width / 2, headerBox.y, { steps: 20 });
+  await page.mouse.move(x, headerBox.y, { steps: 20 });
   await page.mouse.up();
   await expect(page.locator("#resume-print-root [data-resume-section]").first()).toHaveAttribute(
     "data-resume-section",
@@ -129,4 +126,26 @@ test("the header stays pinned at the top and has no section grip", async ({ page
   const firstBox = (await page.locator("#resume-print-root [data-resume-section]").first().boundingBox())!;
   expect(firstBox.y).toBeGreaterThan(headerBox.y + headerBox.height - 1);
   await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+});
+
+test("pressing inside a block drags the block, not its section", async ({ page }) => {
+  await openApp(page);
+  const before = await sectionOrder(page);
+  const experience = page.locator('[data-resume-section="experience"]');
+  const blocks = experience.locator("[data-canvas-block-id]");
+  const blockIds = () => blocks.evaluateAll((els) => els.map((el) => el.getAttribute("data-canvas-block-id")));
+  const blocksBefore = await blockIds();
+
+  const fromBox = (await blocks.nth(1).locator("li").first().boundingBox())!;
+  const toBox = (await blocks.first().boundingBox())!;
+  const x = fromBox.x + 40;
+  await page.mouse.move(x, fromBox.y + fromBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, fromBox.y - 10, { steps: 4 });
+  await page.mouse.move(x, toBox.y + 4, { steps: 20 });
+  await page.waitForTimeout(250);
+  await page.mouse.up();
+
+  await expect.poll(blockIds).toEqual([blocksBefore[1], blocksBefore[0], ...blocksBefore.slice(2)]);
+  expect(await sectionOrder(page)).toEqual(before);
 });

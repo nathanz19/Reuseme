@@ -26,6 +26,7 @@ interface ResumeSectionProps {
   dropTarget: boolean;
   removingBlockId: string | null;
   dropBlocked: boolean;
+  arrangeMode: boolean;
   onRemove: (blockId: string) => void;
   onTailorBullet: (blockId: string, bulletIndex: number) => void;
 }
@@ -40,6 +41,7 @@ export function ResumeSection({
   dropTarget,
   removingBlockId,
   dropBlocked,
+  arrangeMode,
   onRemove,
   onTailorBullet,
 }: ResumeSectionProps) {
@@ -96,6 +98,7 @@ export function ResumeSection({
                 placeholder={item.placeholder}
                 leaving={item.leaving || (!item.placeholder && item.block.id === removingBlockId)}
                 overflow={!item.placeholder && overflowBlockId === item.block.id}
+                arrangeMode={arrangeMode}
                 onRemove={() => onRemove(item.block.id)}
                 onTailorBullet={(index) => onTailorBullet(item.block.id, index)}
               />

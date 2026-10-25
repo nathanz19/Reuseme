@@ -26,6 +26,7 @@ export interface VaultCategory {
 /** Category rows shown in the vault, in display order. */
 export const VAULT_CATEGORIES: VaultCategory[] = [
   { id: "contact", label: "Contact Information", kind: "contact" },
+  { id: "skills", label: "Skills & Interests", kind: "skills" },
   { id: "target-title", label: "Target Title", kind: "placeholder" },
   { id: "summary", label: "Professional Summary", kind: "placeholder" },
   {
@@ -40,7 +41,6 @@ export const VAULT_CATEGORIES: VaultCategory[] = [
     kind: "blocks",
     blockCategory: "education",
   },
-  { id: "skills", label: "Skills & Interests", kind: "skills" },
   {
     id: "certification",
     label: "Certifications",

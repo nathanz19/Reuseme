@@ -2,9 +2,9 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { sectionSortableId, type SectionDragData } from "@/lib/dnd";
+import { KEYBOARD_DRAG_FOCUS, KeyboardDragHandle } from "@/components/KeyboardDragHandle";
+import { sectionSortableId, wholeElementDragListeners, type SectionDragData } from "@/lib/dnd";
 import {
   CANVAS_BLOCK_TRANSITION,
   canvasBlockAnimateLayoutChanges,
@@ -13,16 +13,19 @@ import {
 interface SortableSectionProps {
   sectionId: string;
   label: string;
+  /** Allow the section to move. */
+  draggable?: boolean;
   children: ReactNode;
 }
 
 /**
- * A canvas section below the header that drags as a whole by its grip.
+ * A canvas section below the header that drags as a whole from any point
+ * outside its blocks and controls.
  * Like a canvas block, the section itself turns into a gray skeleton that
  * slides between slots while an elevated copy follows the pointer inside
  * `<DragOverlay>` (see `SectionOverlay`).
  */
-export function SortableSection({ sectionId, label, children }: SortableSectionProps) {
+export function SortableSection({ sectionId, label, draggable = true, children }: SortableSectionProps) {
   const data: SectionDragData = { origin: "section", sectionId };
   const {
     attributes,
@@ -35,6 +38,7 @@ export function SortableSection({ sectionId, label, children }: SortableSectionP
   } = useSortable({
     id: sectionSortableId(sectionId),
     data,
+    disabled: draggable ? false : { draggable: true },
     animateLayoutChanges: canvasBlockAnimateLayoutChanges,
     transition: CANVAS_BLOCK_TRANSITION,
   });
@@ -46,30 +50,26 @@ export function SortableSection({ sectionId, label, children }: SortableSectionP
     zIndex: isDragging ? 10 : undefined,
   };
 
+  // Presses inside a canvas block reach the block first, so they never move the section.
+  const dragListeners = wholeElementDragListeners(listeners);
+
   return (
     <div
       ref={setNodeRef}
       style={style}
+      {...dragListeners}
       data-resume-section={sectionId}
       data-dragging={isDragging ? "true" : undefined}
-      // Equal gutters extend into the page padding so the card contains the grip
-      // and is symmetrical, while the section content stays aligned with the page.
-      className={`resume-section -mx-7 rounded-sm px-7 ${
-        isDragging ? "bg-slate-200 ring-1 ring-inset ring-slate-300" : ""
-      }`}
+      // Equal gutters extend into the page padding so the dragged card is
+      // symmetrical, while the section content stays aligned with the page.
+      className={`resume-section -mx-7 rounded-sm px-7 ${KEYBOARD_DRAG_FOCUS} ${
+        dragListeners && !isDragging ? "cursor-grab select-none" : ""
+      } ${isDragging ? "bg-slate-200 ring-1 ring-inset ring-slate-300" : ""}`}
     >
-      <div className={isDragging ? "pointer-events-none invisible" : undefined}>
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-label={`Drag ${label} section`}
-          title={`Drag to move the ${label} section`}
-          className="resume-section-handle absolute left-0 top-0 flex h-5 w-7 cursor-grab touch-none items-center justify-center rounded text-slate-400 hover:text-slate-600 focus-visible:outline-2 focus-visible:outline-focus-ring print:hidden"
-        >
-          <GripVertical size={16} aria-hidden="true" />
-        </button>
+      {dragListeners && (
+        <KeyboardDragHandle label={`Drag ${label} section`} attributes={attributes} handleRef={setActivatorNodeRef} />
+      )}
+      <div data-section-content className={isDragging ? "pointer-events-none invisible" : undefined}>
         {children}
       </div>
     </div>
@@ -92,8 +92,7 @@ export function snapshotSection(sectionId: string, node: HTMLElement | null): Se
     el.removeAttribute("id");
     el.removeAttribute("tabindex");
   }
-  // The first child wraps the grip and the section content.
-  return { sectionId, html: (clone.firstElementChild ?? clone).innerHTML };
+  return { sectionId, html: (clone.querySelector(":scope > [data-section-content]") ?? clone).innerHTML };
 }
 
 /** Elevated copy of a section that follows the pointer inside `<DragOverlay>`. */

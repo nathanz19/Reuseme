@@ -138,7 +138,8 @@ test("adding a ranked card fades it in place and removing it restores it", async
     page.locator("[data-ranked-block-id]").first(),
   ).toHaveAttribute("data-ranked-block-id", "proj-2");
   await expect(card.getByRole("button", { name: "Add to Resume" })).toBeDisabled();
-  await expect(card.getByRole("button", { name: "Drag to resume" })).toBeDisabled();
+  await expect(card.getByRole("button", { name: "Drag to resume" })).toHaveCount(0);
+  await expect(card).not.toHaveClass(/cursor-grab/);
 
   await hoverClick(canvasBlock(page, "proj-2"), "Remove from resume");
   await expect(card).toHaveAttribute("data-on-resume", "false");
